@@ -1,59 +1,54 @@
 import { useState, useRef, useEffect } from "react";
 
-/* ── Service categories (quick preview) ─────────────────── */
-const CATS = [
-  { icon:"🚨", name:"জরুরি সেবা",          nameEn:"Emergency",        col:"#EF4444", price:"বিনামূল্যে" },
-  { icon:"🏠", name:"গৃহ রক্ষণাবেক্ষণ",    nameEn:"Home Maintenance", col:"#F59E0B", price:"৳৩৫০+" },
-  { icon:"🧹", name:"পরিষ্কার সেবা",       nameEn:"Cleaning",         col:"#14B8A6", price:"৳৪০০+" },
-  { icon:"👩‍⚕️", name:"স্বাস্থ্যসেবা",       nameEn:"Healthcare",       col:"#EF4444", price:"৳৫০০+" },
-  { icon:"📚", name:"শিক্ষা সেবা",         nameEn:"Education",        col:"#8B5CF6", price:"৳৪০০+" },
-  { icon:"🚚", name:"স্থানান্তর",           nameEn:"Moving",           col:"#F97316", price:"৳২০০০+" },
-  { icon:"🍲", name:"রান্না ও খাবার",       nameEn:"Food & Cooking",   col:"#F59E0B", price:"৳৬০০+" },
-  { icon:"🧑‍💼", name:"পেশাদার পরামর্শ",    nameEn:"Professional",     col:"#6366F1", price:"৳৮০০+" },
-  { icon:"🛡️", name:"নিরাপত্তা সেবা",     nameEn:"Security",         col:"#374151", price:"৳৫০০+" },
-  { icon:"🛒", name:"দৈনন্দিন সহায়তা",   nameEn:"Daily Errands",    col:"#EC4899", price:"৳১৫০+" },
-  { icon:"🧓", name:"বয়স্ক সেবা",         nameEn:"Elderly Care",     col:"#7C3AED", price:"৳৪০০+" },
-  { icon:"👶", name:"শিশু ও পরিবার",      nameEn:"Child & Family",   col:"#DB2777", price:"৳৪০০+" },
-];
-
-/* ── Canned AI FAQ ─────────────────────────────────────── */
-const FAQ_BN = [
-  { q:"সেবার দাম কত?",             a:"আমাদের সেবা শুরু হয় মাত্র ৳১৫০ থেকে। জরুরি সেবা সম্পূর্ণ বিনামূল্যে। প্রতিটি সেবার নির্দিষ্ট মূল্যসীমা সার্ভিস পেজে দেখা যায়।" },
-  { q:"কিভাবে বুক করব?",           a:"১) Login করুন  ২) সেবা বেছে নিন  ৩) কাছের Provider দেখুন  ৪) সময়সূচি ও মূল্য নিশ্চিত করুন  ৫) বুকিং কনফার্ম করুন — Provider নির্ধারিত সময়ে আসবেন।" },
-  { q:"Provider হব কিভাবে?",       a:"Register করুন 'Service Provider' হিসেবে → NID ও প্রয়োজনীয় কাগজ আপলোড করুন (KYC) → ৪৮ ঘণ্টার মধ্যে Approval → কাজ শুরু করুন ও আয় করুন!" },
-  { q:"এটা কি নিরাপদ?",            a:"অবশ্যই! প্রতিটি Provider KYC-যাচাইকৃত ও NID-ভেরিফাইড। Service চলাকালীন আমাদের 🆘 SOS বাটন সব সময় সক্রিয়। যেকোনো অপ্রীতিকর ঘটনায় তাৎক্ষণিক Admin ও Call Center জানানো হয়।" },
-  { q:"জরুরি অবস্থায় কী করব?",   a:"App-এর 🆘 SOS বাটন চাপুন — Admin ও Call Center তাৎক্ষণিক জানবে। অথবা সরাসরি ফোন করুন: ৯৯৯ (পুলিশ), ১৯৯ (ফায়ার সার্ভিস), ১৬৪৩০ (ন্যাশনাল হেল্পলাইন)।" },
-  { q:"Payment কিভাবে?",           a:"Cash on Delivery, bKash, Nagad ও Card payment — সব গ্রহণযোগ্য। Transaction সম্পূর্ণ এনক্রিপ্টেড ও নিরাপদ।" },
-  { q:"কোনো সমস্যা হলে?",          a:"Service-এর মধ্যে SOS বাটন চাপুন বা 🔴 Report করুন। আমাদের WhatsApp: +880 1XXXXXXXX বা Call করুন। সকল অভিযোগ ২৪ ঘণ্টার মধ্যে সমাধান করা হয়।" },
-  { q:"Cancel করতে পারব?",         a:"Service শুরুর ২ ঘণ্টা আগে Cancel করলে সম্পূর্ণ Refund। ১ ঘণ্টার কম সময়ে ৫০% চার্জ প্রযোজ্য। Provider-ও Cancel করলে কোনো চার্জ নেই।" },
-];
-
-const FAQ_EN = [
-  { q:"What are the prices?",        a:"Services start from just ৳150. Emergency services are completely free. Exact pricing is shown on each service page." },
-  { q:"How do I book a service?",    a:"1) Login  2) Choose a service  3) Browse nearby Providers  4) Confirm time & price  5) Book — Provider will arrive at the scheduled time." },
-  { q:"How to become a Provider?",   a:"Register as 'Service Provider' → Upload NID & documents (KYC) → Get approval within 48 hours → Start earning!" },
-  { q:"Is it safe?",                 a:"Absolutely! Every Provider is KYC-verified with NID. The 🆘 SOS button is always active during service. Any incident is instantly forwarded to Admin & Call Center." },
-  { q:"Emergency situation?",        a:"Press the 🆘 SOS button in the app — Admin and Call Center are notified immediately. Or call: 999 (Police), 199 (Fire Service), 16430 (National Helpline)." },
-  { q:"How to pay?",                 a:"Cash on Delivery, bKash, Nagad and Card — all accepted. Transactions are fully encrypted and secure." },
-  { q:"Problem with service?",       a:"Press SOS or Report during the service. WhatsApp: +880 1XXXXXXXX or call us. All complaints resolved within 24 hours." },
-  { q:"Can I cancel?",               a:"Full refund if cancelled 2+ hours before service. 50% charge within 1 hour. No charge if Provider cancels." },
-];
-
-function matchFaq(text, lang) {
-  const list   = lang === "en" ? FAQ_EN : FAQ_BN;
-  const lower  = text.toLowerCase();
-  const keys   = ["দাম|price|cost|কত|charge|fee","বুক|book|কিভাবে|how","provider|হব|earn|income|আয়|কাজ","নিরাপদ|safe|security|trust","জরুরি|emergency|sos|বিপদ|danger","payment|pay|bkash|nagad|টাকা","সমস্যা|problem|issue|complaint|অভিযোগ","cancel|refund|ফেরত"];
-  const idxMap = [0,1,2,3,4,5,6,7];
-  for (let ki = 0; ki < keys.length; ki++) {
-    if (keys[ki].split("|").some(k => lower.includes(k))) return list[idxMap[ki]];
-  }
-  return { q:"", a: lang === "en"
-    ? "I can help with: pricing, booking, becoming a provider, safety, emergency, payment, complaints, and cancellation. What would you like to know?"
-    : "আমি সাহায্য করতে পারি: মূল্য, বুকিং, Provider হওয়া, নিরাপত্তা, জরুরি সেবা, পেমেন্ট, অভিযোগ এবং বাতিল বিষয়ে। কী জানতে চান?" };
-}
-
 /* ═══════════════════════════════════════════════════════ */
 export default function LandingPage({ dark = false, setDark, lang = "bn", setLang, onGetStarted, onRegisterProvider }) {
+  /* ── All data moved inside component to avoid Rollup TDZ in bundle ── */
+  const CATS = [
+    { icon:"🚨", name:"জরুরি সেবা",          nameEn:"Emergency",        col:"#EF4444", price:"বিনামূল্যে" },
+    { icon:"🏠", name:"গৃহ রক্ষণাবেক্ষণ",    nameEn:"Home Maintenance", col:"#F59E0B", price:"৳৩৫০+" },
+    { icon:"🧹", name:"পরিষ্কার সেবা",       nameEn:"Cleaning",         col:"#14B8A6", price:"৳৪০০+" },
+    { icon:"👩‍⚕️", name:"স্বাস্থ্যসেবা",       nameEn:"Healthcare",       col:"#EF4444", price:"৳৫০০+" },
+    { icon:"📚", name:"শিক্ষা সেবা",         nameEn:"Education",        col:"#8B5CF6", price:"৳৪০০+" },
+    { icon:"🚚", name:"স্থানান্তর",           nameEn:"Moving",           col:"#F97316", price:"৳২০০০+" },
+    { icon:"🍲", name:"রান্না ও খাবার",       nameEn:"Food & Cooking",   col:"#F59E0B", price:"৳৬০০+" },
+    { icon:"🧑‍💼", name:"পেশাদার পরামর্শ",    nameEn:"Professional",     col:"#6366F1", price:"৳৮০০+" },
+    { icon:"🛡️", name:"নিরাপত্তা সেবা",     nameEn:"Security",         col:"#374151", price:"৳৫০০+" },
+    { icon:"🛒", name:"দৈনন্দিন সহায়তা",   nameEn:"Daily Errands",    col:"#EC4899", price:"৳১৫০+" },
+    { icon:"🧓", name:"বয়স্ক সেবা",         nameEn:"Elderly Care",     col:"#7C3AED", price:"৳৪০০+" },
+    { icon:"👶", name:"শিশু ও পরিবার",      nameEn:"Child & Family",   col:"#DB2777", price:"৳৪০০+" },
+  ];
+  const FAQ_BN = [
+    { q:"সেবার দাম কত?",             a:"আমাদের সেবা শুরু হয় মাত্র ৳১৫০ থেকে। জরুরি সেবা সম্পূর্ণ বিনামূল্যে। প্রতিটি সেবার নির্দিষ্ট মূল্যসীমা সার্ভিস পেজে দেখা যায়।" },
+    { q:"কিভাবে বুক করব?",           a:"১) Login করুন  ২) সেবা বেছে নিন  ৩) কাছের Provider দেখুন  ৪) সময়সূচি ও মূল্য নিশ্চিত করুন  ৫) বুকিং কনফার্ম করুন — Provider নির্ধারিত সময়ে আসবেন।" },
+    { q:"Provider হব কিভাবে?",       a:"Register করুন 'Service Provider' হিসেবে → NID ও প্রয়োজনীয় কাগজ আপলোড করুন (KYC) → ৪৮ ঘণ্টার মধ্যে Approval → কাজ শুরু করুন ও আয় করুন!" },
+    { q:"এটা কি নিরাপদ?",            a:"অবশ্যই! প্রতিটি Provider KYC-যাচাইকৃত ও NID-ভেরিফাইড। Service চলাকালীন আমাদের 🆘 SOS বাটন সব সময় সক্রিয়। যেকোনো অপ্রীতিকর ঘটনায় তাৎক্ষণিক Admin ও Call Center জানানো হয়।" },
+    { q:"জরুরি অবস্থায় কী করব?",   a:"App-এর 🆘 SOS বাটন চাপুন — Admin ও Call Center তাৎক্ষণিক জানবে। অথবা সরাসরি ফোন করুন: ৯৯৯ (পুলিশ), ১৯৯ (ফায়ার সার্ভিস), ১৬৪৩০ (ন্যাশনাল হেল্পলাইন)।" },
+    { q:"Payment কিভাবে?",           a:"Cash on Delivery, bKash, Nagad ও Card payment — সব গ্রহণযোগ্য। Transaction সম্পূর্ণ এনক্রিপ্টেড ও নিরাপদ।" },
+    { q:"কোনো সমস্যা হলে?",          a:"Service-এর মধ্যে SOS বাটন চাপুন বা 🔴 Report করুন। আমাদের WhatsApp: +880 1XXXXXXXX বা Call করুন। সকল অভিযোগ ২৪ ঘণ্টার মধ্যে সমাধান করা হয়।" },
+    { q:"Cancel করতে পারব?",         a:"Service শুরুর ২ ঘণ্টা আগে Cancel করলে সম্পূর্ণ Refund। ১ ঘণ্টার কম সময়ে ৫০% চার্জ প্রযোজ্য। Provider-ও Cancel করলে কোনো চার্জ নেই।" },
+  ];
+  const FAQ_EN = [
+    { q:"What are the prices?",        a:"Services start from just ৳150. Emergency services are completely free. Exact pricing is shown on each service page." },
+    { q:"How do I book a service?",    a:"1) Login  2) Choose a service  3) Browse nearby Providers  4) Confirm time & price  5) Book — Provider will arrive at the scheduled time." },
+    { q:"How to become a Provider?",   a:"Register as 'Service Provider' → Upload NID & documents (KYC) → Get approval within 48 hours → Start earning!" },
+    { q:"Is it safe?",                 a:"Absolutely! Every Provider is KYC-verified with NID. The 🆘 SOS button is always active during service. Any incident is instantly forwarded to Admin & Call Center." },
+    { q:"Emergency situation?",        a:"Press the 🆘 SOS button in the app — Admin and Call Center are notified immediately. Or call: 999 (Police), 199 (Fire Service), 16430 (National Helpline)." },
+    { q:"How to pay?",                 a:"Cash on Delivery, bKash, Nagad and Card — all accepted. Transactions are fully encrypted and secure." },
+    { q:"Problem with service?",       a:"Press SOS or Report during the service. WhatsApp: +880 1XXXXXXXX or call us. All complaints resolved within 24 hours." },
+    { q:"Can I cancel?",               a:"Full refund if cancelled 2+ hours before service. 50% charge within 1 hour. No charge if Provider cancels." },
+  ];
+  const matchFaq = (text, lng) => {
+    const list  = lng === "en" ? FAQ_EN : FAQ_BN;
+    const lower = text.toLowerCase();
+    const keys  = ["দাম|price|cost|কত|charge|fee","বুক|book|কিভাবে|how","provider|হব|earn|income|আয়|কাজ","নিরাপদ|safe|security|trust","জরুরি|emergency|sos|বিপদ|danger","payment|pay|bkash|nagad|টাকা","সমস্যা|problem|issue|complaint|অভিযোগ","cancel|refund|ফেরত"];
+    for (let ki = 0; ki < keys.length; ki++) {
+      if (keys[ki].split("|").some(k => lower.includes(k))) return list[ki];
+    }
+    return { q:"", a: lng === "en"
+      ? "I can help with: pricing, booking, becoming a provider, safety, emergency, payment, complaints, and cancellation. What would you like to know?"
+      : "আমি সাহায্য করতে পারি: মূল্য, বুকিং, Provider হওয়া, নিরাপত্তা, জরুরি সেবা, পেমেন্ট, অভিযোগ এবং বাতিল বিষয়ে। কী জানতে চান?" };
+  };
+
   /* ── Brand colours (kept inside component to avoid TDZ in bundle) ── */
   const G   = "#16A34A";
   const GD  = "#0F5E2E";
