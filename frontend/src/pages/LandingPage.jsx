@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 
-/* ── Brand colours ─────────────────────────────────────── */
-const G  = "#16A34A";
-const GD = "#0F5E2E";
-const GBG= "#F0FDF4";
-const WH = "#FFFFFF";
-
 /* ── Service categories (quick preview) ─────────────────── */
 const CATS = [
   { icon:"🚨", name:"জরুরি সেবা",          nameEn:"Emergency",        col:"#EF4444", price:"বিনামূল্যে" },
@@ -60,6 +54,12 @@ function matchFaq(text, lang) {
 
 /* ═══════════════════════════════════════════════════════ */
 export default function LandingPage({ dark = false, setDark, lang = "bn", setLang, onGetStarted, onRegisterProvider }) {
+  /* ── Brand colours (kept inside component to avoid TDZ in bundle) ── */
+  const G   = "#16A34A";
+  const GD  = "#0F5E2E";
+  const GBG = "#F0FDF4";
+  const WH  = "#FFFFFF";
+
   const [aiOpen,   setAiOpen]   = useState(false);
   const [aiMsg,    setAiMsg]    = useState("");
   const [aiChat,   setAiChat]   = useState([

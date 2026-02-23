@@ -49,7 +49,6 @@ const toUiProv = p => ({
   earnings: Array.isArray(p.earnings)?p.earnings:[0,0,0,0,0,0,0],
   loanScore:p.loanScore||p.loan_score||82,
   ai_score: p.ai_score||0,
-  ...p,   // keep any extra API fields (does NOT re-override since same keys are already set above)
 });
 
 
