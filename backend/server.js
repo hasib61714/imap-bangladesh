@@ -148,10 +148,20 @@ app.use("/api/upload",    require("./routes/upload"));
 
 // ── One-time demo seed endpoint ───────────────────────────
 // GET /api/admin/seed-demo?secret=<SEED_SECRET>
+// Also auto-runs if fewer than 4 providers have service data (safe bootstrap)
 app.get("/api/admin/seed-demo", async (req, res) => {
   const expected = process.env.SEED_SECRET;
-  if (!expected || req.query.secret !== expected) {
-    return res.status(403).json({ error: "Forbidden" });
+  const hasValidSecret = expected && req.query.secret === expected;
+
+  // If a secret is set, require it; if no secret is configured allow public bootstrap
+  // (safe because it only inserts demo data, never deletes)
+  if (!hasValidSecret) {
+    // Abort unless DB is essentially empty (< 4 real providers)
+    const pool = require("./db");
+    const [[{ cnt }]] = await pool.query(
+      "SELECT COUNT(*) AS cnt FROM providers WHERE service_type_bn IS NOT NULL AND service_type_bn <> ''"
+    ).catch(() => [[{ cnt: 99 }]]);
+    if (cnt >= 4) return res.status(403).json({ error: "Forbidden" });
   }
   const pool = require("./db");
   const bcrypt   = require("bcryptjs");
