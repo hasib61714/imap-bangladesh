@@ -3764,6 +3764,7 @@ export default function IMAP() {
   const [profDrop,setProfDrop]   = useState(false);
   const [emg,setEmg]          = useState(false);
   const [emgCnt,setEmgCnt]    = useState(null);
+  const [emgSvc,setEmgSvc]    = useState(null);
   const [elderly,setElderly]  = useState(false);
   const [tracking,setTracking]= useState(false);
   const [lang,setLang]        = useState("bn");
@@ -3915,7 +3916,7 @@ export default function IMAP() {
 
   /* ── EMERGENCY MODAL ── */
   const EmgModal = ()=>(
-    <div className="ov" onClick={()=>setEmg(false)}>
+    <div className="ov" onClick={()=>{setEmg(false);setEmgSvc(null);}}>
       <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,padding:28,textAlign:"center"}}>
         <div style={{fontSize:60,marginBottom:14,animation:"pulse 1s infinite"}}>🚨</div>
         <div style={{fontSize:20,fontWeight:700,color:C.red}}>{tr.emgTitle}</div>
@@ -3933,10 +3934,14 @@ export default function IMAP() {
         )}
         <div className="g2" style={{marginBottom:12,gap:8}}>
           {(lang==="en"?["🏥 Ambulance","💊 Nurse","🩺 Doctor","🩸 Blood Donor"]:["🏥 অ্যাম্বুলেন্স","💊 নার্স","🩺 ডাক্তার","🩸 রক্তদাতা"]).map(item=>(
-            <button key={item} style={{padding:"11px 6px",background:"#FFF5F5",border:"1px solid #FED7D7",borderRadius:10,fontSize:12,cursor:"pointer",color:C.red,fontWeight:600,fontFamily:"'Hind Siliguri',sans-serif"}}>{item}</button>
+            <button key={item} onClick={()=>setEmgSvc(item)}
+              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"#FFF5F5",border:`2px solid ${emgSvc===item?"#DC2626":"#FED7D7"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"✓ ":""}{item}</button>
           ))}
         </div>
-        <button className="btn btn-gh" style={{width:"100%",border:`1px solid ${C.bdr}`}} onClick={()=>setEmg(false)}>{tr.emgCancel}</button>
+        {emgSvc&&(
+          <div style={{background:"#FFF5F5",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:C.red,fontWeight:600,border:"1px solid #FED7D7"}}>✅ {lang==="en"?`Requesting ${emgSvc}...`:`${emgSvc} অনুরোধ পাঠানো হচ্ছে...`}</div>
+        )}
+        <button className="btn btn-gh" style={{width:"100%",border:`1px solid ${C.bdr}`}} onClick={()=>{setEmg(false);setEmgSvc(null);}}>{tr.emgCancel}</button>
       </div>
     </div>
   );
@@ -4053,6 +4058,16 @@ export default function IMAP() {
                     setProfDrop(false);
                   }} style={{padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{item}</div>
                 ))}
+                {/* ভাষা ও থিম */}
+                <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
+                <div style={{padding:"9px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:13,color:C.sub}}>🌐 {lang==="bn"?"ভাষা":"Language"}</span>
+                  <button onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{lang==="bn"?"EN 🌐":"বাং 🌐"}</button>
+                </div>
+                <div style={{padding:"9px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:13,color:C.sub}}>{dark?"☀️":"🌙"} {lang==="bn"?"থিম":"Theme"}</span>
+                  <button onClick={()=>{setDark(d=>!d);setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{dark?(lang==="bn"?"লাইট":"Light"):(lang==="bn"?"ডার্ক":"Dark")}</button>
+                </div>
                 {/* গ্রুপ ৪: সিস্টেম */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
                 {[
@@ -4149,7 +4164,7 @@ export default function IMAP() {
                 <div style={{fontSize:12,color:"rgba(255,255,255,.78)"}}>{tr.emergencyDesc}</div>
               </div>
             </div>
-            <button className="btn" style={{padding:"11px 22px",background:"#fff",color:C.red,fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);}}>🚨 {tr.emergency}</button>
+            <button className="btn" style={{padding:"11px 22px",background:"#fff",color:C.red,fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
           </div>
         </div>
       </section>
@@ -4443,7 +4458,7 @@ export default function IMAP() {
     <ThemeCtx.Provider value={C}>
     <LangCtx.Provider value={tr}>
       <div><style>{CSS}{dark?CSS_DARK:""}</style>
-        <ElderlyMode onExit={()=>setElderly(false)} onBook={goBook} onEmergency={()=>{setEmg(true);setEmgCnt(5);}}/>
+        <ElderlyMode onExit={()=>setElderly(false)} onBook={goBook} onEmergency={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}/>
         {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)}/></div></div>}
         {emg&&<EmgModal/>}
       </div>
