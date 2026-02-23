@@ -5,10 +5,12 @@ const { authMiddleware, requireRole } = require("../middleware/auth");
 // ── GET /api/services ─────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
+    const all = req.query.all === "1";
+    const where = all ? "" : "WHERE c.is_active = 1";
     const [rows] = await pool.query(
       `SELECT c.*,
          (SELECT COUNT(*) FROM providers p WHERE p.category_id = c.id AND p.is_available = 1) AS available_count
-       FROM categories c WHERE c.is_active = 1 ORDER BY c.sort_order`
+       FROM categories c ${where} ORDER BY c.sort_order`
     );
     res.json(rows);
   } catch (err) {

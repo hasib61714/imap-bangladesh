@@ -93,6 +93,7 @@ export const providers = {
     const qs = new URLSearchParams(params).toString();
     return get(`/providers${qs ? "?" + qs : ""}`);
   },
+  getMe: ()            => get("/providers/me"),
   get: (id)            => get(`/providers/${id}`),
   updateMe: (data)     => put("/providers/me", data),
   apply:    (data)     => post("/providers/apply", data),
@@ -131,7 +132,7 @@ export const reviews = {
 //  SERVICES / CATEGORIES
 // ═══════════════════════════════════════════════════════════════
 export const services = {
-  list: ()             => get("/services"),
+  list: (all = false)  => get(all ? "/services?all=1" : "/services"),
   create: (data)       => post("/services", data),
   update: (id, data)   => put(`/services/${id}`, data),
   remove: (id)         => del(`/services/${id}`),
@@ -151,6 +152,10 @@ export const admin = {
   resolveComp: (id, data)      => patch(`/admin/complaints/${id}`, data),
   notify:      (data)          => post("/admin/notify", data),
   revenue:     ()               => get("/admin/revenue"),
+  promoList:   ()               => get("/admin/promos"),
+  promoCreate: (data)           => post("/admin/promos", data),
+  promoToggle: (id, d)          => patch(`/admin/promos/${id}`, d),
+  promoDelete: (id)             => del(`/admin/promos/${id}`),
 };
 
 // ═══════════════════════════════════════════════════════════════

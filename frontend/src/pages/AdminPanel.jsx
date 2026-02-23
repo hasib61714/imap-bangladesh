@@ -14,7 +14,7 @@ import {
   MenuFoldOutlined, MenuUnfoldOutlined, SunOutlined, MoonOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
-import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi } from "../api";
+import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi, services as servicesApi } from "../api";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -331,11 +331,46 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const [realBookings, setRealBookings] = useState([]);
   const [bFilter, setBFilter] = useState("");
 
+  const loadPromos = async () => {
+    try {
+      const data = await adminApi.promoList();
+      if (Array.isArray(data) && data.length) {
+        setPromos(data.map(p => ({
+          id: p.id,
+          code: p.code,
+          discount: p.discount_pct > 0 ? p.discount_pct : (p.discount_amt || 0),
+          type: p.discount_pct > 0 ? "percent" : "flat",
+          uses: p.uses || 0,
+          limit: p.limit || 999,
+          expires: p.expires ? String(p.expires).slice(0, 10) : "—",
+          active: !!p.active,
+        })));
+      }
+    } catch(e) { console.warn("loadPromos:", e.message); }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await servicesApi.list(true);
+      if (Array.isArray(data) && data.length) {
+        setCategories(data.map(c => ({
+          id: c.id,
+          icon: c.icon || "🔧",
+          name: c.name_bn || c.name_en || c.name || "Service",
+          providers: c.available_count || 0,
+          active: c.is_active !== 0,
+        })));
+      }
+    } catch(e) { console.warn("loadCategories:", e.message); }
+  };
+
   useEffect(() => {
     if (tab === "providers") loadProviders(pSearch);
-    else if (tab === "users")    loadUsers(uSearch);
-    else if (tab === "bookings") loadBookings(bFilter);
-    else if (tab === "kyc")      loadKyc(kycFilter === "all" ? "pending" : kycFilter);
+    else if (tab === "users")      loadUsers(uSearch);
+    else if (tab === "bookings")   loadBookings(bFilter);
+    else if (tab === "kyc")        loadKyc(kycFilter === "all" ? "pending" : kycFilter);
+    else if (tab === "promos")     loadPromos();
+    else if (tab === "categories") loadCategories();
   }, [tab]);
 
   /* ── AI STATE ─────────────────────────────────────── */
@@ -944,8 +979,17 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     {title:lang==="bn"?"অবস্থা":"Status", key:"status",          render:(_,p)=><Tag color={p.active?"success":"default"}>{p.active?(lang==="bn"?"সক্রিয়":"Active"):(lang==="bn"?"নিষ্ক্রিয়":"Inactive")}</Tag>},
                     {title:lang==="bn"?"অ্যাকশন":"Action",key:"action",         render:(_,p)=>(
                       <Space>
-                        <Switch size="small" checked={p.active} onChange={()=>{setPromos(prev=>prev.map(x=>x.id===p.id?{...x,active:!x.active}:x));toast(lang==="bn"?"✅ আপডেট":"✅ Updated");}} />
-                        <Popconfirm title={lang==="bn"?"মুছে ফেলবেন?":"Delete?"} onConfirm={()=>{setPromos(prev=>prev.filter(x=>x.id!==p.id));toast(lang==="bn"?"মুছে ফেলা হয়েছে":"Deleted","warning");}} okText="Yes" cancelText="No">
+                        <Switch size="small" checked={p.active} onChange={()=>{
+                          const newActive = !p.active;
+                          setPromos(prev=>prev.map(x=>x.id===p.id?{...x,active:newActive}:x));
+                          adminApi.promoToggle(p.id,{is_active:newActive}).catch(()=>{});
+                          toast(lang==="bn"?"✅ আপডেট":"✅ Updated");
+                        }} />
+                        <Popconfirm title={lang==="bn"?"মুছে ফেলবেন?":"Delete?"} onConfirm={()=>{
+                          adminApi.promoDelete(p.id).then(()=>loadPromos()).catch(()=>{});
+                          setPromos(prev=>prev.filter(x=>x.id!==p.id));
+                          toast(lang==="bn"?"মুছে ফেলা হয়েছে":"Deleted","warning");
+                        }} okText="Yes" cancelText="No">
                           <Button size="small" danger icon={<DeleteOutlined/>} />
                         </Popconfirm>
                       </Space>
@@ -967,6 +1011,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       placeholder={lang==="bn"?"বিভাগের নাম":"Category name"} style={{width:200}} />
                     <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{
                       if(!newCat.name){toast(lang==="bn"?"নাম দিন":"Enter name","warning");return;}
+                      const slug = newCat.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"") || "cat-"+Date.now();
+                      servicesApi.create({slug, name_bn:newCat.name, name_en:newCat.name, icon:newCat.icon||"\ud83d\udd27"})
+                        .then(()=>loadCategories()).catch(()=>{});
                       setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"🔧",name:newCat.name,providers:0,active:true}]);
                       setNewCat({icon:"",name:""});
                       toast(lang==="bn"?"✅ বিভাগ যোগ":"✅ Added");
@@ -979,7 +1026,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     {title:lang==="bn"?"নাম":"Name",    dataIndex:"name",      key:"name",    render:n=><Text strong>{n}</Text>},
                     {title:lang==="bn"?"প্রদানকারী":"Providers", dataIndex:"providers", key:"providers"},
                     {title:lang==="bn"?"অবস্থা":"Status", key:"status",        render:(_,c)=><Tag color={c.active?"success":"default"}>{c.active?(lang==="bn"?"সক্রিয়":"Active"):(lang==="bn"?"বন্ধ":"Off")}</Tag>},
-                    {title:lang==="bn"?"টগল":"Toggle",  key:"toggle",          render:(_,c)=><Switch checked={c.active} onChange={()=>{setCategories(prev=>prev.map(x=>x.id===c.id?{...x,active:!x.active}:x));toast(lang==="bn"?"আপডেট":"Updated");}} />},
+                    {title:lang==="bn"?"টগল":"Toggle",  key:"toggle",          render:(_,c)=><Switch checked={c.active} onChange={()=>{
+                      const newActive = !c.active;
+                      setCategories(prev=>prev.map(x=>x.id===c.id?{...x,active:newActive}:x));
+                      servicesApi.update(c.id,{is_active:newActive?1:0}).catch(()=>{});
+                      toast(lang==="bn"?"আপডেট":"Updated");
+                    }} />},
                   ]}
                 />
               </>

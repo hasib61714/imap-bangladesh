@@ -233,4 +233,51 @@ router.get("/revenue", ...auth, async (req, res) => {
   }
 });
 
+// ── GET /api/admin/promos ────────────────────────────────
+router.get("/promos", ...auth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, code, COALESCE(title_bn, code) AS title_bn,
+              COALESCE(title_en, code) AS title_en,
+              discount_pct, discount_amt,
+              max_uses AS \`limit\`, used_count AS uses,
+              COALESCE(valid_until,'') AS expires, is_active AS active
+       FROM promos ORDER BY id DESC`
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/admin/promos ────────────────────────────────
+router.post("/promos", ...auth, async (req, res) => {
+  try {
+    const { code, discount_pct, discount_amt, max_uses, valid_until } = req.body;
+    if (!code) return res.status(400).json({ error: "code required" });
+    await pool.query(
+      `INSERT INTO promos (code, title_bn, title_en, discount_pct, discount_amt, max_uses, valid_until, is_active)
+       VALUES (?,?,?,?,?,?,?,1)`,
+      [code.toUpperCase(), code, code, discount_pct||0, discount_amt||0, max_uses||999,
+       valid_until||null]
+    );
+    res.status(201).json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/admin/promos/:id ───────────────────────────
+router.patch("/promos/:id", ...auth, async (req, res) => {
+  try {
+    const { is_active } = req.body;
+    await pool.query("UPDATE promos SET is_active=? WHERE id=?", [is_active ? 1 : 0, req.params.id]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DELETE /api/admin/promos/:id ──────────────────────────
+router.delete("/promos/:id", ...auth, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM promos WHERE id=?", [req.params.id]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

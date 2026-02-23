@@ -63,6 +63,23 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ── GET /api/providers/me ───────────────────────────────
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.*, u.name, u.avatar, u.phone, u.email
+       FROM providers p JOIN users u ON u.id = p.user_id
+       WHERE p.user_id = ?`,
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Provider not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("provider me:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ── GET /api/providers/:id ────────────────────────────────
 router.get("/:id", async (req, res) => {
   try {

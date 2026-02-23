@@ -92,6 +92,21 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         "বুধবার":[{id:null,t:"সকাল ৯টা",avail:true},{id:null,t:"বিকাল ৪টা",avail:true}],
       }});
     }).catch(()=>{});
+    // Provider profile
+    providersApi.getMe().then(data=>{
+      if(data && data.user_id) setProfile(p=>({
+        ...p,
+        name:     data.name     || p.name,
+        service:  lang==="bn" ? (data.service_type_bn||data.service_type_en||p.service)
+                               : (data.service_type_en||data.service_type_bn||p.service),
+        area:     lang==="bn" ? (data.area_bn||data.area_en||data.area||p.area)
+                               : (data.area_en||data.area_bn||data.area||p.area),
+        bio:      lang==="bn" ? (data.bio_bn||data.bio_en||data.bio||p.bio)
+                               : (data.bio_en||data.bio_bn||data.bio||p.bio),
+        rate:     data.hourly_rate||p.rate,
+        phone:    data.phone||p.phone,
+      }));
+    }).catch(()=>{});
   },[]);
 
   // ── Real-time chat for active booking ──
@@ -482,7 +497,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               </div>
               {editMode&&<button onClick={async()=>{
                 setEditMode(false); showToast(tr.ppProfileSaved);
-                try{ await providersApi.updateMe({bio:profile.bio,hourly_rate:parseFloat(profile.rate)||0}); }catch(e){console.warn("save profile:",e.message);}
+                try{ await providersApi.updateMe({
+                  bio_bn:profile.bio, bio_en:profile.bio,
+                  service_type_bn:profile.service, service_type_en:profile.service,
+                  area_bn:profile.area, area_en:profile.area,
+                  hourly_rate:parseFloat(profile.rate)||0,
+                }); }catch(e){console.warn("save profile:",e.message);}
               }} style={{width:"100%",padding:"12px",background:C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
