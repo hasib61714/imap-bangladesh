@@ -1,8 +1,10 @@
-// IMAP Service Worker – v1.0
-const CACHE_NAME = "imap-v1";
+// IMAP Service Worker – v1.1
+const CACHE_NAME = "imap-v2";
+// Derive base path from SW location (works for both "/" and "/imap-bangladesh/")
+const BASE = new URL("./", self.location.href).href;
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
+  BASE,
+  BASE + "index.html",
 ];
 
 // ── Install: cache shell ──
@@ -41,7 +43,7 @@ self.addEventListener("fetch", e => {
       })
       .catch(() =>
         caches.match(e.request).then(cached =>
-          cached || caches.match("/index.html")
+          cached || caches.match(BASE + "index.html")
         )
       )
   );
