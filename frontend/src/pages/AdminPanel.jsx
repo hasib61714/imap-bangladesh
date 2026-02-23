@@ -14,7 +14,7 @@ import {
   MenuFoldOutlined, MenuUnfoldOutlined, SunOutlined, MoonOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
-import { admin as adminApi, ai as aiApi, sos as sosApi } from "../api";
+import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi } from "../api";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -207,6 +207,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { key:"revenue",       icon:<BarChartOutlined />,          label: lang==="bn"?"রাজস্ব":"Revenue"        },
     { key:"complaints",    icon:<WarningOutlined />,           label: <Badge count={openTickets} size="small" offset={[8,0]}>{lang==="bn"?"অভিযোগ":"Complaints"}</Badge> },
     { key:"sos",           icon:<span>🆘</span>,               label: <Badge count={sosAlerts?.filter(a=>a.status==="open").length||0} size="small" offset={[8,0]}>{lang==="bn"?"SOS সতর্কতা":"SOS Alerts"}</Badge> },
+    { key:"payments",      icon:<span>💳</span>,               label: lang==="bn"?"পেমেন্ট":"Payments"         },
     { key:"notifications", icon:<NotificationOutlined />,      label: lang==="bn"?"বিজ্ঞপ্তি":"Notifications"},
     { key:"promos",        icon:<GiftOutlined />,              label: lang==="bn"?"প্রোমো কোড":"Promo Codes"},
     { key:"categories",    icon:<AppstoreOutlined />,          label: lang==="bn"?"সেবা বিভাগ":"Categories" },
@@ -223,6 +224,20 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   };
 
   useEffect(() => { if(tab==="sos") loadSos(); }, [tab]);
+
+  /* ── PAYMENTS STATE ──────────────────────────────── */
+  const [payList,      setPayList]      = useState([]);
+  const [payLoading,   setPayLoading]   = useState(false);
+  const [payFilter,    setPayFilter]    = useState("");
+
+  const loadPayments = async (status = "") => {
+    setPayLoading(true);
+    try { const d = await paymentsApi.adminList(status||undefined); if(d?.payments) setPayList(d.payments); }
+    catch(e) { console.warn("payments load:", e.message); }
+    finally { setPayLoading(false); }
+  };
+
+  useEffect(() => { if(tab==="payments") loadPayments(payFilter); }, [tab]);
 
   /* ── AI STATE ─────────────────────────────────────── */
   const [aiLoading, setAiLoading]   = useState(false);
@@ -1055,6 +1070,63 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         </Button>}
                       </Space>
                     )},
+                  ]}
+                />
+              </div>
+            )}
+
+            {/* ── PAYMENTS ── */}
+            {tab==="payments" && (
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+                  <Title level={4} style={{margin:0}}>💳 {lang==="bn"?"পেমেন্ট ইতিহাস":"Payment History"}</Title>
+                  <Space wrap>
+                    <Select value={payFilter} onChange={v=>{setPayFilter(v);loadPayments(v);}} style={{width:140}}
+                      options={[
+                        {value:"",   label:lang==="bn"?"সব অবস্থা":"All Status"},
+                        {value:"pending",  label:lang==="bn"?"অপেক্ষায়":"Pending"},
+                        {value:"success",  label:lang==="bn"?"সফল":"Success"},
+                        {value:"failed",   label:lang==="bn"?"ব্যর্থ":"Failed"},
+                        {value:"cancelled",label:lang==="bn"?"বাতিল":"Cancelled"},
+                        {value:"refunded", label:lang==="bn"?"ফেরত":"Refunded"},
+                      ]}/>
+                    <Button onClick={()=>loadPayments(payFilter)} loading={payLoading}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
+                  </Space>
+                </div>
+                <Row gutter={[12,12]} style={{marginBottom:20}}>
+                  {[
+                    ["success",  "#16A34A", lang==="bn"?"সফল":"Success"],
+                    ["pending",  "#F59E0B", lang==="bn"?"অপেক্ষায়":"Pending"],
+                    ["failed",   "#EF4444", lang==="bn"?"ব্যর্থ":"Failed"],
+                    ["cancelled","#6B7280", lang==="bn"?"বাতিল":"Cancelled"],
+                  ].map(([s,c,l])=>(
+                    <Col xs={12} sm={6} key={s}>
+                      <Card style={{borderTop:`3px solid ${c}`,textAlign:"center",padding:"12px 0"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:c}}>{payList.filter(p=>p.status===s).length}</div>
+                        <div style={{fontSize:12,color:"#6B7280"}}>{l}</div>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+                <Table
+                  loading={payLoading}
+                  dataSource={payList}
+                  rowKey="id"
+                  size="small"
+                  pagination={{pageSize:20}}
+                  scroll={{x:900}}
+                  columns={[
+                    {title:"ID",dataIndex:"id",width:90,render:v=>v?.slice(0,8)+"…"},
+                    {title:lang==="bn"?"ব্যবহারকারী":"User",   render:(_,r)=><div><div style={{fontWeight:600}}>{r.user_name||r.user_id}</div><div style={{fontSize:11,color:"#6B7280"}}>{r.user_phone}</div></div>},
+                    {title:lang==="bn"?"পরিমাণ":"Amount",      dataIndex:"amount",render:v=><span style={{fontWeight:700}}>৳{parseFloat(v||0).toLocaleString()}</span>},
+                    {title:lang==="bn"?"পদ্ধতি":"Method",      dataIndex:"method",render:v=><Tag>{v||"sslcommerz"}</Tag>},
+                    {title:lang==="bn"?"অবস্থা":"Status",      dataIndex:"status",render:s=>{
+                      const c={success:"green",pending:"orange",failed:"red",cancelled:"default",refunded:"purple"};
+                      return <Tag color={c[s]||"default"}>{s?.toUpperCase()}</Tag>;
+                    }},
+                    {title:lang==="bn"?"ট্রান্সেকশন ID":"Txn ID", dataIndex:"gateway_tran_id",ellipsis:true,render:v=>v||"—"},
+                    {title:lang==="bn"?"বুকিং":"Booking",      dataIndex:"booking_id",render:v=>v?v.slice(0,8)+"…":"—"},
+                    {title:lang==="bn"?"সময়":"Time",           dataIndex:"created_at",render:t=>t?new Date(t).toLocaleString("bn-BD"):"—",width:140},
                   ]}
                 />
               </div>
