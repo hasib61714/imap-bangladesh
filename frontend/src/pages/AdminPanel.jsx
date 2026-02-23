@@ -184,12 +184,15 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const kycApprove = id => {
     setKycList(k => k.map(x => x.id===id ? {...x, status:"verified"} : x));
     toast(lang==="bn" ? "✅ KYC অনুমোদিত" : "✅ KYC Approved");
+    adminApi.kycReview(id, "verified").catch(e => console.warn("kyc approve:", e.message));
   };
   const kycReject = () => {
-    setKycList(k => k.map(x => x.id===kycRejectModal.id ? {...x, status:"rejected", rejectionReason:kycRejectReason||"N/A"} : x));
+    const reason = kycRejectReason || "N/A";
+    setKycList(k => k.map(x => x.id===kycRejectModal.id ? {...x, status:"rejected", rejectionReason:reason} : x));
     setKycRejectModal({open:false, id:null});
     setKycRejectReason("");
     toast(lang==="bn" ? "KYC প্রত্যাখ্যাত" : "KYC Rejected", "warning");
+    adminApi.kycReview(kycRejectModal.id, "rejected", reason).catch(e => console.warn("kyc reject:", e.message));
   };
 
   /* ── SIDEBAR MENU ──────────────────────────────────── */
@@ -256,6 +259,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           status: p.is_active === 1 ? "active" : p.is_active === 0 ? "suspended" : "pending",
           rating: parseFloat(p.rating || 0).toFixed(1),
           jobs: p.total_jobs || 0,
+          earned: parseFloat(p.earned || 0),
           phone: p.phone,
           kyc: p.kyc_status,
         })));
@@ -365,7 +369,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   };
 
   useEffect(() => {
-    if (tab === "providers") loadProviders(pSearch);
+    if (tab === "overview")        loadProviders();
+    else if (tab === "providers")  loadProviders(pSearch);
     else if (tab === "users")      loadUsers(uSearch);
     else if (tab === "bookings")   loadBookings(bFilter);
     else if (tab === "kyc")        loadKyc(kycFilter === "all" ? "pending" : kycFilter);
@@ -451,11 +456,10 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   ];
   const maxRev = Math.max(...monthlyRev.map(x=>x.v));
 
-  const topProviders = [
-    {name:"করিম মিয়া",   jobs:312, earned:89500, service:"ইলেকট্রিশিয়ান"},
-    {name:"রাহেলা বেগম", jobs:124, earned:48200, service:"নার্সিং"},
-    {name:"নাফিসা আক্তার",jobs:203,earned:62100, service:"পরিষ্কার"},
-  ];
+  const topProviders = [...providers]
+    .sort((a,b) => (b.jobs||0) - (a.jobs||0))
+    .slice(0, 3)
+    .map(p => ({ name:p.name, jobs:p.jobs||0, earned:p.earned||0, service:p.service||"—" }));
 
   const sysSettingsList = [
     {icon:"🌐",lbn:"সিস্টেম অনলাইন",      len:"System Online"},

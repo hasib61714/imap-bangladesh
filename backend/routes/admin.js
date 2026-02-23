@@ -44,9 +44,11 @@ router.get("/providers", ...auth, async (req, res) => {
     const [rows] = await pool.query(
       `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
               u.is_active, p.service_slug, p.area, p.rating, p.total_jobs,
-              p.bio, u.joined_at
+              p.bio, u.joined_at,
+              (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
+               FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
        FROM providers p JOIN users u ON u.id = p.user_id
-       WHERE ${where.join(" AND ")} ORDER BY u.joined_at DESC LIMIT ? OFFSET ?`,
+       WHERE ${where.join(" AND ")} ORDER BY p.rating DESC, p.total_jobs DESC LIMIT ? OFFSET ?`,
       [...params.filter(x=>x!==null), parseInt(limit), offset]
     );
     const [[total]] = await pool.query(

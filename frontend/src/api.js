@@ -156,6 +156,7 @@ export const admin = {
   promoCreate: (data)           => post("/admin/promos", data),
   promoToggle: (id, d)          => patch(`/admin/promos/${id}`, d),
   promoDelete: (id)             => del(`/admin/promos/${id}`),
+  kycReview:   (id, status, reason) => patch(`/admin/kyc/${id}`, { status, rejection_reason: reason }),
 };
 
 // ═══════════════════════════════════════════════════════════════
