@@ -96,7 +96,16 @@ export default function AuthPage({ onAuth, dark, lang, setLang }) {
       }
     } catch (e) {
       setLoading(false);
-      setErr(e.data?.error || (lang === "bn" ? "লগইন ব্যর্থ হয়েছে" : "Login failed"));
+      const errMsg = e.data?.error || "";
+      if (errMsg.includes("not found") || errMsg.includes("Account not found")) {
+        setErr(lang === "bn"
+          ? "এই Email-এ কোনো অ্যাকাউন্ট নেই। উপরে \"নিবন্ধন করুন\" ট্যাবে যান।"
+          : "No account found. Click the \"Register\" tab to create one.");
+      } else if (errMsg.includes("Wrong password") || errMsg.includes("password")) {
+        setErr(lang === "bn" ? "পাসওয়ার্ড ভুল হয়েছে।" : "Wrong password.");
+      } else {
+        setErr(lang === "bn" ? "লগইন ব্যর্থ হয়েছে।" : "Login failed.");
+      }
     }
   };
 
@@ -136,26 +145,30 @@ export default function AuthPage({ onAuth, dark, lang, setLang }) {
     if (!name.trim()) { setErr(lang === "bn" ? "নাম দিন" : "Enter your name"); return; }
     setErr(""); setLoading(true);
     try {
-      const isSocial = method === "google" || method === "facebook";
-      let res;
-      if (isSocial) {
-        const sid = method + "_mock_" + Date.now().toString().slice(-6);
-        res = await authApi.socialLogin(method, sid, socialEmail, name.trim(), avatarB64 || null);
-      } else {
-        res = await authApi.register(
-          name.trim(),
-          method === "email" ? (socialEmail || email) : "",
-          method === "email" ? password : "",
-          method === "mobile" ? phone : "",
-          role,
-          avatarB64 || null
-        );
-      }
+      // For all methods (social, email, mobile): use register endpoint
+      // Social users get no password (backend supports null password_hash)
+      const res = await authApi.register(
+        name.trim(),
+        (method === "email" || method === "google" || method === "facebook") ? (socialEmail || email) : "",
+        method === "email" ? password : "",
+        method === "mobile" ? phone : "",
+        role,
+        avatarB64 || null
+      );
       setLoading(false);
       saveAndAuth(res.token, res.user);
     } catch (e) {
       setLoading(false);
-      setErr(e.data?.error || (lang === "bn" ? "রেজিস্ট্রেশন ব্যর্থ" : "Registration failed"));
+      // If account already exists, try logging in instead
+      if (e.data?.error?.includes("already")) {
+        try {
+          const loginRes = await authApi.login(socialEmail || email || phone, password || "");
+          setLoading(false);
+          saveAndAuth(loginRes.token, loginRes.user);
+          return;
+        } catch {}
+      }
+      setErr(e.data?.error || (lang === "bn" ? "রেজিস্ট্রেশন ব্যর্থ হয়েছে" : "Registration failed"));
     }
   };
 

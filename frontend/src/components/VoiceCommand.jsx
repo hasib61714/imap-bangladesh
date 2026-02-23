@@ -174,11 +174,32 @@ export default function VoiceCommand({ onCommand, isMobile }) {
     return () => clearTimeout(t);
   }, [listening, stopListening]);
 
-  if (!supported) return null;
-
   // Position: above chat button
   const chatBottom = isMobile ? 76 : 28;
   const myBottom   = chatBottom + 62;
+
+  // Show disabled button with tooltip if unsupported
+  if (!supported) return (
+    <div style={{position:"fixed",bottom:myBottom,right:18,zIndex:699}}>
+      {showTip && (
+        <div style={{position:"absolute",bottom:58,right:0,background:"rgba(255,255,255,.97)",border:`1px solid ${C.bdr}`,borderRadius:13,padding:"10px 14px",width:210,fontSize:11.5,color:C.sub,boxShadow:"0 6px 24px rgba(0,0,0,.13)",lineHeight:1.65,pointerEvents:"none"}}>
+          <div style={{fontWeight:700,color:C.text,marginBottom:4,fontSize:12}}>🎙️ {lang==="en"?"Voice Command":"ভয়েস কমান্ড"}</div>
+          <div style={{color:"#EF4444",fontSize:11}}>
+            {lang==="en"
+              ? "Not supported in this browser. Please use Chrome or Edge."
+              : "এই ব্রাউজারে সাপোর্ট নেই। Chrome বা Edge ব্যবহার করুন।"}
+          </div>
+        </div>
+      )}
+      <button
+        onMouseEnter={()=>setShowTip(true)}
+        onMouseLeave={()=>setShowTip(false)}
+        onClick={()=>setShowTip(t=>!t)}
+        style={{width:48,height:48,borderRadius:14,background:"#E5E7EB",border:"none",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.10)",opacity:.75}}
+        title={lang==="en"?"Voice not available in this browser":"এই ব্রাউজারে ভয়েস নেই"}
+      >🎙️</button>
+    </div>
+  );
 
   return (
     <div style={{
