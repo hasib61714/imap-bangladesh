@@ -1,6 +1,8 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
+const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
+
 const pool = mysql.createPool({
   host:               process.env.DB_HOST     || "localhost",
   port:               parseInt(process.env.DB_PORT || "3306"),
@@ -13,6 +15,7 @@ const pool = mysql.createPool({
   queueLimit:         0,
   timezone:           "+06:00",   // Bangladesh Standard Time
   decimalNumbers:     true,
+  ssl:                sslConfig || undefined,
 });
 
 // Test connection on startup
