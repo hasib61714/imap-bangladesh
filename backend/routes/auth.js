@@ -1,8 +1,10 @@
-const router  = require("express").Router();
-const bcrypt  = require("bcryptjs");
-const jwt     = require("jsonwebtoken");
+const router   = require("express").Router();
+const bcrypt   = require("bcryptjs");
+const jwt      = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
-const pool    = require("../db");
+const pool     = require("../db");
+const sms      = require("../utils/sms");
+const otpStore = require("../utils/otp-store");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 const makeToken = (user) =>
@@ -113,27 +115,44 @@ router.post("/social-login", async (req, res) => {
 
 // ── POST /api/auth/send-otp ───────────────────────────────
 router.post("/send-otp", async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ error: "Phone required" });
-  // In production: integrate bKash/SSL-Commerz SMS/2Factor here
-  const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log(`[OTP] ${phone} → ${mockOtp}`); // dev log
-  res.json({ success: true, mockOtp }); // remove mockOtp in production
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: "Phone required" });
+    const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+    const stored = otpStore.setOtp(phone, otp);
+    if (!stored) {
+      const secs = otpStore.getSecondsLeft(phone);
+      return res.status(429).json({ error: `OTP ইতিমধ্যে পাঠানো হয়েছে। ${secs} সেকেন্ড পর আবার চেষ্টা করুন।`, retryAfter: secs });
+    }
+    const message = `আপনার IMAP OTP কোড: ${otp}। এই কোড ৫ মিনিট বৈধ। কাউকে শেয়ার করবেন না।`;
+    await sms.sendSMS(phone, message);
+    const isMock = (process.env.SMS_PROVIDER || "mock") === "mock";
+    res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Remove mockOtp before production" }) });
+  } catch (err) {
+    console.error("send-otp:", err);
+    res.status(500).json({ error: "SMS পাঠাতে সমস্যা হয়েছে। পরে চেষ্টা করুন।" });
+  }
 });
 
 // ── POST /api/auth/verify-otp ─────────────────────────────
 router.post("/verify-otp", async (req, res) => {
-  // production: check stored OTP from Redis/DB
-  // demo: just confirm phone exists or allow registration
-  const { phone, otp } = req.body;
-  if (!phone || !otp) return res.status(400).json({ error: "Phone and OTP required" });
-  // demo pass-through
-  const [rows] = await pool.query("SELECT * FROM users WHERE phone = ?", [phone]);
-  if (rows.length) {
-    const { password_hash, ...safeUser } = rows[0];
-    return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) return res.status(400).json({ error: "Phone and OTP required" });
+    const result = otpStore.verifyOtp(phone, String(otp));
+    if (result === "expired")  return res.status(400).json({ error: "OTP মেয়াদ শেষ। নতুন OTP নিন।" });
+    if (result === "blocked")  return res.status(429).json({ error: "অনেকবার ভুল হয়েছে। নতুন OTP নিন।" });
+    if (result === "invalid")  return res.status(400).json({ error: "OTP ভুল। আবার চেষ্টা করুন।" });
+    const [rows] = await pool.query("SELECT * FROM users WHERE phone = ?", [phone]);
+    if (rows.length) {
+      const { password_hash, ...safeUser } = rows[0];
+      return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
+    }
+    res.json({ isNew: true, verified: true });
+  } catch (err) {
+    console.error("verify-otp:", err);
+    res.status(500).json({ error: "Server error" });
   }
-  res.json({ isNew: true });
 });
 
 // ── GET /api/auth/me ──────────────────────────────────────

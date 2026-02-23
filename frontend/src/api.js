@@ -285,4 +285,43 @@ export const sos = {
   update: (id, status, admin_note) => patch(`/sos/${id}`, { status, admin_note }),
 };
 
-export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule, sos };
+export const payments = {
+  /** Initiate payment for a booking */
+  initiate: (booking_id, payment_method = "sslcommerz") =>
+    post("/payments/initiate", { booking_id, payment_method }),
+  /** List my payment history */
+  list: (page = 1) => get(`/payments?page=${page}`),
+  /** Get single payment detail */
+  get: (id) => get(`/payments/${id}`),
+  /** Admin: list all payments */
+  adminList: (status, page = 1) =>
+    get(`/payments/admin/all?page=${page}${status ? `&status=${status}` : ""}`),
+};
+
+export const upload = {
+  /** Upload avatar image */
+  avatar: async (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return req("POST", "/upload/avatar", fd, true);
+  },
+  /** Upload KYC documents */
+  kyc: async (files) => {
+    const fd = new FormData();
+    for (const [field, file] of Object.entries(files)) {
+      if (file) fd.append(field, file);
+    }
+    return req("POST", "/upload/kyc", fd, true);
+  },
+  /** Upload booking completion proof */
+  proof: async (file, booking_id) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (booking_id) fd.append("booking_id", booking_id);
+    return req("POST", "/upload/proof", fd, true);
+  },
+  /** Check storage config status */
+  status: () => get("/upload/status"),
+};
+
+export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule, sos, payments, upload };

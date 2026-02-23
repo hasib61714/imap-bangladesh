@@ -296,6 +296,36 @@ CREATE TABLE IF NOT EXISTS sos_alerts (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- ── PAYMENTS ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payments (
+  id                   VARCHAR(36) PRIMARY KEY,
+  booking_id           VARCHAR(36),
+  user_id              VARCHAR(36) NOT NULL,
+  amount               DECIMAL(12,2) NOT NULL,
+  currency             VARCHAR(5) DEFAULT 'BDT',
+  method               VARCHAR(50) DEFAULT 'sslcommerz',
+  status               ENUM('pending','success','failed','refunded','cancelled') DEFAULT 'pending',
+  gateway_tran_id      VARCHAR(100),
+  gateway_val_id       VARCHAR(100),
+  gateway_session_key  VARCHAR(255),
+  paid_at              TIMESTAMP NULL,
+  refunded_at          TIMESTAMP NULL,
+  refund_reason        TEXT,
+  admin_note           TEXT,
+  created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id)    REFERENCES users(id),
+  FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL,
+  INDEX idx_user       (user_id),
+  INDEX idx_booking    (booking_id),
+  INDEX idx_status     (status),
+  INDEX idx_gateway_id (gateway_tran_id)
+) ENGINE=InnoDB;
+
+-- ── ALTER existing tables (safe, idempotent) ─────────────
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER note;
+ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;
+
 -- Demo Admin user (password: admin123)
 INSERT IGNORE INTO users (id,name,email,phone,password_hash,role,kyc_status,verified,balance,points,referral_code) VALUES
 ('admin-001','Admin User','admin@imap.bd','01700000000',

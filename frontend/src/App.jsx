@@ -12,7 +12,7 @@ import ProviderPortal from "./pages/ProviderPortal";
 import LandingPage from "./pages/LandingPage";
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
-import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi } from "./api";
+import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi } from "./api";
 
 const C = C_LIGHT; // module-level fallback
 
@@ -794,7 +794,7 @@ function GuaranteeModal({booking,onClose}){
 }
 
 /* ══ MY BOOKINGS ══ */
-function MyBookings({onRate,onBook}) {
+function MyBookings({onRate,onBook,onPay}) {
   const C=useC();
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -859,7 +859,7 @@ function MyBookings({onRate,onBook}) {
                 <span className="badge" style={{background:S.bg,color:S.col,marginTop:4,display:"inline-flex"}}>{S[lang]||S.en}</span>
               </div>
             </div>
-            {st==="ongoing"&&<div style={{background:"#EFF6FF",borderRadius:10,padding:10,border:"1px solid #BFDBFE"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>}
+            {st==="ongoing"&&(<div><div style={{background:"#EFF6FF",borderRadius:10,padding:10,border:"1px solid #BFDBFE"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}</div>)}
             {st==="completed"&&<div style={{marginTop:10}}>
               <div className="row" style={{gap:8,marginBottom:7}}>
                 <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`,fontSize:12}} onClick={()=>onRate(findProvider(b.pid))}>{tr.giveRating}</button>
@@ -3789,6 +3789,12 @@ export default function IMAP() {
   const [sosDesc,     setSosDesc]     = useState("");
   const [sosLoading,  setSosLoading]  = useState(false);
   const [sosDone,     setSosDone]     = useState(false);
+  // ── PAYMENT STATE ──
+  const [showPayment,     setShowPayment]     = useState(false);
+  const [payBookingId,    setPayBookingId]    = useState(null);
+  const [payLoading,      setPayLoading]      = useState(false);
+  const [payResult,       setPayResult]       = useState(null);
+  const [payResultTranId, setPayResultTranId] = useState(null);
 
   // ── LIVE DATA STATE (falls back to static constants until API responds) ──
   const [liveProviders, setLiveProviders] = useState(PROVIDERS);
@@ -3829,6 +3835,16 @@ export default function IMAP() {
     // Register service worker for push notifications
     if("serviceWorker" in navigator){
       navigator.serviceWorker.register("/sw.js").catch(()=>{});
+    }
+    // Handle SSLCommerz payment redirect
+    const params=new URLSearchParams(window.location.search);
+    const payStatus=params.get("payment");
+    const tranId=params.get("tran_id");
+    if(payStatus&&["success","failed","cancelled"].includes(payStatus)){
+      setPayResult(payStatus);
+      setPayResultTranId(tranId);
+      setShowPayment(true);
+      window.history.replaceState({},"",window.location.pathname+window.location.hash);
     }
     return()=>window.removeEventListener("resize",check);
   },[])
@@ -4493,7 +4509,7 @@ export default function IMAP() {
           {page==="cprofile" && <div className="wp" style={{padding:"0 0 80px"}}><CustomerProfilePage user={authUser} onAvatarUpdate={u=>{setAuthUser(u);}} onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="services"  && <div className="wp sp"><Services/></div>}
           {page==="providers" && <div className="wp sp"><ProvidersPage/></div>}
-          {page==="bookings"  && <div className="wp" style={{padding:"28px 0 80px"}}><MyBookings onRate={p=>{setRateFor(p);}} onBook={goBook}/></div>}
+          {page==="bookings"  && <div className="wp" style={{padding:"28px 0 80px"}}><MyBookings onRate={p=>{setRateFor(p);}} onBook={goBook} onPay={id=>{setPayBookingId(id);setPayResult(null);setShowPayment(true);}}/></div>}
           {page==="notifs"    && <div className="wp" style={{padding:"28px 0 80px"}}><NotifPage/></div>}
           {page==="dashboard" && <div className="wp" style={{padding:"28px 0 80px"}}><ProviderDash/></div>}
           {page==="how"       && <div className="wp"><HowPage/></div>}
@@ -4549,6 +4565,58 @@ export default function IMAP() {
         </div></div>}
         {/* Emergency */}
         {emg&&<EmgModal/>}
+        {/* ── PAYMENT MODAL ── */}
+        {showPayment&&(
+          <div className="ov" onClick={()=>{if(!payLoading){setShowPayment(false);setPayResult(null);setPayBookingId(null);}}}>
+            <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,padding:28,textAlign:"center"}}>
+              {payResult==="success"?(<>
+                <div style={{fontSize:64,marginBottom:8}}>✅</div>
+                <div style={{fontSize:19,fontWeight:700,color:"#16A34A",marginBottom:6}}>{lang==="bn"?"পেমেন্ট সফল!":"Payment Successful!"}</div>
+                <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="bn"?"আপনার বুকিং নিশ্চিত হয়েছে।":"Your booking has been confirmed."}</div>
+                {payResultTranId&&<div style={{fontSize:11,color:C.muted,marginBottom:20}}>TXN: {payResultTranId}</div>}
+                <button className="btn btn-g" onClick={()=>{setShowPayment(false);setPayResult(null);setPayBookingId(null);setPage("bookings");}} style={{padding:"10px 32px"}}>{lang==="bn"?"বুকিং দেখুন":"View Bookings"}</button>
+              </>):payResult==="failed"?(<>
+                <div style={{fontSize:64,marginBottom:8}}>❌</div>
+                <div style={{fontSize:19,fontWeight:700,color:"#EF4444",marginBottom:6}}>{lang==="bn"?"পেমেন্ট ব্যর্থ":"Payment Failed"}</div>
+                <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="bn"?"পুনরায় চেষ্টা করুন।":"Please try again."}</div>
+                <button className="btn btn-gh" onClick={()=>{setShowPayment(false);setPayResult(null);}} style={{padding:"10px 32px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
+              </>):payResult==="cancelled"?(<>
+                <div style={{fontSize:64,marginBottom:8}}>🚫</div>
+                <div style={{fontSize:19,fontWeight:700,color:C.muted,marginBottom:6}}>{lang==="bn"?"পেমেন্ট বাতিল":"Payment Cancelled"}</div>
+                <button className="btn btn-gh" onClick={()=>{setShowPayment(false);setPayResult(null);}} style={{padding:"10px 32px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
+              </>):(<>
+                <div style={{fontSize:42,marginBottom:10}}>💳</div>
+                <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{lang==="bn"?"পেমেন্ট করুন":"Complete Payment"}</div>
+                <div style={{fontSize:12,color:C.muted,marginBottom:20}}>{lang==="bn"?"SSLCommerz — bKash, Nagad, Rocket, Card সহ সকল পদ্ধতি":"SSLCommerz — bKash, Nagad, Rocket, uPay, Cards & more"}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",marginBottom:20}}>
+                  {[["🟢","bKash"],["🔵","Nagad"],["🟠","Rocket"],["🟣","uPay"],["🔴","CelFin"],["💳","Card"]].map(([ic,lbl])=>(
+                    <div key={lbl} style={{padding:"6px 14px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:20,fontSize:12,fontWeight:600,color:C.text}}>{ic} {lbl}</div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button className="btn btn-gh" style={{flex:1,padding:"11px 0"}} onClick={()=>setShowPayment(false)}>{lang==="bn"?"বাতিল":"Cancel"}</button>
+                  <button className="btn" style={{flex:1,padding:"11px 0",background:"#6366F1",color:"#fff",borderRadius:12,border:"none",cursor:payLoading?"not-allowed":"pointer",fontWeight:700,fontSize:14,fontFamily:"inherit"}} disabled={payLoading}
+                    onClick={async()=>{
+                      if(!payBookingId)return;
+                      setPayLoading(true);
+                      try{
+                        const res=await paymentsApi.initiate(payBookingId);
+                        if(res.url){ window.location.href=res.url; }
+                        else if(res.mock){
+                          setPayResult("success");
+                          bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
+                        }
+                      }catch(e){ alert(e.message||"পেমেন্ট শুরু করতে সমস্যা হয়েছে।"); }
+                      finally{setPayLoading(false);}
+                    }}>
+                    {payLoading?(lang==="bn"?"প্রসেস হচ্ছে…":"Processing…"):(lang==="bn"?"💳 পেমেন্ট করুন":"💳 Pay Now")}
+                  </button>
+                </div>
+                <div style={{marginTop:12,fontSize:10,color:C.muted}}>{lang==="bn"?"SSL নিরাপদ এনক্রিপ্টেড পেমেন্ট":"SSL secured encrypted payment — All data protected"}</div>
+              </>)}
+            </div>
+          </div>
+        )}
         {/* SOS floating button */}
         {!showSos && (
           <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}

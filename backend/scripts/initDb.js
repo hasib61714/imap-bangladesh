@@ -4,6 +4,8 @@ const path  = require("path");
 const mysql = require("mysql2/promise");
 
 async function initDb() {
+  const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
+
   // Connect without selecting a DB first
   const conn = await mysql.createConnection({
     host:     process.env.DB_HOST     || "localhost",
@@ -12,6 +14,7 @@ async function initDb() {
     password: process.env.DB_PASSWORD || "",
     multipleStatements: true,
     charset: "utf8mb4",
+    ssl:     sslConfig || undefined,
   });
 
   console.log("✅ Connected to MySQL");
