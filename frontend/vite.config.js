@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 
+  // GitHub Pages base path (only in production build)
+  base: process.env.NODE_ENV === 'production' ? '/imap-bangladesh/' : '/',
+
   // ── Dev server ──────────────────────────────────────────
   server: {
     port: 5173,
