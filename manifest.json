@@ -2,8 +2,8 @@
   "name": "IMAP AI Powered Service Platform Bangladesh",
   "short_name": "IMAP",
   "description": "IMAP AI Powered Service Platform Bangladesh – Smarter home services with AI",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": ".",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
@@ -12,16 +12,28 @@
   "categories": ["utilities", "lifestyle"],
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [],
@@ -30,15 +42,15 @@
       "name": "জরুরি সেবা",
       "short_name": "Emergency",
       "description": "One-click emergency booking",
-      "url": "/?emergency=1",
-      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+      "url": "./?emergency=1",
+      "icons": [{"src": "./icons/icon-192.png", "sizes": "192x192"}]
     },
     {
       "name": "বুকিং করুন",
       "short_name": "Book",
       "description": "Book a service",
-      "url": "/?book=1",
-      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+      "url": "./?book=1",
+      "icons": [{"src": "./icons/icon-192.png", "sizes": "192x192"}]
     }
   ]
 }
