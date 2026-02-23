@@ -282,4 +282,20 @@ router.delete("/promos/:id", ...auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── GET /api/admin/announcements ─────────────────────────
+router.get("/announcements", ...auth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT MIN(id) AS id, icon, type, title_bn, title_en, body_bn, body_en,
+              MIN(created_at) AS created_at, COUNT(*) AS reach
+       FROM notifications
+       WHERE type = 'system'
+       GROUP BY title_bn, body_bn
+       ORDER BY created_at DESC
+       LIMIT 30`
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

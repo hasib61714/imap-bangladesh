@@ -123,41 +123,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { id:"T04", customer:"নুসরাত জাহান",  provider:"নাফিসা আক্তার",issue:"ফোন ধরেনি",            status:"open",     date:"২০২৫-০৬-০৬", priority:"high"   },
   ]);
   const [ticketFilter, setTicketFilter] = useState("all");
-  const [announcements, setAnnouncements] = useState([
-    { id:"AN01", title:"EID বিশেষ ছাড়",         msg:"সকল সেবায় ১৫% ছাড়।",        target:"all",       date:"২০২৫-০৩-২০", reach:1240 },
-    { id:"AN02", title:"নতুন পেমেন্ট সিস্টেম",  msg:"Nagad ও Rocket চালু হয়েছে।", target:"customers", date:"২০২৫-০৪-০১", reach:980 },
-  ]);
+  const [announcements, setAnnouncements] = useState([]);
   const [notifTitle, setNotifTitle] = useState("");
   const [notifMsg,   setNotifMsg]   = useState("");
   const [notifTarget,setNotifTarget]= useState("all");
-  const [promos, setPromos] = useState([
-    { id:"PR01", code:"EID25",   discount:25,  type:"percent", uses:142, limit:500,  expires:"২০২৫-০৪-০১", active:true  },
-    { id:"PR02", code:"FLAT100", discount:100, type:"flat",    uses:88,  limit:200,  expires:"২০২৫-০৪-১৫", active:true  },
-    { id:"PR03", code:"NURSE20", discount:20,  type:"percent", uses:310, limit:300,  expires:"২০২৫-০৩-৩১", active:false },
-    { id:"PR04", code:"NEW50",   discount:50,  type:"flat",    uses:12,  limit:1000, expires:"২০২৫-১২-৩১", active:true  },
-  ]);
+  const [promos, setPromos] = useState([]);
   const [promoForm, setPromoForm] = useState({ code:"", discount:"", type:"percent", limit:"" });
-  const [categories, setCategories] = useState([
-    { id:1,  icon:"🚨", name:"জরুরি সেবা",           providers:89,  active:true  },
-    { id:2,  icon:"🏠", name:"গৃহ রক্ষণাবেক্ষণ",     providers:312, active:true  },
-    { id:3,  icon:"🧹", name:"পরিষ্কার সেবা",         providers:124, active:true  },
-    { id:4,  icon:"👩\u200d⚕️", name:"স্বাস্থ্যসেবা",providers:203, active:true  },
-    { id:5,  icon:"📚", name:"শিক্ষা সেবা",           providers:315, active:true  },
-    { id:6,  icon:"🚚", name:"স্থানান্তর ও পরিবহন",   providers:56,  active:true  },
-    { id:7,  icon:"🍲", name:"রান্না ও খাবার",         providers:74,  active:true  },
-    { id:8,  icon:"🧑\u200d💼", name:"পেশাদার পরামর্শ",  providers:112, active:true  },
-    { id:9,  icon:"🛡️", name:"নিরাপত্তা সেবা",        providers:38,  active:true  },
-    { id:10, icon:"🛒", name:"দৈনন্দিন সহায়তা",       providers:92,  active:true  },
-    { id:11, icon:"🧓", name:"বয়স্ক সেবা",            providers:47,  active:true  },
-    { id:12, icon:"👶", name:"শিশু ও পরিবার সেবা",   providers:63,  active:true  },
-    { id:13, icon:"🌾", name:"কৃষি ও গ্রামীণ সেবা",  providers:89,  active:true  },
-    { id:14, icon:"🎉", name:"ইভেন্ট ও ব্যক্তিগত",   providers:58,  active:true  },
-    { id:15, icon:"🧵", name:"ব্যক্তিগত জীবনধারা",   providers:96,  active:true  },
-    { id:16, icon:"🔧", name:"মেরামত ও প্রযুক্তি",    providers:143, active:true  },
-    { id:17, icon:"🧠", name:"স্মার্ট সহায়তা",        providers:41,  active:true  },
-    { id:18, icon:"🚿", name:"ইউটিলিটি স্থাপন",      providers:52,  active:false },
-    { id:19, icon:"💅", name:"বিউটি ও সেলুন",        providers:138, active:true  },
-  ]);
+  const [categories, setCategories] = useState([]);
   const [newCat, setNewCat] = useState({ icon:"", name:"" });
   const [sysToggles, setSysToggles] = useState([true, false, true, true, true, false]);
   const [pSearch, setPSearch] = useState("");
@@ -353,6 +325,22 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     } catch(e) { console.warn("loadPromos:", e.message); }
   };
 
+  const loadAnnouncements = async () => {
+    try {
+      const rows = await adminApi.announcements();
+      if (Array.isArray(rows)) {
+        setAnnouncements(rows.map(r => ({
+          id: r.id,
+          title: r.title_bn || r.title_en || "",
+          msg:   r.body_bn  || r.body_en  || "",
+          target: "all",
+          date: new Date(r.created_at).toLocaleDateString(),
+          reach: r.reach || 0,
+        })));
+      }
+    } catch(e) { console.warn("loadAnnouncements:", e.message); }
+  };
+
   const loadCategories = async () => {
     try {
       const data = await servicesApi.list(true);
@@ -375,7 +363,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     else if (tab === "bookings")   loadBookings(bFilter);
     else if (tab === "kyc")        loadKyc(kycFilter === "all" ? "pending" : kycFilter);
     else if (tab === "promos")     loadPromos();
-    else if (tab === "categories") loadCategories();
+    else if (tab === "categories")   loadCategories();
+    else if (tab === "notifications") loadAnnouncements();
   }, [tab]);
 
   /* ── AI STATE ─────────────────────────────────────── */
@@ -912,10 +901,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       <Button type="primary" icon={<SendOutlined/>} block onClick={async()=>{
                         if(!notifTitle.trim()||!notifMsg.trim()){toast(lang==="bn"?"শিরোনাম ও বার্তা দিন":"Enter title and message","warning");return;}
                         const titleVal=notifTitle; const msgVal=notifMsg;
-                        setAnnouncements(a=>[{id:"AN"+Date.now(),title:titleVal,msg:msgVal,target:notifTarget,
-                          date:new Date().toLocaleDateString(),reach:notifTarget==="all"?1560:notifTarget==="customers"?980:320},...a]);
                         try{await adminApi.notify({title_bn:titleVal,title_en:titleVal,body_bn:msgVal,body_en:msgVal,type:"system"});}catch(e){console.warn(e.message);}
                         setNotifTitle("");setNotifMsg("");
+                        loadAnnouncements();
                         toast(lang==="bn"?"📢 বিজ্ঞপ্তি পাঠানো হয়েছে":"📢 Sent!");
                       }}>{lang==="bn"?"পাঠান":"Send"}</Button>
                     </Form>

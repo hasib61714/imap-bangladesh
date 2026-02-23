@@ -140,31 +140,14 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2200);};
 
-  const [jobs,setJobs]=useState([
-    {id:"J01",customer:"আহমেদ রাহাত",service:lang==="bn"?"বিদ্যুৎ মেরামত":"Electrical Repair",address:lang==="bn"?"মিরপুর-১০, ঢাকা":"Mirpur-10, Dhaka",time:lang==="bn"?"সকাল ১০টা":"10:00 AM",amount:800,status:"incoming",urgent:true},
-    {id:"J02",customer:"সুমাইয়া খানম",service:lang==="bn"?"ফ্যান ইনস্টল":"Fan Installation",address:lang==="bn"?"উত্তরা, ঢাকা":"Uttara, Dhaka",time:lang==="bn"?"দুপুর ২টা":"2:00 PM",amount:400,status:"incoming",urgent:false},
-    {id:"J03",customer:"করিম সাহেব",service:lang==="bn"?"সার্কিট মেরামত":"Circuit Repair",address:lang==="bn"?"বনানী, ঢাকা":"Banani, Dhaka",time:lang==="bn"?"বিকাল ৪টা":"4:00 PM",amount:1200,status:"active",urgent:false},
-    {id:"J04",customer:"নুসরাত জাহান",service:lang==="bn"?"ওয়্যারিং":"Wiring",address:lang==="bn"?"গুলশান, ঢাকা":"Gulshan, Dhaka",time:lang==="bn"?"গতকাল সকাল":"Yesterday AM",amount:950,status:"completed",urgent:false},
-    {id:"J05",customer:"তানভীর আহমেদ",service:lang==="bn"?"লাইট ফিটিং":"Light Fitting",address:lang==="bn"?"মহাখালী, ঢাকা":"Mohakhali, Dhaka",time:lang==="bn"?"গত সপ্তাহ":"Last week",amount:350,status:"completed",urgent:false},
-  ]);
+  const [jobs,setJobs]=useState([]);
 
-  const [earnings,setEarnings]=useState({balance:4750,thisWeek:3450,thisMonth:14200,total:89500,history:[
-    {date:"২০২৫-০৬-১১",desc:lang==="bn"?"সার্কিট মেরামত":"Circuit Repair",amount:1200,type:"credit"},
-    {date:"২০২৫-০৬-১০",desc:lang==="bn"?"বিদ্যুৎ মেরামত":"Electrical Repair",amount:800,type:"credit"},
-    {date:"২০২৫-০৬-০৯",desc:lang==="bn"?"উত্তোলন":"Withdrawal",amount:-3000,type:"debit"},
-    {date:"২০২৫-০৬-০৮",desc:lang==="bn"?"ওয়্যারিং":"Wiring",amount:950,type:"credit"},
-    {date:"২০২৫-০৬-০৭",desc:lang==="bn"?"লাইট ফিটিং":"Light Fitting",amount:350,type:"credit"},
-  ]});
+  const [earnings,setEarnings]=useState({balance:0,thisWeek:0,thisMonth:0,total:0,history:[]});
 
   const [schedule,setSchedule]=useState({slots:{}});
 
-  const [reviews,setReviews]=useState([
-    {id:"R01",customer:"আহমেদ রাহাত",rating:5,comment:lang==="bn"?"অসাধারণ কাজ। সময়মতো এসেছেন।":"Excellent work. Arrived on time.",service:lang==="bn"?"বিদ্যুৎ মেরামত":"Electrical Repair",date:"২০২৫-০৬-১০"},
-    {id:"R02",customer:"সুমাইয়া খানম",rating:4,comment:lang==="bn"?"ভালো কাজ করেছেন। আরো ব্যাখ্যা দিলে ভালো হতো।":"Good work. Could explain more clearly.",service:lang==="bn"?"ফ্যান ইনস্টল":"Fan Install",date:"২০২৫-০৬-০৯"},
-    {id:"R03",customer:"তানভির আহমেদ",rating:5,comment:lang==="bn"?"মাত্র ৩০ মিনিটে সমস্যা সরিয়েছেন। অনেক ধন্যবাদ!":"Fixed the problem in 30 minutes. Many thanks!",service:lang==="bn"?"সার্কিট মেরামত":"Circuit Repair",date:"২০২৫-০৬-০৭"},
-    {id:"R04",customer:"নুসরাত জাহান",rating:3,comment:lang==="bn"?"সঠিকভাবে কাজ হয়েছে, তবে দেরি হয়েছে।":"Work done correctly but was late.",service:lang==="bn"?"ওয়্যারিং":"Wiring",date:"২০২৫-০৬-০৫"},
-  ]);
-  const avgRating=(reviews.reduce((a,r)=>a+r.rating,0)/reviews.length).toFixed(1);
+  const [reviews,setReviews]=useState([]);
+  const avgRating=reviews.length?(reviews.reduce((a,r)=>a+r.rating,0)/reviews.length).toFixed(1):"0.0";
   const ratingDist=[5,4,3,2,1].map(s=>({s,count:reviews.filter(r=>r.rating===s).length}));
 
   const [chatSessions, setChatSessions]=useState([]);
@@ -173,13 +156,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const [chatMessages,setChatMessages]=useState({});
   const [chatInput,setChatInput]=useState("");
 
-  const [pNotifs,setPNotifs]=useState([
-    {id:"N01",icon:"💰",title:lang==="bn"?"পেমেন্ট পাওয়া গেছে":"Payment Received",msg:lang==="bn"?"৳১,২০০ আপনার ব্যালেন্সে যোগ হয়েছে":"৳1,200 added to your balance",time:"২ ঘণ্টা আগে",read:false},
-    {id:"N02",icon:"📊",title:lang==="bn"?"নতুন কাজের অনুরোধ":"New Job Request",msg:lang==="bn"?"আহমেদ রাহাত বিদ্যুৎ মেরামতের বুকিং দিয়েছে":"Ahmed Rahat booked Electrical Repair",time:"৫ ঘণ্টা আগে",read:false},
-    {id:"N03",icon:"⭐",title:lang==="bn"?"নতুন রিভিউ":"New Review",msg:lang==="bn"?"সুমাইয়া আপনাকে ৫ তারা দিয়েছে":"Sumaiya gave you 5 stars",time:"ই ঘণ্টা আগে",read:true},
-    {id:"N04",icon:"🏆",title:lang==="bn"?"তোমার র্যাংক বেড়েছে":"Your Ranking Improved",msg:lang==="bn"?"এই সপ্তাহে আপনি শীর্ষ ৫ জন প্রদানকারীর মধ্যে আছেন":"You are in the top 5 providers this week",time:"গতকাল",read:true},
-    {id:"N05",icon:"🏪",title:lang==="bn"?"আপনার খদমত ফের ভেরিফাই হয়েছে":"Area Verification Updated",msg:lang==="bn"?"ঢাকা নর্থ এলাকা যোগ করা হয়েছে":"Dhaka North area added",time:"২ দিন আগে",read:true},
-  ]);
+  const [pNotifs,setPNotifs]=useState([]);
 
   const sendChatMsg=()=>{
     const txt=chatInput.trim();
