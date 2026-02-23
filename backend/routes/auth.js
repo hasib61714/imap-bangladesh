@@ -44,9 +44,14 @@ router.post("/register", async (req, res) => {
     // If provider role → create provider profile
     if (role === "provider") {
       const pid = uuidv4();
+      const { service_type_bn, service_type_en, area_bn, area_en, hourly_rate } = req.body;
       await pool.query(
-        "INSERT INTO providers (id, user_id) VALUES (?, ?)",
-        [pid, id]
+        `INSERT INTO providers (id, user_id, service_type_bn, service_type_en, area_bn, area_en, hourly_rate)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [pid, id,
+         service_type_bn || null, service_type_en || null,
+         area_bn || null, area_en || null,
+         hourly_rate || null]
       );
     }
 
