@@ -14,7 +14,7 @@ import {
   MenuFoldOutlined, MenuUnfoldOutlined, SunOutlined, MoonOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
-import { admin as adminApi, ai as aiApi } from "../api";
+import { admin as adminApi, ai as aiApi, sos as sosApi } from "../api";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -195,6 +195,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   /* ── SIDEBAR MENU ──────────────────────────────────── */
   const kycPending  = kycList.filter(k => k.status==="pending").length;
   const openTickets = tickets.filter(t => t.status==="open").length;
+  const [sosAlerts, setSosAlerts] = useState([]);
+  const [sosLoading, setSosLoading] = useState(false);
 
   const menuItems = [
     { key:"overview",      icon:<DashboardOutlined />,        label: lang==="bn"?"সারাংশ":"Overview"       },
@@ -204,12 +206,23 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { key:"kyc",           icon:<SafetyCertificateOutlined />, label: <Badge count={kycPending} size="small" offset={[8,0]}>{lang==="bn"?"KYC যাচাই":"KYC"}</Badge> },
     { key:"revenue",       icon:<BarChartOutlined />,          label: lang==="bn"?"রাজস্ব":"Revenue"        },
     { key:"complaints",    icon:<WarningOutlined />,           label: <Badge count={openTickets} size="small" offset={[8,0]}>{lang==="bn"?"অভিযোগ":"Complaints"}</Badge> },
+    { key:"sos",           icon:<span>🆘</span>,               label: <Badge count={sosAlerts?.filter(a=>a.status==="open").length||0} size="small" offset={[8,0]}>{lang==="bn"?"SOS সতর্কতা":"SOS Alerts"}</Badge> },
     { key:"notifications", icon:<NotificationOutlined />,      label: lang==="bn"?"বিজ্ঞপ্তি":"Notifications"},
     { key:"promos",        icon:<GiftOutlined />,              label: lang==="bn"?"প্রোমো কোড":"Promo Codes"},
     { key:"categories",    icon:<AppstoreOutlined />,          label: lang==="bn"?"সেবা বিভাগ":"Categories" },
     { key:"ai",            icon:<span>🤖</span>,               label: lang==="bn"?"AI Analytics":"AI Analytics" },
     { key:"settings",      icon:<SettingOutlined />,           label: lang==="bn"?"সেটিংস":"Settings"       },
   ];
+
+  /* ── SOS STATE ───────────────────────────────────── */
+  const loadSos = async () => {
+    setSosLoading(true);
+    try { const d = await sosApi?.list(); if(d?.alerts) setSosAlerts(d.alerts); }
+    catch {}
+    finally { setSosLoading(false); }
+  };
+
+  useEffect(() => { if(tab==="sos") loadSos(); }, [tab]);
 
   /* ── AI STATE ─────────────────────────────────────── */
   const [aiLoading, setAiLoading]   = useState(false);
@@ -998,6 +1011,53 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   ))}
                 </Row>
               </>
+            )}
+
+            {/* ── SOS ALERTS ── */}
+            {tab==="sos" && (
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+                  <Title level={4} style={{margin:0}}>🆘 {lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alerts"}</Title>
+                  <Button onClick={loadSos} loading={sosLoading}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
+                </div>
+                <Row gutter={[12,12]} style={{marginBottom:20}}>
+                  {[["open","#EF4444",lang==="bn"?"খোলা":"Open"],["in_progress","#F59E0B",lang==="bn"?"প্রক্রিয়াধীন":"In Progress"],["resolved","#16A34A",lang==="bn"?"সমাধান":"Resolved"]].map(([s,c,l])=>(
+                    <Col xs={8} key={s}>
+                      <Card style={{borderTop:`3px solid ${c}`,textAlign:"center",padding:"12px 0"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:c}}>{sosAlerts.filter(a=>a.status===s).length}</div>
+                        <div style={{fontSize:12,color:"#6B7280"}}>{l}</div>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+                <Table
+                  loading={sosLoading}
+                  dataSource={sosAlerts}
+                  rowKey="id"
+                  size="small"
+                  pagination={{pageSize:20}}
+                  columns={[
+                    {title:"ID",dataIndex:"id",width:60},
+                    {title:lang==="bn"?"ব্যবহারকারী":"User",render:(_,r)=><div><div style={{fontWeight:600}}>{r.user_name}</div><div style={{fontSize:11,color:"#6B7280"}}>{r.user_phone}</div></div>},
+                    {title:lang==="bn"?"ধরন":"Type",dataIndex:"type",render:t=><Tag color={t==="emergency"||t==="harassment"?"red":t==="fraud"?"orange":"default"}>{t.toUpperCase()}</Tag>},
+                    {title:lang==="bn"?"বিবরণ":"Description",dataIndex:"description",ellipsis:true},
+                    {title:lang==="bn"?"অবস্থা":"Status",dataIndex:"status",render:s=><Tag color={s==="open"?"red":s==="in_progress"?"orange":"green"}>{s}</Tag>},
+                    {title:lang==="bn"?"সময়":"Time",dataIndex:"created_at",render:t=>new Date(t).toLocaleString("bn-BD")},
+                    {title:lang==="bn"?"ব্যবস্থা":"Action",render:(_,r)=>(
+                      <Space size="small">
+                        {r.status==="open"&&<Button size="small" type="primary" style={{background:"#F59E0B",borderColor:"#F59E0B"}}
+                          onClick={async()=>{await sosApi?.update(r.id,"in_progress","Admin investigating");loadSos();}}>
+                          {lang==="bn"?"তদন্ত":"Investigate"}
+                        </Button>}
+                        {r.status!=="resolved"&&<Button size="small" style={{background:"#16A34A",borderColor:"#16A34A",color:"#fff"}}
+                          onClick={async()=>{await sosApi?.update(r.id,"resolved","Resolved by admin");loadSos();}}>
+                          {lang==="bn"?"সমাধান":"Resolve"}
+                        </Button>}
+                      </Space>
+                    )},
+                  ]}
+                />
+              </div>
             )}
 
             {/* ── SETTINGS ── */}

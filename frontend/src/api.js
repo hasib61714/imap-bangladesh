@@ -275,4 +275,14 @@ export const schedule = {
   forProvider: (providerId) => get(`/schedule/provider/${providerId}`),
 };
 
-export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule };
+export const sos = {
+  /** Send SOS alert (auth required) */
+  send: (type, description, booking_id, lat, lng) =>
+    post("/sos", { type, description, booking_id, lat, lng }),
+  /** List all SOS alerts (admin only) */
+  list: (status) => get("/sos" + (status ? `?status=${status}` : "")),
+  /** Update alert status (admin only) */
+  update: (id, status, admin_note) => patch(`/sos/${id}`, { status, admin_note }),
+};
+
+export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule, sos };

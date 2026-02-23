@@ -138,6 +138,7 @@ app.use("/api/disaster",  require("./routes/disaster"));
 app.use("/api/chat",      require("./routes/chat"));
 app.use("/api/promos",    require("./routes/promos"));
 app.use("/api/schedule",  require("./routes/schedule"));
+app.use("/api/sos",       require("./routes/sos"));
 
 // ── Health check ──────────────────────────────────────────
 app.get("/api/health", (_req, res) => res.json({

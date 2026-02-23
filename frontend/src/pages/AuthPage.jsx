@@ -12,7 +12,7 @@ import { auth as authApi, setToken } from "../api";
 
 const EYE_CYCLE = ["👁️","🙈","🤫","😶","🕵️","👁️"];
 
-export default function AuthPage({ onAuth, dark, lang, setLang }) {
+export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
   const tr = T[lang] || T.bn;
   const [mode, setMode] = useState("login");
   const [method, setMethod] = useState(null);
@@ -205,6 +205,11 @@ export default function AuthPage({ onAuth, dark, lang, setLang }) {
       `}</style>
 
       <div className="auth-top">
+        {onBack && (
+          <Button size="small" icon={<ArrowLeftOutlined />} onClick={onBack} style={{ borderRadius: 20 }}>
+            {lang === "bn" ? "হোম" : "Home"}
+          </Button>
+        )}
         <Button size="small" type="primary" onClick={() => setLang(lang === "bn" ? "en" : "bn")} style={{ borderRadius: 20, fontWeight: 700 }}>
           {lang === "bn" ? "EN" : "বাং"}
         </Button>

@@ -278,6 +278,24 @@ INSERT IGNORE INTO categories (slug,name_bn,name_en,icon,color,base_price,sort_o
 ('cook',          'রাঁধুনি',              'Cook',             '👨‍🍳','#EC4899', 400, 11),
 ('pest_control',  'কীটপতঙ্গ নিয়ন্ত্রণ', 'Pest Control',     '🦟','#84CC16', 500, 12);
 
+-- ── SOS ALERTS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sos_alerts (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  user_id      VARCHAR(36) NOT NULL,
+  type         ENUM('harassment','fraud','unsafe','emergency','other') NOT NULL,
+  description  TEXT,
+  booking_id   VARCHAR(36),
+  lat          DECIMAL(10,6),
+  lng          DECIMAL(10,6),
+  status       ENUM('open','in_progress','resolved','dismissed') DEFAULT 'open',
+  admin_note   TEXT,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_user   (user_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Demo Admin user (password: admin123)
 INSERT IGNORE INTO users (id,name,email,phone,password_hash,role,kyc_status,verified,balance,points,referral_code) VALUES
 ('admin-001','Admin User','admin@imap.bd','01700000000',

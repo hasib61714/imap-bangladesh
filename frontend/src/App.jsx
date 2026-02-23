@@ -9,9 +9,10 @@ import AuthPage from "./pages/AuthPage";
 import KYCPage from "./pages/KYCPage";
 import AdminPanel from "./pages/AdminPanel";
 import ProviderPortal from "./pages/ProviderPortal";
+import LandingPage from "./pages/LandingPage";
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
-import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken } from "./api";
+import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi } from "./api";
 
 const C = C_LIGHT; // module-level fallback
 
@@ -3782,6 +3783,13 @@ export default function IMAP() {
     catch{ localStorage.removeItem("imap_user"); return null; }
   });
 
+  const [showLanding, setShowLanding] = useState(()=>!localStorage.getItem("imap_user"));
+  const [showSos,     setShowSos]     = useState(false);
+  const [sosType,     setSosType]     = useState("");
+  const [sosDesc,     setSosDesc]     = useState("");
+  const [sosLoading,  setSosLoading]  = useState(false);
+  const [sosDone,     setSosDone]     = useState(false);
+
   // ── LIVE DATA STATE (falls back to static constants until API responds) ──
   const [liveProviders, setLiveProviders] = useState(PROVIDERS);
   const [liveBookings,  setLiveBookings]  = useState(MY_BOOKINGS);
@@ -3791,8 +3799,8 @@ export default function IMAP() {
   const [unreadCount,  setUnreadCount]  = useState(0);
   const [liveNotifs,   setLiveNotifs]   = useState(NOTIFS_DATA);
 
-  const doLogin  = u  => { localStorage.setItem("imap_user",JSON.stringify(u)); localStorage.setItem("imap_ob","1"); setOnboard(false); setAuthUser(u); };
-  const doLogout = () => { localStorage.removeItem("imap_user"); localStorage.removeItem("imap_token"); setAuthUser(null); };
+  const doLogin  = u  => { localStorage.setItem("imap_user",JSON.stringify(u)); localStorage.setItem("imap_ob","1"); setOnboard(false); setAuthUser(u); setShowLanding(false); };
+  const doLogout = () => { localStorage.removeItem("imap_user"); localStorage.removeItem("imap_token"); setAuthUser(null); setShowLanding(true); };
 
   // ── VOICE COMMAND HANDLER ──
   const handleVoiceCommand = useCallback(({ transcript, match }) => {
@@ -3902,7 +3910,11 @@ export default function IMAP() {
   const refreshBookings = ()=>bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
 
   // ── ROLE-BASED ROUTING ──
-  if(!authUser) return <AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/>;
+  if(!authUser && showLanding) return <LandingPage dark={dark} setDark={setDark} lang={lang} setLang={setLang}
+    onGetStarted={()=>setShowLanding(false)}
+    onRegisterProvider={()=>setShowLanding(false)}/>;
+  if(!authUser) return <AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
+    onBack={()=>setShowLanding(true)}/>;
   if(authUser.role==="admin") return <AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/>;
   if(authUser.role==="provider") return <ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/>;
   if(showKyc) return <KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/>;
@@ -4537,6 +4549,64 @@ export default function IMAP() {
         </div></div>}
         {/* Emergency */}
         {emg&&<EmgModal/>}
+        {/* SOS floating button */}
+        {!showSos && (
+          <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}
+            title={lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alert"}
+            style={{position:"fixed",bottom:isMobile?148:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
+            🆘
+          </button>
+        )}
+        {/* SOS Modal */}
+        {showSos && (
+          <div className="ov" onClick={()=>setShowSos(false)}>
+            <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:380,padding:28,textAlign:"center"}}>
+              {sosDone ? (
+                <>
+                  <div style={{fontSize:60,marginBottom:12}}>✅</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"#16A34A",marginBottom:8}}>{lang==="bn"?"উর্ধ্বতন কর্তৃপক্ষকে জানানো হয়েছে":"Admin & Call Center Notified"}</div>
+                  <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="bn"?"আমাদের টিম শীঘ্রই যোগাযোগ করবে। জরুরি নম্বর: ৯৯৯":"Our team will contact you shortly. Emergency: 999"}</div>
+                  <button className="btn btn-g" onClick={()=>setShowSos(false)} style={{padding:"10px 28px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
+                </>
+              ) : (
+                <>
+                  <div style={{fontSize:50,marginBottom:10,animation:"pulse 1s infinite"}}>🆘</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"#EF4444",marginBottom:6}}>{lang==="bn"?"জরুরি সতর্কতা":"Emergency SOS Alert"}</div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:18}}>{lang==="bn"?"আপনার Admin প্যানেল ও Call Center তাৎক্ষণিক সতর্ক হবে":"Admin panel & call center will be alerted immediately"}</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:16}}>
+                    {[{v:"harassment",bn:"হয়রানি",en:"Harassment"},{v:"fraud",bn:"প্রতারণা",en:"Fraud"},{v:"unsafe",bn:"অনিরাপদ",en:"Unsafe"},{v:"emergency",bn:"জরুরি",en:"Emergency"},{v:"other",bn:"অন্যান্য",en:"Other"}].map(t=>(
+                      <button key={t.v} onClick={()=>setSosType(t.v)}
+                        style={{padding:"7px 14px",borderRadius:20,border:`2px solid ${sosType===t.v?"#EF4444":C.bdr}`,background:sosType===t.v?"#FEF2F2":C.card,color:sosType===t.v?"#EF4444":C.text,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>
+                        {lang==="bn"?t.bn:t.en}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={sosDesc} onChange={e=>setSosDesc(e.target.value)}
+                    placeholder={lang==="bn"?"সংক্ষিপ্ত বিবরণ দিন (ঐচ্ছিক)…":"Brief description (optional)…"}
+                    style={{width:"100%",border:`1.5px solid ${C.bdr}`,borderRadius:10,padding:"10px 12px",fontSize:13,background:C.card,color:C.text,resize:"none",height:72,fontFamily:"inherit",marginBottom:14}}/>
+                  <div style={{display:"flex",gap:10}}>
+                    <button className="btn btn-gh" style={{flex:1,padding:"11px 0"}} onClick={()=>setShowSos(false)}>{lang==="bn"?"বাতিল":"Cancel"}</button>
+                    <button className="btn" style={{flex:1,padding:"11px 0",background:"#EF4444",color:"#fff",borderRadius:12,border:"none",cursor:sosLoading||!sosType?"not-allowed":"pointer",opacity:!sosType?.5:1,fontWeight:700,fontSize:14,fontFamily:"inherit"}} disabled={!sosType||sosLoading}
+                      onClick={async()=>{
+                        if(!sosType)return;
+                        setSosLoading(true);
+                        const send=(lat,lng)=>{
+                          return sosApi?.send(sosType,sosDesc,null,lat,lng).catch(()=>{}).finally(()=>{setSosLoading(false);setSosDone(true);});
+                        };
+                        navigator.geolocation?.getCurrentPosition(
+                          pos=>send(pos.coords.latitude,pos.coords.longitude),
+                          ()=>send(null,null)
+                        );
+                      }}>
+                      {sosLoading?"পাঠানো হচ্ছে…":lang==="bn"?"🆘 সতর্কতা পাঠান":"🆘 Send Alert"}
+                    </button>
+                  </div>
+                  <div style={{marginTop:14,fontSize:11,color:"#EF4444",fontWeight:600}}>৯৯৯ · ১৯৯ বা সরাসরি ফোন করুন • 999 · 199 direct call</div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Voice Command */}
         <VoiceCommand onCommand={handleVoiceCommand} isMobile={isMobile}/>
         {/* AI Chat */}
