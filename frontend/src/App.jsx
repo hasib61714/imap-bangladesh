@@ -3859,8 +3859,13 @@ export default function IMAP() {
   },[emgCnt]);
 
   useEffect(()=>{
-    if(!authUser) return;
+    // Pre-load public providers list even before login (endpoint is public)
     providersApi.list().then(d=>{if(d.providers?.length)setLiveProviders(d.providers);}).catch(()=>{});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  useEffect(()=>{
+    if(!authUser) return;
     bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
     usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});
     // Request browser notification permission
