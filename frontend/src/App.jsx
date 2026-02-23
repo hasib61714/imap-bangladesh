@@ -18,32 +18,38 @@ const C = C_LIGHT; // module-level fallback
 
 /* ── Map a backend provider row → UI provider shape ── */
 const toUiProv = p => ({
-  id:      p.id,
-  name:    p.name,
-  nameEn:  p.name,
-  svc:     p.service_category||p.svc||"",
-  svcEn:   p.service_category||p.svcEn||"",
-  r:       parseFloat(p.rating)||p.r||4.5,
-  rev:     p.rev||10,
-  price:   p.hourly_rate?`৳${p.hourly_rate}`:(p.price||"৳৩৫০"),
-  note:    p.bio||p.note||"",
-  ok:      p.ok!==undefined?p.ok:true,
-  top:     p.top||false,
-  av:      p.av||(p.name?.[0]||"P"),
-  col:     p.col||"#10B981",
-  score:   p.score||80,
-  jobs:    p.total_jobs||p.jobs||0,
-  badge:   p.badge||"",
-  loc:     p.location||p.loc||"ঢাকা",
-  locEn:   p.location||p.locEn||"Dhaka",
-  eta:     p.eta||"১৫",
-  etaEn:   p.etaEn||"15",
-  tags:    p.tags||[],
-  lat:     p.lat||p.latitude,
-  lng:     p.lng||p.longitude,
-  earnings:p.earnings||0,
+  id:       p.id,
+  name:     p.name,
+  nameEn:   p.name,
+  // service: API returns service_type_bn / service_type_en (from providers table)
+  // or cat_bn / cat_en (from categories join), or legacy p.svc
+  svc:      p.service_type_bn||p.cat_bn||p.service_category||p.svc||"",
+  svcEn:    p.service_type_en||p.cat_en||p.service_category||p.svcEn||"",
+  r:        parseFloat(p.rating)||p.r||4.5,
+  rev:      p.review_count||p.rev||10,
+  price:    p.hourly_rate?`৳${p.hourly_rate}`:(p.price||"৳৩৫০"),
+  note:     p.bio_bn||p.bio||p.note||"",
+  noteEn:   p.bio_en||p.bio||p.noteEn||"",
+  ok:       p.nid_verified!==undefined?!!p.nid_verified:(p.ok!==undefined?p.ok:true),
+  top:      p.top||false,
+  av:       p.av||(p.name?.[0]||"P"),
+  col:      p.col||"#10B981",
+  score:    p.trust_score||p.score||80,
+  jobs:     p.total_jobs||p.jobs||0,
+  badge:    p.badge||"",
+  // area: API returns area_bn / area_en
+  loc:      p.area_bn||p.location||p.loc||"ঢাকা",
+  locEn:    p.area_en||p.location||p.locEn||"Dhaka",
+  eta:      p.eta||"১৫",
+  etaEn:    p.etaEn||"15",
+  tags:     Array.isArray(p.tags)?p.tags:(p.tags?String(p.tags).split(",").filter(Boolean):[]),
+  tagsEn:   Array.isArray(p.tagsEn)?p.tagsEn:(p.tagsEn?String(p.tagsEn).split(",").filter(Boolean):[]),
+  lat:      p.lat||p.latitude,
+  lng:      p.lng||p.longitude,
+  earnings: Array.isArray(p.earnings)?p.earnings:[0,0,0,0,0,0,0],
   loanScore:p.loanScore||p.loan_score||82,
-  ...p,   // keep any extra API fields
+  ai_score: p.ai_score||0,
+  ...p,   // keep any extra API fields (does NOT re-override since same keys are already set above)
 });
 
 
@@ -3832,10 +3838,7 @@ export default function IMAP() {
     setTimeout(()=>setAnim(true),80);
     const check=()=>setIsMobile(window.innerWidth<=640);
     check(); window.addEventListener("resize",check);
-    // Register service worker for push notifications
-    if("serviceWorker" in navigator){
-      navigator.serviceWorker.register("/sw.js").catch(()=>{});
-    }
+    // Service worker is registered in index.html (with correct %BASE_URL% path)
     // Handle SSLCommerz payment redirect
     const params=new URLSearchParams(window.location.search);
     const payStatus=params.get("payment");
