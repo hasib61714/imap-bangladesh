@@ -147,9 +147,10 @@ app.use("/api/payments",  require("./routes/payments"));
 app.use("/api/upload",    require("./routes/upload"));
 
 // ── One-time demo seed endpoint ───────────────────────────
-// GET /api/admin/seed-demo?secret=<JWT_SECRET>
+// GET /api/admin/seed-demo?secret=<SEED_SECRET>
 app.get("/api/admin/seed-demo", async (req, res) => {
-  if (!process.env.JWT_SECRET || req.query.secret !== process.env.JWT_SECRET) {
+  const expected = process.env.SEED_SECRET;
+  if (!expected || req.query.secret !== expected) {
     return res.status(403).json({ error: "Forbidden" });
   }
   const pool = require("./db");
