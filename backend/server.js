@@ -107,13 +107,17 @@ app.use(helmet({
 }));
 
 // CORS
-const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://hasib61714.github.io",  // gh-pages (always allowed)
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // same-origin / server-to-server
+    if (!origin) return cb(null, true); // same-origin / server-to-server / curl
     if (allowedOrigins.includes(origin)) return cb(null, true);
-    // In dev, also allow any localhost / LAN
-    if (!isProd && (/^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin))) return cb(null, true);
+    // Allow any localhost or LAN in dev
+    if (/^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin)) return cb(null, true);
     cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
