@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
-import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi } from "../api";
+import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
+import { connectSocket, joinRoom, leaveRoom } from "../socket";
 
 export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}){
   const C  = dark ? C_DARK : C_LIGHT;
@@ -37,12 +38,18 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     // Jobs
     providersApi.myJobs().then(data=>{
       const list=data.bookings||data||[];
-      if(list.length) setJobs(list.map(j=>({
-        id:j.id, customer:j.customer_name||j.customer_id,
-        service:j.service_notes||j.category_slug||"Service",
-        address:j.address||"", time:j.scheduled_time?new Date(j.scheduled_time).toLocaleString():"",
-        amount:j.amount||0, status:j.status==="pending"?"incoming":j.status, urgent:false,
-      })));
+      if(list.length) {
+        setJobs(list.map(j=>({
+          id:j.id, customer:j.customer_name||j.customer_id,
+          service:j.service_notes||j.category_slug||"Service",
+          address:j.address||"", time:j.scheduled_time?new Date(j.scheduled_time).toLocaleString():"",
+          amount:j.amount||0, status:j.status==="pending"?"incoming":j.status, urgent:false,
+        })));
+        const activeSessions=list
+          .filter(j=>["confirmed","ongoing","active","incoming","pending"].includes(j.status))
+          .map(j=>({id:j.id,customer:j.customer_name||j.customer_id||"Customer",job:j.service_notes||j.category_slug||"Service",unread:0}));
+        if(activeSessions.length) setChatSessions(activeSessions);
+      }
     }).catch(()=>{});
     // Wallet
     usersApi.getWallet().then(data=>{
@@ -87,6 +94,35 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     }).catch(()=>{});
   },[]);
 
+  // ── Real-time chat for active booking ──
+  useEffect(()=>{
+    if(!activeChatId) return;
+    const sock=connectSocket();
+    joinRoom(activeChatId);
+    setChatLoading(true);
+    chatApi.getHistory(activeChatId).then(d=>{
+      const msgs=(d.messages||[]).map(m=>({
+        from:m.sender_role==="provider"?"provider":"customer",
+        text:m.message,
+        time:m.created_at?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"",
+      }));
+      setChatMessages(prev=>({...prev,[activeChatId]:msgs}));
+    }).catch(()=>{}).finally(()=>setChatLoading(false));
+    const handler=(msg)=>{
+      if(msg.booking_id!==activeChatId) return;
+      setChatMessages(prev=>({
+        ...prev,
+        [activeChatId]:[...(prev[activeChatId]||[]),{
+          from:msg.sender_role==="provider"?"provider":"customer",
+          text:msg.message,
+          time:new Date(msg.created_at||Date.now()).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
+        }],
+      }));
+    };
+    sock.on("new_message",handler);
+    return ()=>{ leaveRoom(activeChatId); sock.off("new_message",handler); };
+  },[activeChatId]);
+
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2200);};
 
   const [jobs,setJobs]=useState([
@@ -116,21 +152,10 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const avgRating=(reviews.reduce((a,r)=>a+r.rating,0)/reviews.length).toFixed(1);
   const ratingDist=[5,4,3,2,1].map(s=>({s,count:reviews.filter(r=>r.rating===s).length}));
 
-  const [chatSessions]=useState([
-    {id:"C01",customer:"আহমেদ রাহাত",job:lang==="bn"?"বিদ্যুৎ মেরামত":"Electrical Repair",unread:2},
-    {id:"C02",customer:"সুমাইয়া খানম",job:lang==="bn"?"ফ্যান ইনস্টল":"Fan Install",unread:0},
-    {id:"C03",customer:"তানভির আহমেদ",job:lang==="bn"?"লাইট ফিটিং":"Light Fitting",unread:1},
-  ]);
+  const [chatSessions, setChatSessions]=useState([]);
+  const [chatLoading, setChatLoading]=useState(false);
   const [activeChatId,setActiveChatId]=useState(null);
-  const [chatMessages,setChatMessages]=useState({
-    C01:[
-      {from:"customer",text:lang==="bn"?"আসসালামুলেকুম, কতক্ষণে আসবেন?":"Hello, what time will you arrive?",time:"10:00"},
-      {from:"provider",text:lang==="bn"?"ইনশাআল্লাহ, বিকেল ৯টার মধ্যে আসবো।":"Inshallah, will arrive by 9 AM.",time:"10:02"},
-      {from:"customer",text:lang==="bn"?"ঠিক আছে, অপেক্ষা থাকবো।":"OK, I'll be waiting.",time:"10:03"},
-    ],
-    C02:[{from:"customer",text:lang==="bn"?"ধন্যবাদ ভালো কাজ হয়েছে":"Thank you, good work.",time:"14:30"}],
-    C03:[{from:"customer",text:lang==="bn"?"আপনি কি ৭টার মধ্যে আসতে পারবেন?":"Can you arrive by 7?",time:"18:05"}],
-  });
+  const [chatMessages,setChatMessages]=useState({});
   const [chatInput,setChatInput]=useState("");
 
   const [pNotifs,setPNotifs]=useState([
@@ -140,6 +165,15 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     {id:"N04",icon:"🏆",title:lang==="bn"?"তোমার র্যাংক বেড়েছে":"Your Ranking Improved",msg:lang==="bn"?"এই সপ্তাহে আপনি শীর্ষ ৫ জন প্রদানকারীর মধ্যে আছেন":"You are in the top 5 providers this week",time:"গতকাল",read:true},
     {id:"N05",icon:"🏪",title:lang==="bn"?"আপনার খদমত ফের ভেরিফাই হয়েছে":"Area Verification Updated",msg:lang==="bn"?"ঢাকা নর্থ এলাকা যোগ করা হয়েছে":"Dhaka North area added",time:"২ দিন আগে",read:true},
   ]);
+
+  const sendChatMsg=()=>{
+    const txt=chatInput.trim();
+    if(!txt||!activeChatId) return;
+    const now=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    setChatMessages(prev=>({...prev,[activeChatId]:[...(prev[activeChatId]||[]),{from:"provider",text:txt,time:now}]}));
+    setChatInput("");
+    chatApi.send(activeChatId,txt).catch(e=>console.warn("chat send:",e.message));
+  };
 
   const acceptJob=async id=>{
     setJobs(j=>j.map(x=>x.id===id?{...x,status:"active"}:x));
@@ -510,6 +544,11 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         {tab==="chat"&&(
           <>
             <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>💬 {lang==="bn"?"গ্রাহক সংলাপ":"Customer Chat"}</div>
+            {chatSessions.length===0&&!activeChatId&&(
+              <div style={{textAlign:"center",padding:40,color:C.muted,fontSize:14}}>
+                {lang==="bn"?"কোনো সক্রিয় বুকিং নেই।":"No active bookings to chat with."}
+              </div>
+            )}
             {!activeChatId?(
               chatSessions.map(s=>(
                 <div key={s.id} onClick={()=>setActiveChatId(s.id)} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,marginBottom:10,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}
@@ -534,6 +573,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                     <div style={{fontSize:11,color:C.muted}}>— {session?.job}</div>
                   </div>
                   <div style={{flex:1,overflowY:"auto",padding:"4px 0",display:"flex",flexDirection:"column",gap:8}}>
+                    {chatLoading&&<div style={{textAlign:"center",padding:20,color:C.muted,fontSize:13}}>⏳ {lang==="bn"?"লোড হচ্ছে...":"Loading..."}</div>}
                     {msgs.map((m,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:m.from==="provider"?"flex-end":"flex-start"}}>
                         <div style={{maxWidth:"75%",background:m.from==="provider"?C.p:C.card,color:m.from==="provider"?"#fff":C.text,borderRadius:m.from==="provider"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:13,border:m.from==="provider"?"none":`1px solid ${C.bdr}`}}>
@@ -544,9 +584,9 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                     ))}
                   </div>
                   <div style={{display:"flex",gap:10,marginTop:12}}>
-                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&chatInput.trim()){setChatMessages(prev=>({...prev,[activeChatId]:[...(prev[activeChatId]||[]),{from:"provider",text:chatInput.trim(),time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]}));setChatInput("");}}} placeholder={lang==="bn"?"বার্তা লিখুন...":"Type a message..."}
+                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") sendChatMsg();}} placeholder={lang==="bn"?"বার্তা লিখুন...":"Type a message..."}
                       style={{flex:1,padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:12,fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"inherit"}}/>
-                    <button onClick={()=>{if(chatInput.trim()){setChatMessages(prev=>({...prev,[activeChatId]:[...(prev[activeChatId]||[]),{from:"provider",text:chatInput.trim(),time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]}));setChatInput("");}}} style={{padding:"0 18px",background:C.p,color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontSize:18}}>→</button>
+                    <button onClick={sendChatMsg} style={{padding:"0 18px",background:C.p,color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontSize:18}}>→</button>
                   </div>
                 </div>
               );

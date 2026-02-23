@@ -319,6 +319,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           submittedAt: k.submitted_at ? new Date(k.submitted_at).toLocaleDateString("bn-BD") : "—",
           status: k.status,
           rejectionReason: k.rejection_reason || "",
+          frontImg:  k.front_image  || null,
+          backImg:   k.back_image   || null,
+          selfieImg: k.selfie_image || null,
         })));
       }
     } catch(e) { console.warn("load kyc:", e.message); }
@@ -692,11 +695,21 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                               type="error" showIcon style={{marginTop:10,padding:"4px 10px",fontSize:12}} />
                           )}
                           <Row gutter={8} style={{marginTop:12}}>
-                            {(lang==="bn"?["সামনে","পেছনে","সেলফি"]:["Front","Back","Selfie"]).map((ph,i)=>(
+                            {[
+                              {label:lang==="bn"?"সামনে":"Front",  src:kyc.frontImg},
+                              {label:lang==="bn"?"পেছনে":"Back",   src:kyc.backImg},
+                              {label:lang==="bn"?"সেলফি":"Selfie", src:kyc.selfieImg},
+                            ].map((img,i)=>(
                               <Col span={8} key={i}>
                                 <Card bodyStyle={{padding:8,textAlign:"center"}} size="small">
-                                  <div style={{fontSize:22}}>🖼️</div>
-                                  <Text type="secondary" style={{fontSize:10}}>{ph}</Text>
+                                  {img.src
+                                    ? <img src={img.src.startsWith("http")||img.src.startsWith("data:")?img.src:`data:image/jpeg;base64,${img.src}`}
+                                        style={{width:"100%",height:60,objectFit:"cover",borderRadius:6,cursor:"pointer"}}
+                                        alt={img.label}
+                                        onClick={()=>window.open(img.src.startsWith("http")||img.src.startsWith("data:")?img.src:`data:image/jpeg;base64,${img.src}`,"_blank")}/>
+                                    : <div style={{fontSize:22,lineHeight:"60px"}}>🖼️</div>
+                                  }
+                                  <Text type="secondary" style={{fontSize:10}}>{img.label}</Text>
                                 </Card>
                               </Col>
                             ))}
@@ -721,14 +734,18 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               <>
                 <Title level={4}>💹 {lang==="bn"?"রাজস্ব ও বিশ্লেষণ":"Revenue & Analytics"}</Title>
                 <Row gutter={[16,16]} style={{marginBottom:24}}>
-                  {[
-                    {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",   value:"৳ ২,৪০,৫০০", color:"#059669"},
-                    {title:lang==="bn"?"এই মাস":"This Month",          value:"৳ ৪৭,৮০০",   color:"#3B82F6"},
-                    {title:lang==="bn"?"আজকের":"Today",                value:"৳ ৫,২০০",    color:"#F59E0B"},
-                    {title:lang==="bn"?"মুলতুবি পেমেন্ট":"Pending Payout", value:"৳ ১২,৩০০", color:"#EF4444"},
-                    {title:lang==="bn"?"প্রবৃদ্ধি":"Growth",           value:"+12.4%",      color:"#8B5CF6"},
-                    {title:lang==="bn"?"কমিশন":"Commission",           value:"৳ ৯,৬০০",    color:"#10B981"},
-                  ].map((s,i)=>(
+                  {(()=>{
+                    const rev   = realStats?.revenue   ?? 0;
+                    const lastM = monthlyRev2.length>0 ? (monthlyRev2[monthlyRev2.length-1]?.v??0) : 47800;
+                    return [
+                      {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",       value:`৳${Math.round(rev).toLocaleString()||" ২,৪০,৫০০"}`, color:"#059669"},
+                      {title:lang==="bn"?"এই মাস":"This Month",              value:`৳${Math.round(lastM).toLocaleString()}`,            color:"#3B82F6"},
+                      {title:lang==="bn"?"মোট বুকিং":"Total Bookings",       value:realStats?.bookings??0,                              color:"#F59E0B"},
+                      {title:lang==="bn"?"KYC অপেক্ষায়":"KYC Pending",       value:realStats?.kycPending??0,                           color:"#EF4444"},
+                      {title:lang==="bn"?"সক্রিয় Provider":"Active Providers",value:realStats?.providers??0,                           color:"#8B5CF6"},
+                      {title:lang==="bn"?"মোট ব্যবহারকারী":"Total Users",    value:realStats?.users??0,                                color:"#10B981"},
+                    ];
+                  })().map((s,i)=>(
                     <Col xs={12} sm={8} lg={4} key={i}>
                       <Card bordered bodyStyle={{padding:16}}>
                         <Statistic title={<Text type="secondary" style={{fontSize:11}}>{s.title}</Text>}
@@ -741,11 +758,11 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   <Col xs={24} lg={14}>
                     <Card title={lang==="bn"?"📈 মাসিক রাজস্ব (৳)":"📈 Monthly Revenue (৳)"} bordered>
                       <div style={{display:"flex",alignItems:"flex-end",gap:10,height:140,paddingTop:8}}>
-                        {monthlyRev.map((m,i)=>(
+                        {(monthlyRev2.length>0?monthlyRev2:monthlyRev).map((m,i,arr)=>(
                           <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                             <Text style={{fontSize:10,color:"#059669",fontWeight:700}}>{(m.v/1000).toFixed(0)}k</Text>
-                            <div style={{width:"100%",background:i===monthlyRev.length-1?"#059669":"#D1FAE5",
-                              borderRadius:"6px 6px 0 0",height:`${(m.v/maxRev)*110}px`,minHeight:8}} />
+                            <div style={{width:"100%",background:i===arr.length-1?"#059669":"#D1FAE5",
+                              borderRadius:"6px 6px 0 0",height:`${(m.v/Math.max(...arr.map(x=>x.v),1))*110}px`,minHeight:8}} />
                             <Text type="secondary" style={{fontSize:9}}>{m.m}</Text>
                           </div>
                         ))}
