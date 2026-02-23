@@ -239,6 +239,102 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   useEffect(() => { if(tab==="payments") loadPayments(payFilter); }, [tab]);
 
+  /* ── PROVIDERS / USERS / BOOKINGS / KYC LIVE DATA ── */
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const loadProviders = async (q = "") => {
+    setDataLoading(true);
+    try {
+      const d = await adminApi.providers(q ? { q } : {});
+      if (d?.providers?.length) {
+        setProviders(d.providers.map(p => ({
+          id: p.user_id || p.id,
+          _pid: p.id,
+          name: p.name,
+          service: p.service_slug || "—",
+          area: p.area || "—",
+          status: p.is_active === 1 ? "active" : p.is_active === 0 ? "suspended" : "pending",
+          rating: parseFloat(p.rating || 0).toFixed(1),
+          jobs: p.total_jobs || 0,
+          phone: p.phone,
+          kyc: p.kyc_status,
+        })));
+      }
+    } catch(e) { console.warn("load providers:", e.message); }
+    finally { setDataLoading(false); }
+  };
+
+  const loadUsers = async (q = "") => {
+    setDataLoading(true);
+    try {
+      const d = await adminApi.users(q ? { q, role: "customer" } : { role: "customer" });
+      if (d?.users?.length) {
+        setUsers(d.users.map(u => ({
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          role: u.role,
+          status: u.is_active ? "active" : "suspended",
+          bookings: 0,
+          joined: u.joined_at ? new Date(u.joined_at).toLocaleDateString("bn-BD") : "—",
+          kyc: u.kyc_status,
+        })));
+      }
+    } catch(e) { console.warn("load users:", e.message); }
+    finally { setDataLoading(false); }
+  };
+
+  const loadBookings = async (status = "") => {
+    setDataLoading(true);
+    try {
+      const d = await adminApi.bookings(status ? { status } : {});
+      if (d?.bookings?.length) {
+        // bookings state is read-only in this panel, so we shadow with a local ref
+        setRealBookings(d.bookings.map(b => ({
+          id: b.id?.toString().slice(0,8) || b.id,
+          _rawId: b.id,
+          customer: b.customer_name || b.customer_id,
+          provider: b.provider_name || b.provider_id,
+          service: b.category_slug || b.service_notes || "—",
+          status: b.status,
+          amount: b.amount || 0,
+          date: b.created_at ? new Date(b.created_at).toLocaleDateString("bn-BD") : "—",
+        })));
+      }
+    } catch(e) { console.warn("load bookings:", e.message); }
+    finally { setDataLoading(false); }
+  };
+
+  const loadKyc = async (status = "pending") => {
+    setDataLoading(true);
+    try {
+      const d = await adminApi.kyc({ status });
+      if (d?.docs?.length) {
+        setKycList(d.docs.map(k => ({
+          id: k.id,
+          userName: k.name || k.user_id,
+          phone: k.phone || "—",
+          docType: k.doc_type,
+          docNum: k.doc_number,
+          submittedAt: k.submitted_at ? new Date(k.submitted_at).toLocaleDateString("bn-BD") : "—",
+          status: k.status,
+          rejectionReason: k.rejection_reason || "",
+        })));
+      }
+    } catch(e) { console.warn("load kyc:", e.message); }
+    finally { setDataLoading(false); }
+  };
+
+  const [realBookings, setRealBookings] = useState([]);
+  const [bFilter, setBFilter] = useState("");
+
+  useEffect(() => {
+    if (tab === "providers") loadProviders(pSearch);
+    else if (tab === "users")    loadUsers(uSearch);
+    else if (tab === "bookings") loadBookings(bFilter);
+    else if (tab === "kyc")      loadKyc(kycFilter === "all" ? "pending" : kycFilter);
+  }, [tab]);
+
   /* ── AI STATE ─────────────────────────────────────── */
   const [aiLoading, setAiLoading]   = useState(false);
   const [aiForecast, setAiForecast] = useState(null);
@@ -306,9 +402,10 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { title:lang==="bn"?"তারিখ":"Date",            dataIndex:"date",      key:"date"      },
   ];
 
-  const filtP = providers.filter(p => p.name.includes(pSearch)||p.service.includes(pSearch)||p.area.includes(pSearch));
-  const filtU = users.filter(u => u.name.includes(uSearch)||u.phone.includes(uSearch));
-  const filtB = bookings.filter(b => b.id.includes(bSearch)||b.customer.includes(bSearch)||b.provider.includes(bSearch));
+  const filtP = providers.filter(p => !pSearch||(p.name||'').includes(pSearch)||(p.service||'').includes(pSearch)||(p.area||'').includes(pSearch));
+  const filtU = users.filter(u => !uSearch||(u.name||'').includes(uSearch)||(u.phone||'').includes(uSearch));
+  const displayBookings = realBookings.length ? realBookings : bookings;
+  const filtB = displayBookings.filter(b => !bSearch||(b.id||'').includes(bSearch)||(b.customer||'').includes(bSearch)||(b.provider||'').includes(bSearch));
 
   const monthlyRev = [
     {m:"জান",v:28400},{m:"ফেব",v:32100},{m:"মার্চ",v:41500},
@@ -487,11 +584,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <Title level={4} style={{margin:0}}>👷 {lang==="bn"?"প্রদানকারী":"Providers"}</Title>
-                  <Input prefix={<SearchOutlined/>} value={pSearch} onChange={e=>setPSearch(e.target.value)}
+                  <Input prefix={<SearchOutlined/>} value={pSearch}
+                    onChange={e=>{setPSearch(e.target.value); loadProviders(e.target.value);}}
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
                 </div>
                 <Table dataSource={filtP} columns={providerCols} rowKey="id" bordered size="middle"
-                  scroll={{x:900}} pagination={{pageSize:10}} />
+                  loading={dataLoading} scroll={{x:900}} pagination={{pageSize:10}} />
               </>
             )}
 
@@ -500,11 +598,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <Title level={4} style={{margin:0}}>👥 {lang==="bn"?"ব্যবহারকারী":"Users"}</Title>
-                  <Input prefix={<SearchOutlined/>} value={uSearch} onChange={e=>setUSearch(e.target.value)}
+                  <Input prefix={<SearchOutlined/>} value={uSearch}
+                    onChange={e=>{setUSearch(e.target.value); loadUsers(e.target.value);}}
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
                 </div>
                 <Table dataSource={filtU} columns={userCols} rowKey="id" bordered size="middle"
-                  scroll={{x:800}} pagination={{pageSize:10}} />
+                  loading={dataLoading} scroll={{x:800}} pagination={{pageSize:10}} />
               </>
             )}
 
@@ -513,15 +612,28 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <Title level={4} style={{margin:0}}>📋 {lang==="bn"?"বুকিং":"Bookings"}</Title>
-                  <Input prefix={<SearchOutlined/>} value={bSearch} onChange={e=>setBSearch(e.target.value)}
-                    placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
+                  <Space>
+                    <Select value={bFilter} onChange={v=>{setBFilter(v); loadBookings(v);}}
+                      style={{width:150}} size="middle"
+                      options={[
+                        {value:"",    label:lang==="bn"?"সব স্ট্যাটাস":"All Status"},
+                        {value:"pending",   label:"Pending"},
+                        {value:"confirmed", label:"Confirmed"},
+                        {value:"ongoing",   label:"Ongoing"},
+                        {value:"completed", label:"Completed"},
+                        {value:"cancelled", label:"Cancelled"},
+                      ]}
+                    />
+                    <Input prefix={<SearchOutlined/>} value={bSearch} onChange={e=>setBSearch(e.target.value)}
+                      placeholder={tr.adSearch||"Search..."} style={{width:200}} allowClear />
+                  </Space>
                 </div>
                 <Table dataSource={filtB} columns={bookingCols} rowKey="id" bordered size="middle" scroll={{x:900}}
-                  pagination={{pageSize:10}}
+                  loading={dataLoading} pagination={{pageSize:10}}
                   summary={()=>(
                     <Table.Summary.Row>
                       <Table.Summary.Cell colSpan={5}><Text strong>{lang==="bn"?"মোট রাজস্ব":"Total Revenue"}</Text></Table.Summary.Cell>
-                      <Table.Summary.Cell><Text strong style={{color:"#10B981"}}>৳{bookings.reduce((a,b)=>a+b.amount,0).toLocaleString()}</Text></Table.Summary.Cell>
+                      <Table.Summary.Cell><Text strong style={{color:"#10B981"}}>৳{displayBookings.reduce((a,b)=>a+(b.amount||0),0).toLocaleString()}</Text></Table.Summary.Cell>
                       <Table.Summary.Cell/>
                     </Table.Summary.Row>
                   )}
@@ -540,7 +652,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     {v:"verified", l:lang==="bn"?"যাচাইকৃত":"Verified"},
                     {v:"rejected", l:lang==="bn"?"প্রত্যাখ্যাত":"Rejected"},
                   ].map(f=>(
-                    <Button key={f.v} type={kycFilter===f.v?"primary":"default"} size="small" onClick={()=>setKycFilter(f.v)}>{f.l}</Button>
+                    <Button key={f.v} type={kycFilter===f.v?"primary":"default"} size="small"
+                      onClick={()=>{setKycFilter(f.v); loadKyc(f.v==="all"?"pending":f.v);}}>{f.l}</Button>
                   ))}
                 </Space>
                 <Row gutter={[12,12]}>

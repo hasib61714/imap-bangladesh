@@ -142,6 +142,7 @@ export const services = {
 // ═══════════════════════════════════════════════════════════════
 export const admin = {
   stats:       ()               => get("/admin/stats"),
+  providers:   (p = {})        => get(`/admin/providers?${new URLSearchParams(p)}`),
   users:       (p = {})        => get(`/admin/users?${new URLSearchParams(p)}`),
   updateUser:  (id, data)      => patch(`/admin/users/${id}`, data),
   bookings:    (p = {})        => get(`/admin/bookings?${new URLSearchParams(p)}`),
@@ -305,11 +306,14 @@ export const upload = {
     fd.append("file", file);
     return req("POST", "/upload/avatar", fd, true);
   },
-  /** Upload KYC documents */
+  /** Upload KYC documents (files: {nid_front, nid_back, selfie, certificate}; extras: doc_type, doc_number) */
   kyc: async (files) => {
     const fd = new FormData();
-    for (const [field, file] of Object.entries(files)) {
-      if (file) fd.append(field, file);
+    const fileFields = ["nid_front","nid_back","selfie","certificate"];
+    for (const [field, val] of Object.entries(files)) {
+      if (!val) continue;
+      if (fileFields.includes(field)) fd.append(field, val);   // File object
+      else fd.append(field, val);                               // String metadata
     }
     return req("POST", "/upload/kyc", fd, true);
   },

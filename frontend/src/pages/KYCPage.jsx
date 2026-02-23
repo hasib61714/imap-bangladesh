@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
-import { kyc as kycApi } from "../api";
+import { kyc as kycApi, upload as uploadApi } from "../api";
 
 export default function KYCPage({user,onClose,dark,lang,onUpdate}){
   const C  = dark ? C_DARK : C_LIGHT;
@@ -19,9 +19,9 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
   const [adding,setAdding]=useState(false);
   const [selType,setSelType]=useState("nid");
   const [docNum,setDocNum]=useState("");
-  const [imgFront,setImgFront]=useState("");
-  const [imgBack,setImgBack]=useState("");
-  const [imgSelfie,setImgSelfie]=useState("");
+  const [imgFront,  setImgFront]  = useState(null);
+  const [imgBack,   setImgBack]   = useState(null);
+  const [imgSelfie, setImgSelfie] = useState(null);
   const [submitting,setSubmitting]=useState(false);
   const [toast,setToast]=useState("");
 
@@ -38,33 +38,54 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
     }).finally(()=>setLoading(false));
   },[]);
 
-  const toBase64 = file => new Promise((res,rej)=>{
-    const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file);
-  });
-
   const submitDoc=async()=>{
     if(!docNum.trim()){showToast(lang==="bn"?"নথি নম্বর দিন":"Enter document number");return;}
     if(!imgFront){showToast(lang==="bn"?"সামনের ছবি আপলোড করুন":"Upload front side");return;}
     setSubmitting(true);
     try{
-      await kycApi.submit({
-        doc_type:selType,
-        doc_number:docNum.trim(),
-        img_front:imgFront,
-        img_back:imgBack||null,
-        img_selfie:imgSelfie||null,
-      });
+      // Prefer multipart upload (works with R2 or base64 fallback)
+      const fd = new FormData();
+      fd.append("nid_front", imgFront);
+      if(imgBack)   fd.append("nid_back", imgBack);
+      if(imgSelfie) fd.append("selfie", imgSelfie);
+      fd.append("doc_type",   selType);
+      fd.append("doc_number", docNum.trim());
+      await uploadApi.kyc({ nid_front: imgFront, nid_back: imgBack, selfie: imgSelfie, doc_type: selType, doc_number: docNum.trim() });
       // Refresh docs list from server
       const data=await kycApi.get();
       setDocs(Array.isArray(data)?data:(data.docs||[]));
       setAdding(false);
-      setDocNum("");setImgFront("");setImgBack("");setImgSelfie("");
+      setDocNum("");setImgFront(null);setImgBack(null);setImgSelfie(null);
       // Update user kycStatus in localStorage
       const u=JSON.parse(localStorage.getItem("imap_user")||"null");
       if(u){u.kycStatus="pending";localStorage.setItem("imap_user",JSON.stringify(u));if(onUpdate)onUpdate(u);}
       showToast(tr.kycSubmitted);
     }catch(e){
-      showToast(e.data?.error||(lang==="bn"?"দাখিল ব্যর্থ হয়েছে":"Submission failed"));
+      // Fallback: submit via JSON with correct field names
+      try{
+        const toBase64=file=>new Promise((res,rej)=>{
+          const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);
+        });
+        const frontB64 = await toBase64(imgFront);
+        const backB64  = imgBack   ? await toBase64(imgBack)   : null;
+        const selfB64  = imgSelfie ? await toBase64(imgSelfie) : null;
+        await kycApi.submit({
+          doc_type:    selType,
+          doc_number:  docNum.trim(),
+          front_image: frontB64,
+          back_image:  backB64,
+          selfie_image:selfB64,
+        });
+        const data=await kycApi.get();
+        setDocs(Array.isArray(data)?data:(data.docs||[]));
+        setAdding(false);
+        setDocNum("");setImgFront(null);setImgBack(null);setImgSelfie(null);
+        const u=JSON.parse(localStorage.getItem("imap_user")||"null");
+        if(u){u.kycStatus="pending";localStorage.setItem("imap_user",JSON.stringify(u));if(onUpdate)onUpdate(u);}
+        showToast(tr.kycSubmitted);
+      }catch(e2){
+        showToast(e2.data?.error||(lang==="bn"?"দাখিল ব্যর্থ হয়েছে":"Submission failed"));
+      }
     }finally{
       setSubmitting(false);
     }
@@ -79,16 +100,21 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
     return <span style={{background:item.bg,color:item.col,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>{item.icon} {lang==="bn"?item.lbn:item.len}</span>;
   };
 
-  const UploadBtn=({field,label,value,setter})=>(
-    <label style={{flex:1,padding:"14px 10px",borderRadius:12,border:`2px dashed ${value?C.p:C.bdr}`,background:value?C.plt:C.bg,cursor:"pointer",textAlign:"center",transition:"all .2s",display:"block"}}>
-      <input type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{
-        const f=e.target.files[0]; if(!f) return;
-        try{ setter(await toBase64(f)); }catch{}
-      }}/>
-      <div style={{fontSize:22,marginBottom:4}}>{value?"✅":"📷"}</div>
-      <div style={{fontSize:11,fontWeight:600,color:value?C.p:C.muted}}>{value?tr.kycUploaded:label}</div>
-    </label>
-  );
+  const UploadBtn=({field,label,value,setter})=>{
+    const preview = value ? URL.createObjectURL(value) : null;
+    return (
+      <label style={{flex:1,padding:"14px 10px",borderRadius:12,border:`2px dashed ${value?C.p:C.bdr}`,background:value?C.plt:C.bg,cursor:"pointer",textAlign:"center",transition:"all .2s",display:"block"}}>
+        <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+          const f=e.target.files[0]; if(!f) return;
+          setter(f);
+        }}/>
+        {preview
+          ? <img src={preview} alt="preview" style={{width:"100%",height:56,objectFit:"cover",borderRadius:8,marginBottom:4}}/>
+          : <div style={{fontSize:22,marginBottom:4}}>📷</div>}
+        <div style={{fontSize:11,fontWeight:600,color:value?C.p:C.muted}}>{value?tr.kycUploaded:label}</div>
+      </label>
+    );
+  };
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Hind Siliguri','Noto Sans Bengali',sans-serif",color:C.text,maxWidth:620,margin:"0 auto",padding:"20px 16px 60px"}}>

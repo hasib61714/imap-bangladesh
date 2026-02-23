@@ -32,6 +32,35 @@ router.get("/stats", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/users ──────────────────────────────────
+// ── GET /api/admin/providers ─────────────────────────────
+router.get("/providers", ...auth, async (req, res) => {
+  try {
+    const { q, status, page = 1, limit = 30 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let where = ["1=1"], params = [];
+    if (q) { where.push("(u.name LIKE ? OR u.phone LIKE ? OR p.service_slug LIKE ?)"); const l = `%${q}%`; params.push(l,l,l); }
+    if (status) { where.push("u.is_active = ?"); params.push(status === "active" ? 1 : status === "suspended" ? 0 : null); }
+
+    const [rows] = await pool.query(
+      `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
+              u.is_active, p.service_slug, p.area, p.rating, p.total_jobs,
+              p.bio, u.joined_at
+       FROM providers p JOIN users u ON u.id = p.user_id
+       WHERE ${where.join(" AND ")} ORDER BY u.joined_at DESC LIMIT ? OFFSET ?`,
+      [...params.filter(x=>x!==null), parseInt(limit), offset]
+    );
+    const [[total]] = await pool.query(
+      `SELECT COUNT(*) AS v FROM providers p JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")}`,
+      params.filter(x=>x!==null)
+    );
+    res.json({ providers: rows, total: total.v });
+  } catch (err) {
+    console.error("admin providers:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /api/admin/users ──────────────────────────────────
 router.get("/users", ...auth, async (req, res) => {
   try {
     const { q, role, page = 1, limit = 30 } = req.query;

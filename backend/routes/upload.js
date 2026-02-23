@@ -76,17 +76,36 @@ router.post("/kyc", authMiddleware, upload.fields([
 
     if (!Object.keys(results).length) return res.status(400).json({ error: "কোনো ফাইল পাওয়া যায়নি।" });
 
+    const doc_type   = req.body?.doc_type   || "nid";
+    const doc_number = req.body?.doc_number  || "";
+
     const [existing] = await pool.query("SELECT id FROM kyc_docs WHERE user_id=?", [req.user.id]);
     if (existing.length) {
-      const set = Object.keys(results).map(k => `${k}=?`).join(", ");
-      await pool.query(`UPDATE kyc_docs SET ${set} WHERE user_id=?`, [...Object.values(results), req.user.id]);
+      const set = [...Object.keys(results).map(k => `${k}=?`), "doc_type=?", "doc_number=?", "status='pending'"].join(", ");
+      await pool.query(
+        `UPDATE kyc_docs SET ${set}, submitted_at=NOW() WHERE user_id=?`,
+        [...Object.values(results), doc_type, doc_number, req.user.id]
+      );
     } else {
-      const cols = ["id","user_id","doc_type","doc_number",...Object.keys(results)];
-      const vals = [uuidv4(), req.user.id, "nid", "", ...Object.values(results)];
+      const cols = ["id","user_id","doc_type","doc_number",...Object.keys(results),"status"];
+      const vals = [uuidv4(), req.user.id, doc_type, doc_number, ...Object.values(results), "pending"];
       await pool.query(`INSERT INTO kyc_docs (${cols.join(",")}) VALUES (${cols.map(()=>"?").join(",")})`, vals);
     }
 
-    res.json({ uploaded: Object.keys(results), message: "KYC ডকুমেন্ট আপলোড হয়েছে।" });
+    // Update user kyc_status and notify admin
+    await pool.query("UPDATE users SET kyc_status='pending' WHERE id=? AND kyc_status='not_submitted'", [req.user.id]);
+    try {
+      const [admins] = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
+      if (admins.length) {
+        await pool.query(
+          "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
+          [admins[0].id,"🛡️","alert","নতুন KYC আবেদন","New KYC Application",
+           `${req.user.name} নতুন KYC ফাইল আপলোড করেছে`,`${req.user.name} uploaded new KYC documents`]
+        );
+      }
+    } catch {}
+
+    res.json({ uploaded: Object.keys(results), doc_type, doc_number, message: "KYC ডকুমেন্ট আপলোড হয়েছে।" });
   } catch (err) {
     console.error("upload-kyc:", err);
     res.status(500).json({ error: err.message || "Upload failed" });
