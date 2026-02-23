@@ -1,0 +1,33 @@
+services:
+  # ── Backend (Node.js + Express) ───────────────────────
+  - type: web
+    name: imap-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        sync: false        # set manually in Render dashboard
+      - key: DB_PORT
+        value: 3306
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a strong secret
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        sync: false           # set to your Vercel URL after deploying frontend
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true
