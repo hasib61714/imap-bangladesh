@@ -160,6 +160,56 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
+// ── POST /api/auth/google — verify Google ID token ─────────
+router.post("/google", async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ error: "Google credential required" });
+
+    // Verify token with Google's tokeninfo endpoint
+    const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    if (!gRes.ok) return res.status(401).json({ error: "Invalid Google token" });
+    const gUser = await gRes.json();
+
+    // Validate audience if GOOGLE_CLIENT_ID is set
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (clientId && gUser.aud !== clientId)
+      return res.status(401).json({ error: "Token audience mismatch" });
+
+    const { sub: googleId, email, name, picture } = gUser;
+    if (!googleId) return res.status(401).json({ error: "Invalid token payload" });
+
+    // Find existing user by google social_id or email
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE social_id = ? OR (email = ? AND email IS NOT NULL AND email <> '')",
+      [googleId, email || ""]
+    );
+
+    if (rows.length) {
+      const user = rows[0];
+      // Attach social_id if not yet set
+      if (!user.social_id) {
+        await pool.query(
+          "UPDATE users SET social_id=?, login_method='google', avatar=COALESCE(NULLIF(avatar,''),?) WHERE id=?",
+          [googleId, picture || null, user.id]
+        );
+      }
+      const { password_hash, ...safeUser } = user;
+      return res.json({
+        user: { ...safeUser, social_id: googleId, avatar: user.avatar || picture },
+        token: makeToken(user),
+        isNew: false,
+      });
+    }
+
+    // New Google user — return prefill, let frontend complete profile
+    res.json({ isNew: true, prefill: { name, email, socialId: googleId, avatar: picture } });
+  } catch (err) {
+    console.error("google-auth:", err);
+    res.status(500).json({ error: "Google authentication failed" });
+  }
+});
+
 // ── GET /api/auth/me ──────────────────────────────────────
 const { authMiddleware } = require("../middleware/auth");
 router.get("/me", authMiddleware, (req, res) => {

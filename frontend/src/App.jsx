@@ -12,7 +12,7 @@ import ProviderPortal from "./pages/ProviderPortal";
 import LandingPage from "./pages/LandingPage";
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
-import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi } from "./api";
+import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi } from "./api";
 
 const C = C_LIGHT; // module-level fallback
 
@@ -851,6 +851,91 @@ function MyBookings({onRate,onBook,onPay}) {
   const list=filter==="all"?bookingsData:bookingsData.filter(b=>getStatus(b)===filter);
   // Find provider for rate/rebook (try context providers first, fall back to static)
   const findProvider = pid => ctxProviders.find(p=>p.id===pid)||PROVIDERS.find(p=>p.id===pid);
+
+  const printReceipt=(b)=>{
+    const w=window.open("","_blank","width=480,height=620");
+    const sv=lang==="en"?b.svcEn||b.svc:b.svc;
+    const pr=lang==="en"?b.providerEn||b.provider:b.provider;
+    const dt=lang==="en"?b.dateEn||b.date:b.date;
+    w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Receipt</title>"+
+      "<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:20px}"+
+      ".rc{background:#fff;border-radius:12px;padding:28px;max-width:420px;margin:0 auto;border:1px solid #e2e8f0}"+
+      ".logo{text-align:center;font-size:36px}.brand{text-align:center;font-weight:800;font-size:18px;color:#1e293b}"+
+      ".tag{text-align:center;font-size:11px;color:#64748b;margin-bottom:16px}"+
+      ".dv{border:none;border-top:2px dashed #e2e8f0;margin:12px 0}"+
+      ".title{text-align:center;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px}"+
+      ".ab{background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;margin:14px 0}"+
+      ".av{font-size:26px;font-weight:900;color:#166534}.al{font-size:11px;color:#4ade80;margin-top:2px}"+
+      ".st{display:inline-block;background:#dcfce7;color:#166534;padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-top:4px}"+
+      ".rw{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9}"+
+      ".lbl{font-size:12px;color:#64748b}.val{font-size:13px;font-weight:600;color:#0f172a;text-align:right}"+
+      ".ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:16px}"+
+      "@media print{body{background:#fff;padding:0}}</style></head>"+
+      "<body onload='window.print()'><div class='rc'>"+
+      "<div class='logo'>\uD83E\uDDFE</div>"+
+      "<div class='brand'>IMAP Bangladesh</div>"+
+      "<div class='tag'>Payment Receipt &middot; \u09AA\u09C7\u09AE\u09C7\u09A8\u09CD\u099F \u09B0\u09B8\u09BF\u09A6</div>"+
+      "<hr class='dv'/><div class='title'>&#x2705; Payment Successful</div>"+
+      "<div class='ab'><div class='av'>"+b.price+"</div>"+
+      "<div class='al'>Amount Paid &middot; \u09AA\u09CD\u09B0\u09A6\u09A4\u09CD\u09A4 \u09AA\u09B0\u09BF\u09AE\u09BE\u09A3</div>"+
+      "<div class='st'>PAID</div></div><hr class='dv'/>"+
+      "<div class='rw'><span class='lbl'>Receipt No</span><span class='val' style='font-family:monospace'>"+((b.id||b.booking_ref)||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Service &middot; \u09B8\u09C7\u09AC\u09BE</span><span class='val'>"+( sv||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Provider</span><span class='val'>"+( pr||"IMAP Provider")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Date &middot; \u09A4\u09BE\u09B0\u09BF\u0996</span><span class='val'>"+( dt||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Payment Method</span><span class='val'>SSLCommerz / MFS</span></div>"+
+      "<div class='rw'><span class='lbl'>Status</span><span class='val' style='color:#16a34a'>Completed &#x2713;</span></div>"+
+      "<hr class='dv'/><div class='ft'>IMAP Platform &middot; imap.com.bd<br/>This is an official payment receipt.</div>"+
+      "</div></body></html>");
+    w.document.close();
+  };
+
+  const printInvoice=(b)=>{
+    const w=window.open("","_blank","width=560,height=760");
+    const sv=lang==="en"?b.svcEn||b.svc:b.svc;
+    const pr=lang==="en"?b.providerEn||b.provider:b.provider;
+    const dt=lang==="en"?b.dateEn||b.date:b.date;
+    const raw=parseFloat((b.price||"").toString().replace(/[^0-9.]/g,""))||0;
+    const vat=parseFloat((raw*0.15).toFixed(2));
+    const sub=parseFloat((raw-vat).toFixed(2));
+    const now=new Date().toLocaleDateString("en-GB");
+    const invNo="INV-"+((b.id||b.booking_ref||"0000").slice(-8).toUpperCase());
+    w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Invoice</title>"+
+      "<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:20px}"+
+      ".inv{background:#fff;border-radius:12px;padding:32px;max-width:500px;margin:0 auto;border:1px solid #e2e8f0}"+
+      ".hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}"+
+      ".bn{font-size:22px;font-weight:900;color:#1e293b}.bs{font-size:11px;color:#64748b;margin-top:2px}"+
+      ".ir{text-align:right}.it{font-size:20px;font-weight:900;color:#3b82f6;letter-spacing:1px}"+
+      ".in{font-size:12px;color:#64748b;font-family:monospace;margin-top:4px}"+
+      ".pt2{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:20px}"+
+      ".ptl{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px}"+
+      ".ptn{font-size:14px;font-weight:700;color:#0f172a}.pti{font-size:11px;color:#64748b;margin-top:2px}"+
+      "table{width:100%;border-collapse:collapse;margin-bottom:16px}"+
+      "th{background:#f8fafc;padding:10px 12px;font-size:11px;font-weight:700;color:#64748b;text-align:left;border-bottom:2px solid #e2e8f0}"+
+      "td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f1f5f9}"+
+      ".tots{margin-left:auto;width:220px}"+
+      ".tr2{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #f1f5f9}"+
+      ".trt{border-bottom:none!important;font-weight:900;font-size:15px;color:#166534;padding-top:10px!important;margin-top:4px}"+
+      ".ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:12px}"+
+      "@media print{body{background:#fff;padding:0}}</style></head>"+
+      "<body onload='window.print()'><div class='inv'>"+
+      "<div class='hdr'><div><div class='bn'>&#x1F3F7;&#xFE0F; IMAP</div><div class='bs'>Bangladesh Home Services</div></div>"+
+      "<div class='ir'><div class='it'>INVOICE</div><div class='in'>"+invNo+"</div>"+
+      "<div style='font-size:11px;color:#64748b;margin-top:2px'>Date: "+now+"</div></div></div>"+
+      "<div class='pt2'>"+
+      "<div><div class='ptl'>Billed To &middot; \u09AC\u09BF\u09B2 \u09AA\u09CD\u09B0\u09BE\u09AA\u0995</div><div class='ptn'>Customer</div><div class='pti'>IMAP Platform User</div></div>"+
+      "<div><div class='ptl'>Service Provider</div><div class='ptn'>"+( pr||"IMAP Provider")+"</div><div class='pti'>IMAP Verified Professional</div></div></div>"+
+      "<table><thead><tr><th>Description</th><th>Date</th><th style='text-align:right'>Amount</th></tr></thead>"+
+      "<tbody><tr><td>"+( sv||"Home Service")+"</td><td>"+( dt||"\u2014")+"</td><td style='text-align:right;font-weight:700'>\u09F3"+sub.toLocaleString()+"</td></tr></tbody></table>"+
+      "<div class='tots'>"+
+      "<div class='tr2'><span>Subtotal</span><span>\u09F3"+sub.toLocaleString()+"</span></div>"+
+      "<div class='tr2'><span>VAT (15%)</span><span>\u09F3"+vat.toLocaleString()+"</span></div>"+
+      "<div class='tr2 trt'><span>Total</span><span>\u09F3"+raw.toLocaleString()+"</span></div></div>"+
+      "<div class='ft'>Ref: "+((b.id||b.booking_ref)||"\u2014")+" &middot; Thank you for using IMAP &middot; imap.com.bd</div>"+
+      "</div></body></html>");
+    w.document.close();
+  };
+
   const FILTERS=[["all",tr.all],["ongoing",tr.ongoing],["completed",tr.completed],["cancelled",tr.cancelled]];
   return (
     <div>
@@ -893,6 +978,10 @@ function MyBookings({onRate,onBook,onPay}) {
               <div className="row" style={{gap:8}}>
                 <button onClick={()=>setGuarantee(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #10B981",background:"#D1FAE5",color:"#065F46",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🛡️ {lang==="en"?"Guarantee":"গ্যারান্টি"}</button>
                 <button onClick={()=>setDispute(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #F59E0B",background:"#FFFBEB",color:"#92400E",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"Dispute":"অভিযোগ"}</button>
+              </div>
+              <div className="row" style={{gap:8,marginTop:7}}>
+                <button onClick={()=>printReceipt(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #6366F1",background:"#EEF2FF",color:"#3730A3",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🧾 {lang==="en"?"Receipt":"রসিদ"}</button>
+                <button onClick={()=>printInvoice(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #3B82F6",background:"#EFF6FF",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Invoice":"ইনভয়েস"}</button>
               </div>
             </div>}
             {st==="cancelled"&&<div style={{marginTop:10}}>

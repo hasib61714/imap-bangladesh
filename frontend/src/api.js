@@ -56,7 +56,11 @@ export const auth = {
   login: (identifier, password) =>
     post("/auth/login", { identifier, password }),
 
-  /** Social login (Google / Facebook mock) */
+  /** Verify Google ID token and login/register */
+  googleLogin: (credential) =>
+    post("/auth/google", { credential }),
+
+  /** Social login (Facebook mock) */
   socialLogin: (provider, socialId, email, name, avatar) =>
     post("/auth/social-login", { provider, socialId, email, name, avatar }),
 
@@ -323,6 +327,20 @@ export const payments = {
     get(`/payments/admin/all?page=${page}${status ? `&status=${status}` : ""}`),
 };
 
+export const loans = {
+  /** Get my loan eligibility score */
+  getScore: () => get("/loans/score"),
+  /** Submit a loan application */
+  apply: (data) => post("/loans/apply", data),
+  /** List my loan applications */
+  list: () => get("/loans"),
+  /** Admin: list all loans */
+  adminList: (status, page = 1) =>
+    get(`/loans/admin?page=${page}${status ? `&status=${status}` : ""}`),
+  /** Admin: update loan status */
+  update: (id, status, admin_note) => patch(`/loans/${id}`, { status, admin_note }),
+};
+
 export const upload = {
   /** Upload avatar image */
   avatar: async (file) => {
@@ -352,4 +370,4 @@ export const upload = {
   status: () => get("/upload/status"),
 };
 
-export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule, sos, payments, upload };
+export default { auth, users, providers, bookings, kyc, reviews, services, admin, ai, blood, disaster, chat, promos, schedule, sos, payments, upload, loans };

@@ -140,6 +140,44 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2200);};
 
+  const printEarningsReport=()=>{
+    const now=new Date().toLocaleDateString("en-GB");
+    const month=new Date().toLocaleString("en-GB",{month:"long",year:"numeric"});
+    const histRows=earnings.history.map(h=>`<tr><td>${h.desc||"—"}</td><td>${h.date||"—"}</td><td style='text-align:right;font-weight:700;color:${h.type==="credit"?"#166534":"#b91c1c"}'>${h.type==="credit"?"+":"−"}\u09F3${Math.abs(h.amount||0).toLocaleString()}</td></tr>`).join("");
+    const w=window.open("","_blank","width=580,height=760");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Earnings Report</title>`+
+      `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:20px}`+
+      `.rpt{background:#fff;border-radius:12px;padding:28px;max-width:520px;margin:0 auto;border:1px solid #e2e8f0}`+
+      `.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f1f5f9}`+
+      `.brand{font-size:18px;font-weight:900;color:#1e293b}.sub{font-size:11px;color:#64748b;margin-top:2px}`+
+      `.rt{text-align:right;font-size:15px;font-weight:700;color:#8b5cf6}.rd{font-size:11px;color:#64748b;margin-top:2px}`+
+      `.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}`+
+      `.stat{background:#f8fafc;border-radius:10px;padding:12px;display:flex;gap:10px;align-items:center}`+
+      `.si{font-size:22px}.sv{font-size:18px;font-weight:800}.sl{font-size:11px;color:#64748b;margin-top:2px}`+
+      `h3{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px}`+
+      `table{width:100%;border-collapse:collapse;font-size:12px}`+
+      `th{background:#f8fafc;padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-align:left;border-bottom:2px solid #e2e8f0}`+
+      `td{padding:8px 10px;border-bottom:1px solid #f1f5f9}`+
+      `.ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:20px;padding-top:12px;border-top:1px solid #f1f5f9}`+
+      `@media print{body{background:#fff;padding:0}.rpt{box-shadow:none}}</style></head>`+
+      `<body onload='window.print()'><div class='rpt'>`+
+      `<div class='hdr'><div><div class='brand'>\uD83D\uDCB0 IMAP Provider</div><div class='sub'>Earnings Report &middot; ${month}</div></div>`+
+      `<div><div class='rt'>\uD83D\uDCC8 Earnings Report</div><div class='rd'>Generated: ${now}</div></div></div>`+
+      `<div class='stats'>`+
+      `<div class='stat'><span class='si'>\uD83D\uDCB3</span><div><div class='sv' style='color:#8b5cf6'>\u09F3${earnings.balance.toLocaleString()}</div><div class='sl'>Balance</div></div></div>`+
+      `<div class='stat'><span class='si'>\uD83D\uDCC8</span><div><div class='sv' style='color:#10b981'>\u09F3${earnings.thisWeek.toLocaleString()}</div><div class='sl'>This Week</div></div></div>`+
+      `<div class='stat'><span class='si'>\uD83D\uDCCA</span><div><div class='sv' style='color:#f59e0b'>\u09F3${earnings.thisMonth.toLocaleString()}</div><div class='sl'>This Month</div></div></div>`+
+      `<div class='stat'><span class='si'>\uD83C\uDFC6</span><div><div class='sv' style='color:#3b82f6'>\u09F3${earnings.total.toLocaleString()}</div><div class='sl'>All Time</div></div></div>`+
+      `</div>`+
+      `<h3>\uD83D\uDCDD Transaction History</h3>`+
+      `<table><thead><tr><th>Description</th><th>Date</th><th style='text-align:right'>Amount</th></tr></thead><tbody>`+
+      (histRows||`<tr><td colspan='3' style='text-align:center;color:#94a3b8;padding:16px'>No transactions yet</td></tr>`)+
+      `</tbody></table>`+
+      `<div class='ft'>IMAP Platform &middot; imap.com.bd &middot; Provider Earnings Report</div>`+
+      `</div></body></html>`);
+    w.document.close();
+  };
+
   const [jobs,setJobs]=useState([]);
   const [gpsTracking,setGpsTracking]=useState({}); // { [jobId]: watchId }
   const toggleGps=(jobId)=>{
@@ -394,7 +432,10 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
         {tab==="earnings"&&(
           <>
-            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"💰 আয় ও পেমেন্ট":"💰 Earnings & Payments"}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+              <div style={{fontWeight:800,fontSize:18}}>{lang==="bn"?"💰 আয় ও পেমেন্ট":"💰 Earnings & Payments"}</div>
+              <button onClick={printEarningsReport} style={{padding:"9px 16px",background:"#8B5CF6",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}}>📄 {lang==="bn"?"রিপোর্ট ডাউনলোড":"Earnings Report"}</button>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
               {[
                 {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"💳",col:C.p},

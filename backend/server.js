@@ -145,6 +145,7 @@ app.use("/api/schedule",  require("./routes/schedule"));
 app.use("/api/sos",       require("./routes/sos"));
 app.use("/api/payments",  require("./routes/payments"));
 app.use("/api/upload",    require("./routes/upload"));
+app.use("/api/loans",     require("./routes/loans"));
 
 // ── One-time demo seed endpoint ───────────────────────────
 // GET /api/admin/seed-demo?secret=<SEED_SECRET>

@@ -322,6 +322,29 @@ CREATE TABLE IF NOT EXISTS payments (
   INDEX idx_gateway_id (gateway_tran_id)
 ) ENGINE=InnoDB;
 
+-- ── MICROLOANS ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS microloans (
+  id            VARCHAR(36) PRIMARY KEY,
+  user_id       VARCHAR(36) NOT NULL,
+  provider_id   VARCHAR(36),
+  full_name     VARCHAR(120) NOT NULL,
+  phone         VARCHAR(20)  NOT NULL,
+  purpose       TEXT,
+  amount        DECIMAL(12,2) NOT NULL,
+  tenure_months INT NOT NULL DEFAULT 12,
+  interest_rate DECIMAL(5,2) NOT NULL DEFAULT 9.00,
+  loan_score    INT NOT NULL DEFAULT 0,
+  status        ENUM('pending','approved','disbursed','rejected','repaid') DEFAULT 'pending',
+  admin_note    TEXT,
+  reference_no  VARCHAR(20) UNIQUE,
+  applied_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at   TIMESTAMP NULL,
+  reviewed_by   VARCHAR(36),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user   (user_id),
+  INDEX idx_status (status)
+) ENGINE=InnoDB;
+
 -- ── ALTER existing tables (safe, idempotent) ─────────────
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER note;
 ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;

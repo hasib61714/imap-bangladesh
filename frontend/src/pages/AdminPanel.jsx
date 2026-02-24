@@ -14,7 +14,7 @@ import {
   MenuFoldOutlined, MenuUnfoldOutlined, SunOutlined, MoonOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
-import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi, services as servicesApi } from "../api";
+import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi, services as servicesApi, loans as loansApi } from "../api";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -185,6 +185,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { key:"payments",      icon:<span>💳</span>,               label: lang==="bn"?"পেমেন্ট":"Payments"         },
     { key:"notifications", icon:<NotificationOutlined />,      label: lang==="bn"?"বিজ্ঞপ্তি":"Notifications"},
     { key:"promos",        icon:<GiftOutlined />,              label: lang==="bn"?"প্রোমো কোড":"Promo Codes"},
+    { key:"loans",         icon:<span>💹</span>,               label: lang==="bn"?"মাইক্রো-লোন":"Micro Loans"     },
     { key:"categories",    icon:<AppstoreOutlined />,          label: lang==="bn"?"সেবা বিভাগ":"Categories" },
     { key:"ai",            icon:<span>🤖</span>,               label: lang==="bn"?"AI Analytics":"AI Analytics" },
     { key:"settings",      icon:<SettingOutlined />,           label: lang==="bn"?"সেটিংস":"Settings"       },
@@ -200,7 +201,26 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   useEffect(() => { if(tab==="sos") loadSos(); }, [tab]);
 
-  /* ── PAYMENTS STATE ──────────────────────────────── */
+  /* ── LOANS STATE ────────────────────────── */
+  const [loanList,    setLoanList]    = useState([]);
+  const [loanLoading, setLoanLoading] = useState(false);
+  const [loanFilter,  setLoanFilter]  = useState("");
+
+  const loadLoans = async (status = "") => {
+    setLoanLoading(true);
+    try { const d = await loansApi.adminList(status||undefined); if(d?.loans) setLoanList(d.loans); }
+    catch {}
+    finally { setLoanLoading(false); }
+  };
+  const updateLoan = async (id, status, note) => {
+    try {
+      await loansApi.update(id, status, note);
+      setLoanList(prev => prev.map(l => l.id===id ? {...l, status} : l));
+      toast(lang==="bn" ? "✅ লোন আপডেট হয়েছে" : "✅ Loan updated");
+    } catch(e) { toast(e.data?.error||"Error", "error"); }
+  };
+  useEffect(() => { if(tab==="loans") loadLoans(loanFilter); }, [tab, loanFilter]);
+ ──────────────────────────────── */
   const [payList,      setPayList]      = useState([]);
   const [payLoading,   setPayLoading]   = useState(false);
   const [payFilter,    setPayFilter]    = useState("");
@@ -213,6 +233,55 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   };
 
   useEffect(() => { if(tab==="payments") loadPayments(payFilter); }, [tab]);
+
+  const exportRevenueCSV = () => {
+    const data = monthlyRev2.length > 0 ? monthlyRev2 : monthlyRev;
+    const rows = [["Month","Revenue (BDT)","Bookings"], ...data.map(r=>[r.m, Math.round(r.v), r.bookings||"—"])];
+    const csv = rows.map(r=>r.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=`imap_revenue_${new Date().toISOString().slice(0,7)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const printRevenueReport = () => {
+    const data = monthlyRev2.length > 0 ? monthlyRev2 : monthlyRev;
+    const now = new Date().toLocaleDateString("en-GB");
+    const rows = data.map(r=>`<tr><td>${r.m}</td><td style='text-align:right;font-weight:700'>\u09F3${Math.round(r.v).toLocaleString()}</td></tr>`).join("");
+    const topRows = topProviders.map((p,i)=>`<tr><td>#${i+1} ${p.name}</td><td>${p.service}</td><td style='text-align:right'>${p.jobs} jobs</td><td style='text-align:right;font-weight:700'>\u09F3${p.earned.toLocaleString()}</td></tr>`).join("");
+    const w = window.open("","_blank","width=680,height=860");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset='UTF-8'><title>IMAP Revenue Report</title>`+
+      `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:24px}`+
+      `.rpt{background:#fff;border-radius:12px;padding:32px;max-width:620px;margin:0 auto;border:1px solid #e2e8f0}`+
+      `.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #f1f5f9}`+
+      `.brand{font-size:22px;font-weight:900;color:#1e293b}.sub{font-size:12px;color:#64748b;margin-top:2px}`+
+      `.rtitle{text-align:right;font-size:16px;font-weight:700;color:#059669}.rdate{font-size:11px;color:#64748b;margin-top:2px}`+
+      `.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}`+
+      `.stat{background:#f8fafc;border-radius:10px;padding:14px;text-align:center}.sv{font-size:20px;font-weight:900;color:#059669}.sl{font-size:11px;color:#64748b;margin-top:2px}`+
+      `h3{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;margin-top:20px}`+
+      `table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:13px}`+
+      `th{background:#f8fafc;padding:9px 12px;font-size:11px;font-weight:700;color:#64748b;text-align:left;border-bottom:2px solid #e2e8f0}`+
+      `td{padding:9px 12px;border-bottom:1px solid #f1f5f9}`+
+      `.ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:24px;padding-top:12px;border-top:1px solid #f1f5f9}`+
+      `@media print{body{background:#fff;padding:0}.rpt{box-shadow:none}}</style></head>`+
+      `<body onload='window.print()'><div class='rpt'>`+
+      `<div class='hdr'><div><div class='brand'>\uD83C\uDFEF IMAP Bangladesh</div><div class='sub'>Admin Revenue Report</div></div>`+
+      `<div><div class='rtitle'>\uD83D\uDCCA Revenue Report</div><div class='rdate'>Generated: ${now}</div></div></div>`+
+      `<div class='stats'>`+
+      `<div class='stat'><div class='sv'>\u09F3${Math.round(realStats?.revenue??0).toLocaleString()}</div><div class='sl'>Total Revenue</div></div>`+
+      `<div class='stat'><div class='sv'>${realStats?.bookings??0}</div><div class='sl'>Total Bookings</div></div>`+
+      `<div class='stat'><div class='sv'>${realStats?.providers??0}</div><div class='sl'>Active Providers</div></div>`+
+      `</div>`+
+      `<h3>\uD83D\uDCC5 Monthly Revenue</h3>`+
+      `<table><thead><tr><th>Month</th><th style='text-align:right'>Revenue</th></tr></thead><tbody>${rows}</tbody></table>`+
+      `<h3>\uD83C\uDFC6 Top Providers</h3>`+
+      `<table><thead><tr><th>Provider</th><th>Service</th><th style='text-align:right'>Jobs</th><th style='text-align:right'>Earned</th></tr></thead><tbody>${topRows}</tbody></table>`+
+      `<div class='ft'>IMAP Platform &middot; imap.com.bd &middot; Confidential</div>`+
+      `</div></body></html>`);
+    w.document.close();
+  };
 
   /* ── PROVIDERS / USERS / BOOKINGS / KYC LIVE DATA ── */
   const [dataLoading, setDataLoading] = useState(false);
@@ -787,7 +856,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── REVENUE ── */}
             {tab==="revenue" && (
               <>
-                <Title level={4}>💹 {lang==="bn"?"রাজস্ব ও বিশ্লেষণ":"Revenue & Analytics"}</Title>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+                  <Title level={4} style={{margin:0}}>💹 {lang==="bn"?"রাজস্ব ও বিশ্লেষণ":"Revenue & Analytics"}</Title>
+                  <Space wrap>
+                    <Button onClick={exportRevenueCSV} icon={<span>📥</span>}>{lang==="bn"?"CSV এক্সপোর্ট":"Export CSV"}</Button>
+                    <Button onClick={printRevenueReport} type="primary" icon={<span>🖨️</span>}>{lang==="bn"?"রিপোর্ট প্রিন্ট":"Print Report"}</Button>
+                  </Space>
+                </div>
                 <Row gutter={[16,16]} style={{marginBottom:24}}>
                   {(()=>{
                     const rev   = realStats?.revenue   ?? 0;
@@ -1012,6 +1087,70 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           <Button size="small" danger icon={<DeleteOutlined/>} />
                         </Popconfirm>
                       </Space>
+                    )},
+                  ]}
+                />
+              </>
+            )}
+
+            {/* ── LOANS ── */}
+            {tab==="loans" && (
+              <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <Title level={4}>💹 {lang==="bn"?"মাইক্রো-লোন আবেদন":"Micro Loan Applications"}</Title>
+                  <Space>
+                    <Select value={loanFilter} onChange={v=>{setLoanFilter(v);}} style={{width:140}}>
+                      <Select.Option value="">{lang==="bn"?"সব":"All"}</Select.Option>
+                      <Select.Option value="pending">{lang==="bn"?"অপেক্ষায়":"Pending"}</Select.Option>
+                      <Select.Option value="approved">{lang==="bn"?"অনুমোদিত":"Approved"}</Select.Option>
+                      <Select.Option value="disbursed">{lang==="bn"?"বিতরণ":"Disbursed"}</Select.Option>
+                      <Select.Option value="rejected">{lang==="bn"?"প্রত্যাখ্যাত":"Rejected"}</Select.Option>
+                    </Select>
+                    <Button loading={loanLoading} onClick={()=>loadLoans(loanFilter)}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
+                  </Space>
+                </div>
+                <Table
+                  dataSource={loanList}
+                  rowKey="id"
+                  loading={loanLoading}
+                  bordered
+                  size="middle"
+                  pagination={{ pageSize: 15 }}
+                  columns={[
+                    { title: lang==="bn"?"আবেদনকারী":"Applicant",  key:"name",   render:(_,l)=>(
+                        <div>
+                          <Text strong>{l.user_name||l.full_name}</Text>
+                          <div style={{fontSize:11,color:"#6b7280"}}>{l.user_phone||l.phone}</div>
+                        </div>
+                    )},
+                    { title: lang==="bn"?"পরিমাণ":"Amount",         key:"amount", render:(_,l)=><Text strong>৳{parseFloat(l.amount).toLocaleString()}</Text> },
+                    { title: lang==="bn"?"মেয়াদ":"Tenure",          key:"tenure", render:(_,l)=>`${l.tenure_months} ${lang==="bn"?"মাস":"mo"} @ ${l.interest_rate}%` },
+                    { title: lang==="bn"?"লোন স্কোর":"Score",        key:"score",  render:(_,l)=><Tag color={l.loan_score>=70?"green":l.loan_score>=50?"orange":"red"}>{l.loan_score}/100</Tag> },
+                    { title: lang==="bn"?"উদ্দেশ্য":"Purpose",       key:"purpose",dataIndex:"purpose", render:v=>v||"-" },
+                    { title: lang==="bn"?"রেফারেন্স":"Ref No",        key:"ref",    dataIndex:"reference_no", render:v=><Text code>{v}</Text> },
+                    { title: lang==="bn"?"তারিখ":"Date",              key:"date",   render:(_,l)=>new Date(l.applied_at).toLocaleDateString() },
+                    { title: lang==="bn"?"অবস্থা":"Status",           key:"status", render:(_,l)=>{
+                        const col={pending:"orange",approved:"cyan",disbursed:"green",rejected:"red",repaid:"default"};
+                        const lbl={en:{pending:"Pending",approved:"Approved",disbursed:"Disbursed",rejected:"Rejected",repaid:"Repaid"},
+                                   bn:{pending:"\u09aa\u09b0\u09cd\u09af\u09be\u09b2\u09cb\u099a\u09a8\u09be\u09a7\u09c0\u09a8",approved:"\u0985\u09a8\u09c1\u09ae\u09cb\u09a6\u09bf\u09a4",disbursed:"\u09ac\u09bf\u09a4\u09b0\u09a3",rejected:"\u09aa\u09cd\u09b0\u09a4\u09cd\u09af\u09be\u0996\u09cd\u09af\u09be\u09a4",repaid:"\u09aa\u09b0\u09bf\u09b6\u09cb\u09a7\u09bf\u09a4"}};
+                        return <Tag color={col[l.status]||"default"}>{lbl[lang][l.status]||l.status}</Tag>;
+                    }},
+                    { title: lang==="bn"?"অ্যাকশন":"Action",          key:"action", render:(_,l)=>(
+                        <Space wrap>
+                          {l.status==="pending"&&<>
+                            <Popconfirm title={lang==="bn"?"অনুমোদন করবেন?":"Approve?"} onConfirm={()=>updateLoan(l.id,"approved","")} okText="Yes" cancelText="No">
+                              <Button size="small" type="primary">{lang==="bn"?"অনুমোদন":"Approve"}</Button>
+                            </Popconfirm>
+                            <Popconfirm title={lang==="bn"?"প্রত্যাখ্যান করবেন?":"Reject?"} onConfirm={()=>updateLoan(l.id,"rejected","")} okText="Yes" cancelText="No">
+                              <Button size="small" danger>{lang==="bn"?"বাতিল":"Reject"}</Button>
+                            </Popconfirm>
+                          </>}
+                          {l.status==="approved"&&(
+                            <Popconfirm title={lang==="bn"?"ওয়ালেটে বিতরণ করবেন?":"Disburse to wallet?"} onConfirm={()=>updateLoan(l.id,"disbursed","")} okText="Yes" cancelText="No">
+                              <Button size="small" type="primary" style={{background:"#059669",borderColor:"#059669"}}>{lang==="bn"?"বিতরণ":"Disburse"}</Button>
+                            </Popconfirm>
+                          )}
+                        </Space>
                     )},
                   ]}
                 />
