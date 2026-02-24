@@ -86,6 +86,7 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     cache.del("admin:stats");
     cache.del("admin:revenue");
     cache.del("admin:bookings:default");
+    cache.delPattern(new RegExp(`^bookings:user:${req.user.id}:`));
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
@@ -98,32 +99,36 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const cacheKey = `bookings:user:${req.user.id}:${status||'all'}:${page}:${limit}`;
+    const result = await cache.getOrSet(cacheKey, async () => {
+      const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    let where = ["b.customer_id = ?"];
-    let params = [req.user.id];
+      let where = ["b.customer_id = ?"];
+      let params = [req.user.id];
 
-    if (status && status !== "all") {
-      where.push("b.status = ?");
-      params.push(status);
-    }
+      if (status && status !== "all") {
+        where.push("b.status = ?");
+        params.push(status);
+      }
 
-    const [[{ total }]] = await pool.query(
-      `SELECT COUNT(*) AS total FROM bookings b WHERE ${where.join(" AND ")}`,
-      params
-    );
+      const [[{ total }]] = await pool.query(
+        `SELECT COUNT(*) AS total FROM bookings b WHERE ${where.join(" AND ")}`,
+        params
+      );
 
-    const [rows] = await pool.query(
-      `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
-       FROM bookings b
-       LEFT JOIN providers p ON p.id = b.provider_id
-       LEFT JOIN users u ON u.id = p.user_id
-       WHERE ${where.join(" AND ")}
-       ORDER BY b.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    res.json({ bookings: rows, total, page: parseInt(page), limit: parseInt(limit) });
+      const [rows] = await pool.query(
+        `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
+         FROM bookings b
+         LEFT JOIN providers p ON p.id = b.provider_id
+         LEFT JOIN users u ON u.id = p.user_id
+         WHERE ${where.join(" AND ")}
+         ORDER BY b.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      );
+      return { bookings: rows, total, page: parseInt(page), limit: parseInt(limit) };
+    }, 30);
+    res.json(result);
   } catch (err) {
     logger.error("my bookings:", err);
     res.status(500).json({ error: "Server error" });
@@ -227,6 +232,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:revenue");
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
+      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Notify via socket too
       if (io) {
         io.emit(`user_${booking.customer_id}`, {
@@ -254,6 +260,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:revenue");
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
+      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Socket-notify provider so their jobs view updates immediately
       if (io && prov.length) {
         io.emit(`user_${prov[0].user_id}`, {
