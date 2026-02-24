@@ -84,6 +84,11 @@ router.get("/", authMiddleware, async (req, res) => {
       params.push(status);
     }
 
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(*) AS total FROM bookings b WHERE ${where.join(" AND ")}`,
+      params
+    );
+
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
        FROM bookings b
@@ -94,7 +99,7 @@ router.get("/", authMiddleware, async (req, res) => {
        LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), offset]
     );
-    res.json(rows);
+    res.json({ bookings: rows, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
     console.error("my bookings:", err);
     res.status(500).json({ error: "Server error" });

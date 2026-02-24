@@ -1414,14 +1414,37 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
   const u=user||{name:"অতিথি",email:"guest@example.com",role:"customer",kycStatus:"pending",points:320};
   const kycColor={verified:"#10B981",pending:"#F59E0B",rejected:"#EF4444"};
   const kycLabel=lang==="bn"?{verified:"✅ যাচাইকৃত",pending:"⏳ অপেক্ষায়",rejected:"❌ প্রত্যাখ্যাত"}:{verified:"✅ Verified",pending:"⏳ Pending",rejected:"❌ Rejected"};
-  const recentBookings=[{id:"B001",service:lang==="bn"?"বিদ্যুৎ মেরামত":"Electrical Repair",provider:lang==="bn"?"করিম মিয়া":"Karim Mia",date:"২২ জুন ২০২৫",status:"completed"},{id:"B002",service:lang==="bn"?"নার্সিং সেবা":"Nursing Care",provider:lang==="bn"?"ফারিদা বেগম":"Farida Begum",date:"১৮ জুন ২০২৫",status:"completed"},{id:"B003",service:lang==="bn"?"পরিষ্কার সেবা":"Cleaning",provider:lang==="bn"?"রহিম শেখ":"Rahim Sheikh",date:"১০ জুন ২০২৫",status:"cancelled"}];
   const statusBg={completed:["#D1FAE5","#065F46"],cancelled:["#FEE2E2","#B91C1C"],pending:["#FEF9C3","#7C5800"]};
   const statusLabel=lang==="bn"?{completed:"সম্পন্ন",cancelled:"বাতিল",pending:"অপেক্ষায়"}:{completed:"Completed",cancelled:"Cancelled",pending:"Pending"};
+
+  const [recentBookings,setRecentBookings]=useState([]);
+  const [totalBookings,setTotalBookings]=useState(0);
+  const [referralCount,setReferralCount]=useState(0);
+
+  useEffect(()=>{
+    bookingsApi.list({limit:3}).then(data=>{
+      const list=Array.isArray(data)?data:(data.bookings||[]);
+      const tot=data.total||list.length;
+      setTotalBookings(tot);
+      setRecentBookings(list.slice(0,3).map(b=>({
+        id:b.id||"—",
+        service:lang==="bn"?(b.service_name_bn||b.service_name_en||"সেবা"):(b.service_name_en||b.service_name_bn||"Service"),
+        provider:b.provider_name||(lang==="bn"?"প্রদানকারী":"Provider"),
+        date:b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB"):(b.date||"—"),
+        status:b.status||"pending",
+      })));
+    }).catch(()=>{});
+    usersApi.getReferral().then(d=>{
+      setReferralCount(d.referrals?.length||d.count||0);
+    }).catch(()=>{});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   const stats=[
-    {v:"১২",label:lang==="bn"?"মোট বুকিং":"Total Bookings",icon:"📋"},
-    {v:u.points||320,label:lang==="bn"?"লয়্যালটি পয়েন্ট":"Loyalty Points",icon:"🏅"},
-    {v:"৩",label:lang==="bn"?"রেফারেল":"Referrals",icon:"👥"},
-    {v:`৳${ctxBalance.toLocaleString("bn")}`,label:lang==="bn"?"ওয়ালেট":"Wallet",icon:"💰"},
+    {v:totalBookings||"—",label:lang==="bn"?"মোট বুকিং":"Total Bookings",icon:"📋"},
+    {v:u.points||0,label:lang==="bn"?"লয়্যালটি পয়েন্ট":"Loyalty Points",icon:"🏅"},
+    {v:referralCount,label:lang==="bn"?"রেফারেল":"Referrals",icon:"👥"},
+    {v:`৳${ctxBalance.toLocaleString()}`,label:lang==="bn"?"ওয়ালেট":"Wallet",icon:"💰"},
   ];
   const quickActions=[
     {icon:"📋",label:lang==="bn"?"বুকিং":"Bookings",page:"bookings"},
