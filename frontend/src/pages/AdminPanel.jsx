@@ -207,7 +207,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   const loadPayments = async (status = "") => {
     setPayLoading(true);
-    try { const d = await paymentsApi.adminList(status||undefined); if(d?.payments) setPayList(d.payments); }
+    try { const d = await paymentsApi.adminList(status||undefined); if(d?.data) setPayList(d.data); }
     catch(e) { console.warn("payments load:", e.message); }
     finally { setPayLoading(false); }
   };
