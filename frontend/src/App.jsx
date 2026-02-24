@@ -5066,7 +5066,7 @@ export default function IMAP() {
         {!showSos && (
           <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}
             title={lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alert"}
-            style={{position:"fixed",bottom:isMobile?196:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
+            style={{position:"fixed",bottom:isMobile?216:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
             🆘
           </button>
         )}
