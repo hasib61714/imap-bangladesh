@@ -1,7 +1,10 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
+// TiDB Cloud requires SSL; standard Node.js CA bundle covers TiDB's certificate
+const sslConfig = process.env.DB_SSL === "true"
+  ? { rejectUnauthorized: true, minVersion: "TLSv1.2" }
+  : false;
 
 const pool = mysql.createPool({
   host:               process.env.DB_HOST     || "localhost",

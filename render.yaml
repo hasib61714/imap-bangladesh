@@ -13,17 +13,19 @@ services:
       - key: PORT
         value: 10000
 
-      # ── Database (set in Render dashboard) ────────────
+      # ── Database ────────────────────────────────────
       - key: DB_HOST
-        sync: false
+        value: gateway01.ap-northeast-1.prod.aws.tidbcloud.com
       - key: DB_PORT
-        value: 3306
+        value: 4000
       - key: DB_USER
-        sync: false
+        value: 2ZctdUCKR1pNorW.root
       - key: DB_PASSWORD
-        sync: false
+        sync: false   # ← set this in Render dashboard
       - key: DB_NAME
-        sync: false
+        value: imap_db
+      - key: DB_SSL
+        value: "true"
 
       # ── JWT ───────────────────────────────────────────
       - key: JWT_SECRET
