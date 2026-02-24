@@ -1594,9 +1594,15 @@ function NotifPage() {
             </button>
           )}
           {pushPerm==="granted"&&(
-            <span style={{fontSize:11,color:C.p,padding:"5px 11px",background:C.plt,borderRadius:20,border:`1px solid ${C.p}30`,fontWeight:600}}>
-              🔔 {lang==="en"?"Push: On":"পুশ: চালু"}
-            </span>
+            <>
+              <span style={{fontSize:11,color:C.p,padding:"5px 11px",background:C.plt,borderRadius:20,border:`1px solid ${C.p}30`,fontWeight:600}}>
+                🔔 {lang==="en"?"Push: On":"পুশ: চালু"}
+              </span>
+              <button className="btn" onClick={()=>usersApi.testPush().then(()=>alert(lang==="en"?"✅ Test push sent!":"✅ পুশ পাঠানো হয়েছে!")).catch(e=>alert("❌ "+e.message))}
+                style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
+                🔔 {lang==="en"?"Test":"টেস্ট"}
+              </button>
+            </>
           )}
           <button className="btn btn-gh" style={{fontSize:12,border:`1px solid ${C.bdr}`}} onClick={()=>{setNotifs(n=>n.map(x=>({...x,unread:false})));usersApi.markNotifRead().catch(()=>{});}}>{tr.markRead}</button>
         </div>

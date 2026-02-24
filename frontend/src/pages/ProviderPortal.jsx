@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
-import { connectSocket, joinRoom, leaveRoom } from "../socket";
+import { connectSocket, joinRoom, leaveRoom, getSocket } from "../socket";
 
 export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}){
   const C  = dark ? C_DARK : C_LIGHT;
@@ -141,6 +141,25 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2200);};
 
   const [jobs,setJobs]=useState([]);
+  const [gpsTracking,setGpsTracking]=useState({}); // { [jobId]: watchId }
+  const toggleGps=(jobId)=>{
+    if(gpsTracking[jobId]!=null){
+      navigator.geolocation.clearWatch(gpsTracking[jobId]);
+      setGpsTracking(p=>{const n={...p};delete n[jobId];return n;});
+      return;
+    }
+    if(!navigator.geolocation){showToast(lang==="bn"?"GPS সমর্থিত নয়":"GPS not supported");return;}
+    const watchId=navigator.geolocation.watchPosition(
+      pos=>{
+        const s=getSocket();
+        if(s) s.emit("location_update",{bookingId:jobId,lat:pos.coords.latitude,lng:pos.coords.longitude});
+      },
+      err=>{console.warn("GPS:",err.message);},
+      {enableHighAccuracy:true,maximumAge:10000,timeout:20000}
+    );
+    setGpsTracking(p=>({...p,[jobId]:watchId}));
+    showToast(lang==="bn"?"📍 লাইভ লোকেশন চালু":"📍 Live location ON");
+  };
 
   const [earnings,setEarnings]=useState({balance:0,thisWeek:0,thisMonth:0,total:0,history:[]});
 
@@ -321,7 +340,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                         </div>
                       )}
                       {status==="active"&&(
-                        <button onClick={()=>completeJob(j.id)} style={{width:"100%",marginTop:12,padding:"10px",background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
+                        <div style={{marginTop:12,display:"flex",gap:8}}>
+                          <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"#DCFCE7":"#EFF6FF",color:gpsTracking[j.id]!=null?"#15803D":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"#16A34A":"#3B82F6"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                            {gpsTracking[j.id]!=null?(lang==="bn"?"📍 লাইভ: চালু":"📍 GPS: ON"):(lang==="bn"?"📍 লোকেশন দিন":"📍 Share GPS")}
+                          </button>
+                          <button onClick={()=>completeJob(j.id)} style={{flex:2,padding:"10px",background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
+                        </div>
                       )}
                     </div>
                   ))}
