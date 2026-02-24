@@ -49,12 +49,13 @@ router.get("/providers", ...auth, async (req, res) => {
               u.joined_at,
               (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
                FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
-       FROM providers p JOIN users u ON u.id = p.user_id
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id
        WHERE ${where.join(" AND ")} ORDER BY p.rating DESC, p.total_jobs DESC LIMIT ? OFFSET ?`,
       [...params.filter(x=>x!==null), parseInt(limit), offset]
     );
     const [[total]] = await pool.query(
-      `SELECT COUNT(*) AS v FROM providers p JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")}`,
+      `SELECT COUNT(*) AS v FROM providers p LEFT JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")}`,
+
       params.filter(x=>x!==null)
     );
     res.json({ providers: rows, total: total.v });
@@ -114,7 +115,7 @@ router.get("/bookings", ...auth, async (req, res) => {
     const [rows] = await pool.query(
       `SELECT b.*, cu.name AS customer_name, pu.name AS provider_name
        FROM bookings b
-       JOIN users cu ON cu.id = b.customer_id
+       LEFT JOIN users cu ON cu.id = b.customer_id
        LEFT JOIN providers p ON p.id = b.provider_id
        LEFT JOIN users pu ON pu.id = p.user_id
        WHERE ${where.join(" AND ")}
@@ -138,7 +139,7 @@ router.get("/kyc", ...auth, async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const [rows] = await pool.query(
       `SELECT k.*, u.name, u.email, u.phone FROM kyc_docs k
-       JOIN users u ON u.id = k.user_id
+       LEFT JOIN users u ON u.id = k.user_id
        WHERE k.status = ? ORDER BY k.submitted_at DESC LIMIT ? OFFSET ?`,
       [status, parseInt(limit), offset]
     );
@@ -189,7 +190,7 @@ router.get("/complaints", ...auth, async (req, res) => {
 
     const [rows] = await pool.query(
       `SELECT c.*, u.name AS user_name FROM complaints c
-       JOIN users u ON u.id = c.user_id
+       LEFT JOIN users u ON u.id = c.user_id
        WHERE ${where.join(" AND ")} ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), offset]
     );
