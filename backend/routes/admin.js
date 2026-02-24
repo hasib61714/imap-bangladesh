@@ -1,31 +1,34 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 const { authMiddleware, requireRole } = require("../middleware/auth");
 const auth = [authMiddleware, requireRole("admin")];
 
 // ── GET /api/admin/stats ──────────────────────────────────
 router.get("/stats", ...auth, async (req, res) => {
   try {
-    const [[users]]     = await pool.query("SELECT COUNT(*) AS v FROM users WHERE role = 'customer'");
-    const [[providers]] = await pool.query("SELECT COUNT(*) AS v FROM users WHERE role = 'provider'");
-    const [[bookings]]  = await pool.query("SELECT COUNT(*) AS v FROM bookings");
-    const [[revenue]]   = await pool.query("SELECT COALESCE(SUM(amount+platform_fee),0) AS v FROM bookings WHERE status = 'completed'");
-    const [[kycPending]]= await pool.query("SELECT COUNT(*) AS v FROM kyc_docs WHERE status = 'pending'");
-    const [[complaints]]= await pool.query("SELECT COUNT(*) AS v FROM complaints WHERE status = 'open'");
-    const [[avgRating]] = await pool.query("SELECT ROUND(AVG(rating),2) AS v FROM reviews");
-    const [[todayBooks]]= await pool.query("SELECT COUNT(*) AS v FROM bookings WHERE DATE(created_at) = CURDATE()");
-
-    res.json({
-      users:      users.v,
-      providers:  providers.v,
-      bookings:   bookings.v,
-      revenue:    revenue.v,
-      kycPending: kycPending.v,
-      complaints: complaints.v,
-      avgRating:  avgRating.v || 0,
-      todayBookings: todayBooks.v,
-    });
+    const stats = await cache.getOrSet("admin:stats", async () => {
+      const [[users]]     = await pool.query("SELECT COUNT(*) AS v FROM users WHERE role = 'customer'");
+      const [[providers]] = await pool.query("SELECT COUNT(*) AS v FROM users WHERE role = 'provider'");
+      const [[bookings]]  = await pool.query("SELECT COUNT(*) AS v FROM bookings");
+      const [[revenue]]   = await pool.query("SELECT COALESCE(SUM(amount+platform_fee),0) AS v FROM bookings WHERE status = 'completed'");
+      const [[kycPending]]= await pool.query("SELECT COUNT(*) AS v FROM kyc_docs WHERE status = 'pending'");
+      const [[complaints]]= await pool.query("SELECT COUNT(*) AS v FROM complaints WHERE status = 'open'");
+      const [[avgRating]] = await pool.query("SELECT ROUND(AVG(rating),2) AS v FROM reviews");
+      const [[todayBooks]]= await pool.query("SELECT COUNT(*) AS v FROM bookings WHERE DATE(created_at) = CURDATE()");
+      return {
+        users:      users.v,
+        providers:  providers.v,
+        bookings:   bookings.v,
+        revenue:    revenue.v,
+        kycPending: kycPending.v,
+        complaints: complaints.v,
+        avgRating:  avgRating.v || 0,
+        todayBookings: todayBooks.v,
+      };
+    }, 30); // 30-second TTL — cached across 8 parallel-capable DB queries
+    res.json(stats);
   } catch (err) {
     logger.error("admin stats:", err);
     res.status(500).json({ error: "Server error" });

@@ -2,13 +2,19 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const { validate, body } = require("../middleware/validate");
+
+const reviewRules = validate([
+  body("booking_id").notEmpty().withMessage("booking_id is required"),
+  body("rating").isInt({ min: 1, max: 5 }).withMessage("Rating must be an integer 1–5"),
+  body("comment").optional().isLength({ max: 1000 }).withMessage("Comment max 1000 chars"),
+  body("tags").optional().isString(),
+]);
 
 // ── POST /api/reviews ─────────────────────────────────────
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, reviewRules, async (req, res) => {
   try {
     const { booking_id, rating, comment, tags } = req.body;
-    if (!booking_id || !rating) return res.status(400).json({ error: "booking_id and rating required" });
-    if (rating < 1 || rating > 5) return res.status(400).json({ error: "Rating must be 1-5" });
 
     const [bookings] = await pool.query(
       "SELECT * FROM bookings WHERE id = ? AND customer_id = ? AND status = 'completed'",

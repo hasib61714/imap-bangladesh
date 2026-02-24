@@ -12,7 +12,7 @@ const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
-import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
+import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, setToken, auth as authApi, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
 
@@ -4153,6 +4153,9 @@ export default function IMAP() {
   const [unreadCount,  setUnreadCount]  = useState(0);
   const [liveNotifs,   setLiveNotifs]   = useState(NOTIFS_DATA);
 
+  // ── NETWORK STATE ──
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
+
   const doLogin  = u  => { localStorage.setItem("imap_user",JSON.stringify(u)); localStorage.setItem("imap_ob","1"); setOnboard(false); setAuthUser(u); setShowLanding(false); };
   const doLogout = () => { localStorage.removeItem("imap_user"); localStorage.removeItem("imap_token"); setAuthUser(null); setShowLanding(true); };
 
@@ -4163,6 +4166,32 @@ export default function IMAP() {
     window.addEventListener("imap-unauthorized", handler);
     return () => window.removeEventListener("imap-unauthorized", handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  // Silently refresh JWT when tab regains visibility (keeps long sessions alive)
+  useEffect(()=>{
+    if (!authUser) return;
+    const handler = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const res = await authApi.refresh();
+          if (res?.token) { setToken(res.token); }
+          if (res?.user)  { const updated={...authUser,...res.user}; setAuthUser(updated); localStorage.setItem("imap_user",JSON.stringify(updated)); }
+        } catch { /* silently ignore — 401 will auto-logout via imap-unauthorized */ }
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[authUser?.id]);
+
+  // Track network connectivity for the offline banner
+  useEffect(()=>{
+    const goOnline  = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener("online",  goOnline);
+    window.addEventListener("offline", goOffline);
+    return ()=>{ window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
   },[]);
 
   // ── VOICE COMMAND HANDLER ──
@@ -5014,6 +5043,11 @@ export default function IMAP() {
       <div style={{fontFamily:"'Hind Siliguri','Noto Sans Bengali',sans-serif",background:C.bg,minHeight:"100vh",color:C.text,transition:"background .3s,color .3s"}}>
         <style>{CSS}{dark?CSS_DARK:""}</style>
         <Nav/>
+        {isOffline&&(
+          <div style={{position:"sticky",top:0,zIndex:999,background:"#1F2937",color:"#F9FAFB",textAlign:"center",padding:"7px 14px",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <span>📡</span> <span>{tr===T.en?"You are offline — some features may be unavailable":"আপনি অফলাইনে আছেন — কিছু ফিচার সাময়িকভাবে অনুপলব্ধ"}</span>
+          </div>
+        )}
         <div style={{minHeight:"calc(100vh - 62px)"}}>
           {page==="home"      && <Home/>}
           {page==="cprofile" && <div className="wp" style={{padding:"0 0 80px"}}><CustomerProfilePage user={authUser} onAvatarUpdate={u=>{setAuthUser(u);}} onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}

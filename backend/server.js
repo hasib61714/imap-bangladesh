@@ -12,6 +12,19 @@ const requestLogger = require("./middleware/requestLogger");
 
 const isProd = process.env.NODE_ENV === "production";
 
+// ── Trust proxy (Render sits behind a load balancer) ────────
+// Required for correct client IP in rate-limiter and request logger
+app.set("trust proxy", 1);
+
+// ── X-Request-ID (tracing header) ────────────────────────────
+app.use((req, res, next) => {
+  const id = req.headers["x-request-id"] ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  req.requestId = id;
+  res.setHeader("X-Request-ID", id);
+  next();
+});
+
 // ── Rate limiters ─────────────────────────────────────────
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,   // 15 minutes
