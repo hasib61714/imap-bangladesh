@@ -2366,7 +2366,7 @@ function SettingsPage(){
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>{name}</div>
             <div style={{fontSize:12,color:C.muted}}>ID: IMAP-{authUser?.id||"User"}</div>
           </div>
-          {[[tr.stProfile+" "+lang==="en"?"Name":"নাম",name,setName],[tr.stEmail,email,setEmail],[tr.stPhone,phone,setPhone]].map(([lbl,val,set])=>(
+          {[[tr.stProfile+" "+(lang==="en"?"Name":"নাম"),name,setName],[tr.stEmail,email,setEmail],[tr.stPhone,phone,setPhone]].map(([lbl,val,set])=>(
             <div key={lbl} style={{marginBottom:14}}>
               <label style={{fontSize:12,color:C.sub,fontWeight:600,display:"block",marginBottom:5}}>{lbl}</label>
               <input value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}/>

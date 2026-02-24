@@ -96,6 +96,12 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     cache.del("admin:revenue");
     cache.del("admin:bookings:default");
     cache.delPattern(new RegExp(`^bookings:user:${req.user.id}:`));
+    // Bust customer wallet + loyalty + profile (balance and points changed)
+    cache.del(`user:wallet:${req.user.id}`);
+    cache.del(`user:loyalty:${req.user.id}`);
+    cache.del(`user:profile:${req.user.id}`);
+    // Bust provider job list (new booking visible in their portal)
+    if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
@@ -242,6 +248,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
       if (prov.length) cache.del(`user:wallet:${prov[0].user_id}`); // bust provider wallet after earnings credit
+      if (prov.length) cache.del(`user:profile:${prov[0].user_id}`); // bust provider profile (balance changed)
       cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Notify via socket too
       if (io) {
@@ -271,6 +278,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
       cache.del(`user:wallet:${booking.customer_id}`); // bust customer wallet after cancellation refund
+      cache.del(`user:profile:${booking.customer_id}`); // bust customer profile (balance changed)
       cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Socket-notify provider so their jobs view updates immediately
       if (io && prov.length) {
