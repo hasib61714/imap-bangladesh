@@ -38,13 +38,15 @@ router.get("/providers", ...auth, async (req, res) => {
     const { q, status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = ["1=1"], params = [];
-    if (q) { where.push("(u.name LIKE ? OR u.phone LIKE ? OR p.service_slug LIKE ?)"); const l = `%${q}%`; params.push(l,l,l); }
+    if (q) { where.push("(u.name LIKE ? OR u.phone LIKE ? OR p.service_type_en LIKE ? OR p.service_type_bn LIKE ?)"); const l = `%${q}%`; params.push(l,l,l,l); }
     if (status) { where.push("u.is_active = ?"); params.push(status === "active" ? 1 : status === "suspended" ? 0 : null); }
 
     const [rows] = await pool.query(
       `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
-              u.is_active, p.service_slug, p.area, p.rating, p.total_jobs,
-              p.bio, u.joined_at,
+              u.is_active, p.service_type_en AS service_slug, p.service_type_bn,
+              p.area_en AS area, p.area_bn, p.rating, p.total_jobs,
+              p.bio_en AS bio, p.bio_bn,
+              u.joined_at,
               (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
                FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
        FROM providers p JOIN users u ON u.id = p.user_id
@@ -113,8 +115,8 @@ router.get("/bookings", ...auth, async (req, res) => {
       `SELECT b.*, cu.name AS customer_name, pu.name AS provider_name
        FROM bookings b
        JOIN users cu ON cu.id = b.customer_id
-       JOIN providers p ON p.id = b.provider_id
-       JOIN users pu ON pu.id = p.user_id
+       LEFT JOIN providers p ON p.id = b.provider_id
+       LEFT JOIN users pu ON pu.id = p.user_id
        WHERE ${where.join(" AND ")}
        ORDER BY b.created_at DESC LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), offset]

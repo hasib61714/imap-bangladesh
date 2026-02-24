@@ -67,7 +67,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
           thisWeek:Math.round(thisWeek)||e.thisWeek,
           thisMonth:Math.round(thisMonth)||e.thisMonth,
           total:Math.round(total)||e.total,
-          history:txns.slice(0,10).map(t=>({date:t.created_at?new Date(t.created_at).toLocaleDateString():"",desc:t.note||t.type,amount:t.type==="credit"?t.amount:-t.amount,type:t.type})),
+          history:txns.slice(0,10).map(t=>({date:t.created_at?new Date(t.created_at).toLocaleDateString():"",desc:t.description_en||t.description_bn||t.note||t.type,amount:t.type==="credit"?t.amount:-t.amount,type:t.type})),
         }));
       }
     }).catch(()=>{});
