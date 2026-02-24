@@ -12,7 +12,7 @@ import ProviderPortal from "./pages/ProviderPortal";
 import LandingPage from "./pages/LandingPage";
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
-import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi } from "./api";
+import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
 
@@ -4175,6 +4175,8 @@ export default function IMAP() {
   useEffect(()=>{
     if(typeof window.hideSplash==="function") window.hideSplash();
     setTimeout(()=>setAnim(true),80);
+    // Wake Render backend immediately so it's ready when user acts
+    wakeBackend();
     const check=()=>setIsMobile(window.innerWidth<=640);
     check(); window.addEventListener("resize",check);
     // Service worker is registered in index.html (with correct %BASE_URL% path)

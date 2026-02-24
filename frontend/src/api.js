@@ -10,18 +10,35 @@ export const getToken  = ()           => localStorage.getItem("imap_token");
 export const setToken  = (t)          => localStorage.setItem("imap_token", t);
 export const clearToken= ()           => localStorage.removeItem("imap_token");
 
+// ── Wake backend from Render sleep (call once on app load) ────
+export function wakeBackend() {
+  fetch(`${BASE}/health`, { method: "GET" }).catch(() => {});
+}
+
 // ── Core fetch wrapper ────────────────────────────────────────
-async function req(method, path, body = null, isForm = false) {
+async function req(method, path, body = null, isForm = false, timeoutMs = 60000) {
   const token = getToken();
   const headers = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === "AbortError") throw Object.assign(new Error("সার্ভার সংযোগ timeout হয়েছে, আবার চেষ্টা করুন"), { status: 0 });
+    throw err;
+  }
+  clearTimeout(timer);
 
   let data;
   try { data = await res.json(); } catch { data = {}; }
