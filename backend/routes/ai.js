@@ -638,13 +638,13 @@ router.get("/heatmap", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
-        COALESCE(u.city, 'অজানা') AS area,
+        COALESCE(b.address, 'অজানা') AS area,
         COUNT(*) AS total_bookings,
         COUNT(DISTINCT b.customer_id) AS unique_customers,
         ROUND(AVG(b.amount), 0) AS avg_amount
       FROM bookings b
-      LEFT JOIN users u ON u.id = b.customer_id
       WHERE b.created_at > DATE_SUB(NOW(), INTERVAL 90 DAY)
+        AND b.address IS NOT NULL AND b.address != ''
       GROUP BY area
       ORDER BY total_bookings DESC
       LIMIT 20
@@ -652,10 +652,9 @@ router.get("/heatmap", async (req, res) => {
 
     // Provider supply per area
     const [supply] = await db.query(`
-      SELECT COALESCE(u.city, 'অজানা') AS area, COUNT(*) AS provider_count
+      SELECT COALESCE(p.area_en, p.area_bn, 'অজানা') AS area, COUNT(*) AS provider_count
       FROM providers p
-      JOIN users u ON u.id = p.user_id
-      WHERE p.is_active = 1
+      WHERE p.is_active = 1 AND (p.area_en IS NOT NULL OR p.area_bn IS NOT NULL)
       GROUP BY area
     `);
 

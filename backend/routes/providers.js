@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
              c.name_bn AS cat_bn, c.name_en AS cat_en, c.slug AS cat_slug, c.icon AS cat_icon,
              (SELECT COUNT(*) FROM reviews r WHERE r.provider_id = p.id) AS review_count
       FROM providers p
-      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users u ON u.id = p.user_id
       LEFT JOIN categories c ON c.id = p.category_id
       WHERE ${where.join(" AND ")}
       ORDER BY ${orderSql}
@@ -54,7 +54,8 @@ router.get("/", async (req, res) => {
 
     // total count
     const [cnt] = await pool.query(
-      `SELECT COUNT(*) AS total FROM providers p JOIN users u ON u.id = p.user_id LEFT JOIN categories c ON c.id = p.category_id WHERE ${where.join(" AND ")}`,
+      `SELECT COUNT(*) AS total FROM providers p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN categories c ON c.id = p.category_id WHERE ${where.join(" AND ")}`,
+
       params.slice(0, -2)
     );
 
@@ -89,7 +90,7 @@ router.get("/:id", async (req, res) => {
       `SELECT p.*, u.name, u.avatar, u.phone, u.email, u.kyc_status,
               c.name_bn AS cat_bn, c.name_en AS cat_en, c.icon AS cat_icon
        FROM providers p
-       JOIN users u ON u.id = p.user_id
+       LEFT JOIN users u ON u.id = p.user_id
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.id = ?`,
       [req.params.id]
