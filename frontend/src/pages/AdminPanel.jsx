@@ -220,7 +220,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     } catch(e) { toast(e.data?.error||"Error", "error"); }
   };
   useEffect(() => { if(tab==="loans") loadLoans(loanFilter); }, [tab, loanFilter]);
- ──────────────────────────────── */
+  /* ── PAYMENTS STATE ─────────────────────── */
   const [payList,      setPayList]      = useState([]);
   const [payLoading,   setPayLoading]   = useState(false);
   const [payFilter,    setPayFilter]    = useState("");
