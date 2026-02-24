@@ -10,13 +10,22 @@ router.post("/", authMiddleware, async (req, res) => {
     const {
       provider_id, category_id,
       service_name_bn, service_name_en,
-      address, scheduled_time,
-      amount, platform_fee = 0,
+      // accept legacy field names sent by some frontend pages
+      service_type,
+      address,
+      scheduled_time, scheduled_at,
+      amount, total_amount,
+      platform_fee = 0,
       payment_method = "bKash",
       is_urgent = 0, note = ""
     } = req.body;
 
-    if (!amount) return res.status(400).json({ error: "amount required" });
+    const finalAmount = amount || total_amount;
+    const finalServiceEn = service_name_en || service_type || null;
+    const finalServiceBn = service_name_bn || null;
+    const finalScheduled = scheduled_time || scheduled_at || null;
+
+    if (!finalAmount) return res.status(400).json({ error: "amount required" });
 
     const id     = uuidv4();
     const otp    = Math.floor(100000 + Math.random() * 900000).toString();
@@ -27,14 +36,14 @@ router.post("/", authMiddleware, async (req, res) => {
          address, scheduled_time, amount, platform_fee, payment_method, is_urgent, otp_code, note)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, req.user.id, provider_id, category_id || null,
-       service_name_bn || null, service_name_en || null,
-       address || null, scheduled_time || null,
-       amount, platform_fee, payment_method,
+       finalServiceBn, finalServiceEn,
+       address || null, finalScheduled,
+       finalAmount, platform_fee, payment_method,
        is_urgent ? 1 : 0, otp, note]
     );
 
     // Deduct from balance
-    const total = parseFloat(amount) + parseFloat(platform_fee);
+    const total = parseFloat(finalAmount) + parseFloat(platform_fee);
     await pool.query("UPDATE users SET balance = balance - ? WHERE id = ?", [total, req.user.id]);
 
     // Add wallet transaction
@@ -54,7 +63,7 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     // Award loyalty points
-    const pts = Math.floor(parseFloat(amount) / 100);
+    const pts = Math.floor(parseFloat(finalAmount) / 100);
     if (pts > 0) {
       await pool.query("UPDATE users SET points = points + ? WHERE id = ?", [pts, req.user.id]);
       await pool.query(

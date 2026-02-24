@@ -41,13 +41,13 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
       if(list.length) {
         setJobs(list.map(j=>({
           id:j.id, customer:j.customer_name||j.customer_id,
-          service:j.service_notes||j.category_slug||"Service",
+          service:j.service_name_en||j.service_name_bn||j.note||"Service",
           address:j.address||"", time:j.scheduled_time?new Date(j.scheduled_time).toLocaleString():"",
-          amount:j.amount||0, status:j.status==="pending"?"incoming":j.status, urgent:false,
+          amount:j.amount||0, status:j.status==="pending"?"incoming":j.status, urgent:!!j.is_urgent,
         })));
         const activeSessions=list
           .filter(j=>["confirmed","ongoing","active","incoming","pending"].includes(j.status))
-          .map(j=>({id:j.id,customer:j.customer_name||j.customer_id||"Customer",job:j.service_notes||j.category_slug||"Service",unread:0}));
+          .map(j=>({id:j.id,customer:j.customer_name||j.customer_id||"Customer",job:j.service_name_en||j.service_name_bn||"Service",unread:0}));
         if(activeSessions.length) setChatSessions(activeSessions);
       }
     }).catch(()=>{});

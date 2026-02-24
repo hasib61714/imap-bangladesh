@@ -832,15 +832,15 @@ function MyBookings({onRate,onBook,onPay}) {
   const toUiBk = b=>({
     ...b,
     id:         b.booking_ref || b.id,
-    svc:        b.service_type || b.svc || "",
-    svcEn:      b.service_type || b.svcEn || "",
+    svc:        b.service_name_bn || b.service_type || b.svc || "",
+    svcEn:      b.service_name_en || b.service_type || b.svcEn || "",
     provider:   b.provider_name || b.provider || "",
     providerEn: b.provider_name || b.providerEn || "",
     status:     b.status==="completed"?"সম্পন্ন":b.status==="cancelled"?"বাতিল":(b.status||"চলমান"),
     statusEn:   b.status==="completed"?"Completed":b.status==="cancelled"?"Cancelled":(b.statusEn||"Ongoing"),
-    date:       b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString("bn-BD"):(b.date||""),
-    dateEn:     b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString("en-GB"):(b.dateEn||""),
-    price:      b.total_amount?`৳${b.total_amount}`:(b.price||""),
+    date:       (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("bn-BD"):(b.date||""),
+    dateEn:     (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("en-GB"):(b.dateEn||""),
+    price:      (b.amount||b.total_amount)?`৳${b.amount||b.total_amount}`:(b.price||""),
     icon:       b.icon||"📋",
     pid:        b.provider_id||b.pid,
   });
@@ -1448,12 +1448,12 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
         id:b.id||"—",
         service:lang==="bn"?(b.service_name_bn||b.service_name_en||"সেবা"):(b.service_name_en||b.service_name_bn||"Service"),
         provider:b.provider_name||(lang==="bn"?"প্রদানকারী":"Provider"),
-        date:b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB"):(b.date||"—"),
+        date:b.scheduled_time?(new Date(b.scheduled_time).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB")):(b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB"):(b.date||"—")),
         status:b.status||"pending",
       })));
     }).catch(()=>{});
     usersApi.getReferral().then(d=>{
-      setReferralCount(d.referrals?.length||d.count||0);
+      setReferralCount(d.friends?.length||d.referrals?.length||d.count||0);
     }).catch(()=>{});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);

@@ -39,7 +39,9 @@ router.get("/", async (req, res) => {
              p.hourly_rate, p.rating, p.total_jobs,
              p.trust_score, p.is_available, p.nid_verified,
              p.bio_bn, p.bio_en, p.experience_yrs,
-             c.name_bn AS cat_bn, c.name_en AS cat_en, c.slug AS cat_slug, c.icon AS cat_icon
+             p.latitude, p.longitude,
+             c.name_bn AS cat_bn, c.name_en AS cat_en, c.slug AS cat_slug, c.icon AS cat_icon,
+             (SELECT COUNT(*) FROM reviews r WHERE r.provider_id = p.id) AS review_count
       FROM providers p
       JOIN users u ON u.id = p.user_id
       LEFT JOIN categories c ON c.id = p.category_id

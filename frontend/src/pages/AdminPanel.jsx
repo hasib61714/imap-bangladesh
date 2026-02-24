@@ -271,7 +271,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           _rawId: b.id,
           customer: b.customer_name || b.customer_id,
           provider: b.provider_name || b.provider_id,
-          service: b.category_slug || b.service_notes || "—",
+          service: b.service_name_en || b.service_name_bn || b.note || "—",
           status: b.status,
           amount: b.amount || 0,
           date: b.created_at ? new Date(b.created_at).toLocaleDateString("bn-BD") : "—",

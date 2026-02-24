@@ -12,7 +12,7 @@ router.get("/profile", authMiddleware, async (req, res) => {
               p.area_bn, p.area_en, p.hourly_rate, p.is_available,
               p.rating, p.total_jobs, p.trust_score, p.bio_bn, p.bio_en,
               (SELECT COUNT(*) FROM bookings WHERE customer_id = u.id) AS total_bookings,
-              (SELECT COALESCE(SUM(total_amount), 0) FROM bookings
+              (SELECT COALESCE(SUM(amount), 0) FROM bookings
                WHERE customer_id = u.id AND status = 'completed') AS total_spent
        FROM users u
        LEFT JOIN providers p ON p.user_id = u.id
