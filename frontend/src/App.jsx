@@ -2514,7 +2514,7 @@ const LY_HISTORY=[{icon:"⚡",titleEn:"Booked Electrician",titleBn:"ইলেক
 
 function LoyaltyPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
-  const {user:authUser}=useUser();
+  const {user:authUser,setUser}=useUser();
   const [tab,setTab]=useState("points");
   const [redeemedCode,setRedeemedCode]=useState(null);
   const [points,setPoints]=useState(authUser?.points||0);
@@ -2581,8 +2581,8 @@ function LoyaltyPage(){
                     if(!canRedeem||isRedeemed)return;
                     try{
                       const res=await usersApi.redeemPoints(r.pts,r.code);
-                      if(res?.points!=null)setPoints(res.points);
-                    }catch{setPoints(p=>p-r.pts<0?0:p-r.pts);}
+                      if(res?.points!=null){ setPoints(res.points); setUser({...authUser,points:res.points}); }
+                    }catch{ setPoints(p=>p-r.pts<0?0:p-r.pts); setUser({...authUser,points:Math.max(0,(authUser?.points||0)-r.pts)}); }
                     setRedeemedCode(r.code);
                   }} disabled={!canRedeem||isRedeemed}
                     style={{padding:"8px 14px",borderRadius:9,background:isRedeemed?"#D1FAE5":canRedeem?C.p:C.bdr,border:"none",color:isRedeemed?"#065F46":canRedeem?"#fff":"#9CA3AF",fontSize:12,fontWeight:700,cursor:canRedeem&&!isRedeemed?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>

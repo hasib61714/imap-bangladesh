@@ -1,6 +1,7 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
 const { validate, body } = require("../middleware/validate");
 
@@ -52,6 +53,11 @@ router.post("/", authMiddleware, reviewRules, async (req, res) => {
       );
     }
 
+    // Bust caches that include this provider's review data
+    cache.del(`review:provider:${booking.provider_id}`);
+    cache.del(`provider:detail:${booking.provider_id}`);
+    if (prov.length) cache.del(`provider:analytics:${prov[0].user_id}`);
+
     res.status(201).json({ success: true });
   } catch (err) {
     logger.error("review create:", err);
@@ -62,14 +68,17 @@ router.post("/", authMiddleware, reviewRules, async (req, res) => {
 // ── GET /api/reviews/provider/:id ────────────────────────
 router.get("/provider/:id", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
-       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
-       WHERE r.provider_id = ? ORDER BY r.created_at DESC`,
-      [req.params.id]
-    );
-    const avg = rows.length ? rows.reduce((a, r) => a + r.rating, 0) / rows.length : 0;
-    res.json({ reviews: rows, avg: parseFloat(avg.toFixed(2)), total: rows.length });
+    const data = await cache.getOrSet(`review:provider:${req.params.id}`, async () => {
+      const [rows] = await pool.query(
+        `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
+         FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
+         WHERE r.provider_id = ? ORDER BY r.created_at DESC`,
+        [req.params.id]
+      );
+      const avg = rows.length ? rows.reduce((a, r) => a + r.rating, 0) / rows.length : 0;
+      return { reviews: rows, avg: parseFloat(avg.toFixed(2)), total: rows.length };
+    }, 30);
+    res.json(data);
   } catch (err) {
     logger.error("provider reviews:", err);
     res.status(500).json({ error: "Server error" });

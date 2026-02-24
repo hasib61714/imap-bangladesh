@@ -101,6 +101,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
       "UPDATE users SET is_active = COALESCE(?, is_active), role = COALESCE(?, role) WHERE id = ?",
       [is_active !== undefined ? is_active : null, role || null, req.params.id]
     );
+    cache.del("admin:stats");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin update user:", err);
@@ -177,6 +178,7 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
     if (doc?.user_id) {
       await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
     }
+    cache.del("admin:stats");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin kyc review:", err);

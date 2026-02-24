@@ -492,7 +492,22 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                   style={{flex:1,padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:10,fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={async()=>{
                   if(!withdrawAmt) return;
-                  try{ await usersApi.withdraw(parseFloat(withdrawAmt),"bKash/Nagad"); showToast(tr.ppWithdrawDone); setEarnings(e=>({...e,balance:Math.max(0,e.balance-parseFloat(withdrawAmt))})); setWithdrawAmt(""); }
+                  try{
+                    await usersApi.withdraw(parseFloat(withdrawAmt),"bKash/Nagad");
+                    showToast(tr.ppWithdrawDone);
+                    setEarnings(e=>({...e,balance:Math.max(0,e.balance-parseFloat(withdrawAmt))}));
+                    setWithdrawAmt("");
+                    // Reload full wallet data to refresh transactions list
+                    usersApi.getWallet().then(data=>{
+                      if(data.balance!==undefined){
+                        const txns=data.transactions||[];
+                        setEarnings(e=>({...e,
+                          balance:data.balance,
+                          history:txns.slice(0,10).map(t=>({date:t.created_at?new Date(t.created_at).toLocaleDateString():"",desc:t.description_en||t.description_bn||t.type,amount:t.type==="credit"?t.amount:-t.amount,type:t.type})),
+                        }));
+                      }
+                    }).catch(()=>{});
+                  }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
                 }} style={{padding:"11px 20px",background:C.p,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>bKash/Nagad</button>
               </div>

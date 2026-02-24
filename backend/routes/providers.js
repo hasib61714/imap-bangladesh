@@ -313,6 +313,7 @@ router.patch("/me/availability", authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "Provider profile not found" });
     await pool.query("UPDATE providers SET is_available = ? WHERE user_id = ?", [val, req.user.id]);
     bustProvidersCache();
+    cache.del(`provider:detail:${rows[0].id}`);
     logger.info(`Provider ${req.user.id} availability → ${val}`);
     res.json({ success: true, is_available: val });
   } catch (err) {
