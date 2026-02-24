@@ -124,7 +124,7 @@ router.get("/me/analytics", authMiddleware, async (req, res) => {
     // Last 6 months earnings from completed bookings
     const [monthly] = await pool.query(
       `SELECT DATE_FORMAT(created_at,'%b') AS month,
-              SUM(total_amount) AS total
+              SUM(amount) AS total
        FROM bookings
        WHERE provider_id = ? AND status = 'completed'
          AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)

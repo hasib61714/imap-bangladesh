@@ -115,7 +115,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     const sock=connectSocket();
     joinRoom(activeChatId);
     setChatLoading(true);
-    chatApi.getHistory(activeChatId).then(d=>{
+    chatApi.getMessages(activeChatId).then(d=>{
       const msgs=(d.messages||[]).map(m=>({
         from:m.sender_role==="provider"?"provider":"customer",
         text:m.message,

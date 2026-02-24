@@ -269,6 +269,8 @@ export const chat = {
   /** Fetch messages for a booking (pass `after` id for long-polling) */
   getMessages: (bookingId, after) =>
     get(`/chat/${bookingId}${after ? `?after=${after}` : ""}`),
+  /** Alias for getMessages */
+  getHistory: (bookingId) => get(`/chat/${bookingId}`),
   /** Send a message */
   send: (bookingId, message) => post(`/chat/${bookingId}`, { message }),
 };
