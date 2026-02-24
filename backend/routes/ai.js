@@ -654,7 +654,7 @@ router.get("/heatmap", async (req, res) => {
     const [supply] = await db.query(`
       SELECT COALESCE(p.area_en, p.area_bn, 'অজানা') AS area, COUNT(*) AS provider_count
       FROM providers p
-      WHERE p.is_active = 1 AND (p.area_en IS NOT NULL OR p.area_bn IS NOT NULL)
+      WHERE p.is_available = 1 AND (p.area_en IS NOT NULL OR p.area_bn IS NOT NULL)
       GROUP BY area
     `);
 
