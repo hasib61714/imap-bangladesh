@@ -42,8 +42,12 @@ router.put("/profile", authMiddleware, async (req, res) => {
       [name || null, phone || null, email || null, req.user.id]
     );
     // Return updated user so frontend can refresh auth state
+    const [[user]] = await pool.query(
+      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, referral_code FROM users WHERE id = ?",
       [req.user.id]
-    );    cache.del(`user:profile:${req.user.id}`);    res.json({ success: true, user });
+    );
+    cache.del(`user:profile:${req.user.id}`);
+    res.json({ success: true, user });
   } catch (err) {
     logger.error("update profile:", err);
     res.status(500).json({ error: "Server error" });
@@ -85,6 +89,7 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
   try {
     const { amount, method = "bKash" } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
+    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum top-up is ৳1,00,000" });
 
     await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [amount, req.user.id]);
     const [b] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
@@ -107,6 +112,7 @@ router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
     const { amount, method = "bKash" } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
     if (parseFloat(amount) < 50) return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
+    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
 
     const [b] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
     if (b[0].balance < amount) return res.status(400).json({ error: "Insufficient balance" });

@@ -4345,7 +4345,8 @@ export default function IMAP() {
     usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});
     // Request browser notification permission
     if("Notification" in window && Notification.permission==="default"){
-      setTimeout(()=>Notification.requestPermission().catch(()=>{}),3000);
+      const notifT=setTimeout(()=>Notification.requestPermission().catch(()=>{}),3000);
+      return()=>clearTimeout(notifT);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[authUser?.id]);
