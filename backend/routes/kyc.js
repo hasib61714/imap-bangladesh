@@ -13,11 +13,13 @@ const kycRules = validate([
   body("doc_number")
     .trim().isLength({ min: 5 })
     .withMessage("doc_number must be at least 5 characters"),
-  body("front_image")
+  // Accept both legacy 'front_image' and current 'img_front' field names
+  body("img_front")
+    .if(body("front_image").not().exists())
     .notEmpty()
-    .withMessage("front_image (base64) is required"),
-  body("back_image").optional(),
-  body("selfie_image").optional(),
+    .withMessage("img_front (base64) is required"),
+  body("img_back").optional(),
+  body("img_selfie").optional(),
 ]);
 
 // ── GET /api/kyc ──────────────────────────────────────────
@@ -40,7 +42,13 @@ router.get("/", authMiddleware, async (req, res) => {
 // ── POST /api/kyc ─────────────────────────────────────────
 router.post("/", authMiddleware, kycRules, async (req, res) => {
   try {
-    const { doc_type, doc_number, front_image, back_image, selfie_image } = req.body;
+    const { doc_type, doc_number } = req.body;
+    // Accept both field name conventions
+    const front_image = req.body.img_front || req.body.front_image;
+    const back_image  = req.body.img_back  || req.body.back_image  || null;
+    const selfie_image= req.body.img_selfie|| req.body.selfie_image|| null;
+
+    if (!front_image) return res.status(400).json({ error: "Front image is required" });
 
     // Remove previous for same type
     await pool.query("DELETE FROM kyc_docs WHERE user_id = ? AND doc_type = ?", [req.user.id, doc_type]);

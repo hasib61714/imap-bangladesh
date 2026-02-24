@@ -100,7 +100,10 @@ router.get("/", async (req, res) => {
 router.post("/register", authMiddleware, async (req, res) => {
   try {
     const { blood_group, phone, area_bn, area_en } = req.body;
-    if (!blood_group || !phone) return res.status(400).json({ error: "Missing fields" });
+    const validGroups = ["A+","A-","B+","B-","AB+","AB-","O+","O-"];
+    if (!blood_group || !validGroups.includes(blood_group))
+      return res.status(400).json({ error: "Valid blood group required (A+, A-, B+, B-, AB+, AB-, O+, O-)" });
+    if (!phone) return res.status(400).json({ error: "Phone is required" });
     const user = req.user;
     // upsert
     const [[exists]] = await pool.query("SELECT id FROM blood_donors WHERE user_id = ?", [user.id]);
