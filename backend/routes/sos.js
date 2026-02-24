@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router  = require("express").Router();
 const pool    = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
@@ -38,7 +39,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.json({ ok: true, alert_id: alertId, message: "SOS alert sent to admin & call center." });
   } catch (err) {
-    console.error("SOS error:", err);
+    logger.error("SOS error:", err);
     res.status(500).json({ error: "Failed to send SOS alert" });
   }
 });
@@ -60,7 +61,7 @@ router.get("/", authMiddleware, requireRole("admin"), async (req, res) => {
     );
     res.json({ alerts: rows });
   } catch (err) {
-    console.error("SOS list error:", err);
+    logger.error("SOS list error:", err);
     res.status(500).json({ error: "Failed to fetch alerts" });
   }
 });

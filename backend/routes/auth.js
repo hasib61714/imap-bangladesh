@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router   = require("express").Router();
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
@@ -5,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const pool     = require("../db");
 const sms      = require("../utils/sms");
 const otpStore = require("../utils/otp-store");
+const { validate, body } = require("../middleware/validate");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 const makeToken = (user) =>
@@ -12,8 +14,25 @@ const makeToken = (user) =>
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
+// ── Validation schemas ──────────────────────────────────
+const registerRules = validate([
+  body("name").trim().notEmpty().withMessage("Name is required").isLength({ max: 80 }).withMessage("Name too long"),
+  body("email").optional({ checkFalsy: true }).isEmail().withMessage("Invalid email").normalizeEmail(),
+  body("phone").optional({ checkFalsy: true }).matches(/^01[0-9]{9}$/).withMessage("Phone must be 11 digits starting with 01"),
+  body("password").optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  body("role").optional().isIn(["customer", "provider"]).withMessage("Role must be customer or provider"),
+]);
+
+const loginRules = validate([
+  body("identifier").trim().notEmpty().withMessage("Email or phone is required"),
+]);
+
+const otpRules = validate([
+  body("phone").matches(/^01[0-9]{9}$/).withMessage("Valid 11-digit phone required"),
+]);
+
 // ── POST /api/auth/register ───────────────────────────────
-router.post("/register", async (req, res) => {
+router.post("/register", registerRules, async (req, res) => {
   try {
     const { name, email, phone, password, role = "customer", loginMethod = "email", socialId, avatar } = req.body;
 
@@ -62,13 +81,13 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ user: rows[0], token: makeToken(rows[0]) });
   } catch (err) {
-    console.error("register:", err);
+    logger.error("register:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ── POST /api/auth/login ──────────────────────────────────
-router.post("/login", async (req, res) => {
+router.post("/login", loginRules, async (req, res) => {
   try {
     const { identifier, password } = req.body;
     if (!identifier) return res.status(400).json({ error: "Email or phone required" });
@@ -89,7 +108,7 @@ router.post("/login", async (req, res) => {
     const { password_hash, ...safeUser } = user;
     res.json({ user: safeUser, token: makeToken(user) });
   } catch (err) {
-    console.error("login:", err);
+    logger.error("login:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -113,16 +132,15 @@ router.post("/social-login", async (req, res) => {
     // New — needs profile step (return partial, no save yet)
     res.json({ isNew: true, prefill: { name, email, socialId } });
   } catch (err) {
-    console.error("social-login:", err);
+    logger.error("social-login:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ── POST /api/auth/send-otp ───────────────────────────────
-router.post("/send-otp", async (req, res) => {
+router.post("/send-otp", otpRules, async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: "Phone required" });
     const otp    = Math.floor(100000 + Math.random() * 900000).toString();
     const stored = otpStore.setOtp(phone, otp);
     if (!stored) {
@@ -134,7 +152,7 @@ router.post("/send-otp", async (req, res) => {
     const isMock = (process.env.SMS_PROVIDER || "mock") === "mock";
     res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Remove mockOtp before production" }) });
   } catch (err) {
-    console.error("send-otp:", err);
+    logger.error("send-otp:", err);
     res.status(500).json({ error: "SMS পাঠাতে সমস্যা হয়েছে। পরে চেষ্টা করুন।" });
   }
 });
@@ -155,7 +173,7 @@ router.post("/verify-otp", async (req, res) => {
     }
     res.json({ isNew: true, verified: true });
   } catch (err) {
-    console.error("verify-otp:", err);
+    logger.error("verify-otp:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -205,7 +223,7 @@ router.post("/google", async (req, res) => {
     // New Google user — return prefill, let frontend complete profile
     res.json({ isNew: true, prefill: { name, email, socialId: googleId, avatar: picture } });
   } catch (err) {
-    console.error("google-auth:", err);
+    logger.error("google-auth:", err);
     res.status(500).json({ error: "Google authentication failed" });
   }
 });

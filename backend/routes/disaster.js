@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -28,7 +29,7 @@ const initTable = async () => {
     `);
   }
 };
-initTable().catch(e => console.warn("disaster table init:", e.message));
+initTable().catch(e => logger.warn("disaster table init:", e.message));
 
 // GET /api/disaster/alerts  — public
 router.get("/alerts", async (_req, res) => {
@@ -38,7 +39,7 @@ router.get("/alerts", async (_req, res) => {
     );
     res.json({ alerts: rows });
   } catch (e) {
-    console.error("disaster alerts:", e);
+    logger.error("disaster alerts:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -55,7 +56,7 @@ router.post("/report", async (req, res) => {
     );
     res.json({ success: true, id: result.insertId });
   } catch (e) {
-    console.error("disaster report:", e);
+    logger.error("disaster report:", e);
     res.status(500).json({ error: "Server error" });
   }
 });

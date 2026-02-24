@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -57,7 +58,7 @@ router.get("/", authMiddleware, async (req, res) => {
     });
     res.json({ slots });
   } catch (e) {
-    console.error("schedule get:", e);
+    logger.error("schedule get:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -77,7 +78,7 @@ router.patch("/:slotId", authMiddleware, async (req, res) => {
     );
     res.json({ success: true });
   } catch (e) {
-    console.error("schedule patch:", e);
+    logger.error("schedule patch:", e);
     res.status(500).json({ error: "Server error" });
   }
 });

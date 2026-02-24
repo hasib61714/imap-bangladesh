@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -41,7 +42,7 @@ const initTable = async () => {
     `);
   }
 };
-initTable().catch(e => console.warn("blood table init:", e.message));
+initTable().catch(e => logger.warn("blood table init:", e.message));
 
 // GET /api/blood  — list donors
 router.get("/", async (req, res) => {
@@ -86,7 +87,7 @@ router.get("/", async (req, res) => {
     });
     res.json({ donors });
   } catch (e) {
-    console.error("blood list:", e);
+    logger.error("blood list:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -108,7 +109,7 @@ router.post("/register", authMiddleware, async (req, res) => {
     }
     res.json({ success: true });
   } catch (e) {
-    console.error("blood register:", e);
+    logger.error("blood register:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -119,11 +120,11 @@ router.post("/request", async (req, res) => {
     const { blood_group, name, message, phone } = req.body;
     if (!blood_group || !name) return res.status(400).json({ error: "Missing fields" });
     // Just log it — in production this would notify matching donors
-    console.log(`[BLOOD REQUEST] ${name} needs ${blood_group} — ${message}`);
+    logger.info(`[BLOOD REQUEST] ${name} needs ${blood_group} — ${message}`);
     // Could add to complaints table or a dedicated requests table
     res.json({ success: true, message: "Request sent to available donors" });
   } catch (e) {
-    console.error("blood request:", e);
+    logger.error("blood request:", e);
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 
@@ -20,7 +21,7 @@ const seed = async () => {
     `);
   }
 };
-seed().catch(e => console.warn("promo seed:", e.message));
+seed().catch(e => logger.warn("promo seed:", e.message));
 
 // GET /api/promos — list all active promos
 router.get("/", async (_req, res) => {
@@ -43,7 +44,7 @@ router.get("/", async (_req, res) => {
     );
     res.json({ coupons: rows });
   } catch (e) {
-    console.error("promos list:", e);
+    logger.error("promos list:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -72,7 +73,7 @@ router.post("/validate", async (req, res) => {
       }
     });
   } catch (e) {
-    console.error("promo validate:", e);
+    logger.error("promo validate:", e);
     res.status(500).json({ valid: false, error: "Server error" });
   }
 });

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -47,7 +48,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error("review create:", err);
+    logger.error("review create:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -64,7 +65,7 @@ router.get("/provider/:id", async (req, res) => {
     const avg = rows.length ? rows.reduce((a, r) => a + r.rating, 0) / rows.length : 0;
     res.json({ reviews: rows, avg: parseFloat(avg.toFixed(2)), total: rows.length });
   } catch (err) {
-    console.error("provider reviews:", err);
+    logger.error("provider reviews:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 /**
  * Payment Routes — IMAP Bangladesh
  * POST   /api/payments/initiate  → Start payment session (auth required)
@@ -56,7 +57,7 @@ router.post("/initiate", authMiddleware, async (req, res) => {
     await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [booking_id]);
     res.json({ mock: true, paymentId: payId, message: "মক পেমেন্ট সফল (dev mode — SSLCommerz credentials .env এ যোগ করুন)" });
   } catch (err) {
-    console.error("payment-initiate:", err);
+    logger.error("payment-initiate:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -65,7 +66,7 @@ router.post("/initiate", authMiddleware, async (req, res) => {
 router.post("/ipn", async (req, res) => {
   try {
     const { tran_id, val_id, status, amount } = req.body;
-    console.log("[IPN]", { tran_id, status, amount });
+    logger.info("[IPN]", { tran_id, status, amount });
     if (status !== "VALID" && status !== "VALIDATED") return res.json({ status: "ignored" });
     const validated = await payment.validatePayment(val_id);
     if (validated.status !== "VALID" && validated.status !== "VALIDATED") return res.json({ status: "invalid" });
@@ -78,7 +79,7 @@ router.post("/ipn", async (req, res) => {
        `৳${parseFloat(amount).toFixed(0)} পেমেন্ট গ্রহণ করা হয়েছে।`, `Payment of ৳${parseFloat(amount).toFixed(0)} received.`]);
     res.json({ status: "processed" });
   } catch (err) {
-    console.error("ipn:", err);
+    logger.error("ipn:", err);
     res.status(500).json({ error: "IPN error" });
   }
 });
@@ -92,7 +93,7 @@ router.post("/success", async (req, res) => {
       await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=? AND status!='success'", [val_id, tran_id]);
       const [p] = await pool.query("SELECT booking_id FROM payments WHERE id=?", [tran_id]);
       if (p.length) await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [p[0].booking_id]);
-    } catch(e) { console.error("success-redirect:", e); }
+    } catch(e) { logger.error("success-redirect:", e); }
   }
   res.redirect(`${FE()}?payment=success&tran_id=${tran_id}`);
 });
@@ -110,7 +111,7 @@ router.get("/", authMiddleware, async (req, res) => {
     );
     const [[{total}]] = await pool.query("SELECT COUNT(*) AS total FROM payments WHERE user_id=?", [req.user.id]);
     res.json({ data: rows, total, page: parseInt(page) });
-  } catch(err) { console.error("payments-list:", err); res.status(500).json({ error: "Server error" }); }
+  } catch(err) { logger.error("payments-list:", err); res.status(500).json({ error: "Server error" }); }
 });
 
 /* ── GET /api/payments/admin/all ── */
@@ -126,7 +127,7 @@ router.get("/admin/all", authMiddleware, requireRole("admin"), async (req, res) 
     );
     const [[{total}]] = await pool.query(`SELECT COUNT(*) AS total FROM payments p WHERE ${where}`, params);
     res.json({ data: rows, total, page: parseInt(page) });
-  } catch(err) { console.error("admin-payments:", err); res.status(500).json({ error: "Server error" }); }
+  } catch(err) { logger.error("admin-payments:", err); res.status(500).json({ error: "Server error" }); }
 });
 
 /* ── GET /api/payments/:id ── */
@@ -138,7 +139,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ error: "Payment not found" });
     res.json(rows[0]);
-  } catch(err) { console.error("payment-detail:", err); res.status(500).json({ error: "Server error" }); }
+  } catch(err) { logger.error("payment-detail:", err); res.status(500).json({ error: "Server error" }); }
 });
 
 module.exports = router;

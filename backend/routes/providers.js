@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -61,7 +62,7 @@ router.get("/", async (req, res) => {
 
     res.json({ providers: rows, total: cnt[0].total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
-    console.error("providers list:", err);
+    logger.error("providers list:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -78,7 +79,7 @@ router.get("/me", authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "Provider not found" });
     res.json(rows[0]);
   } catch (err) {
-    console.error("provider me:", err);
+    logger.error("provider me:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -110,7 +111,7 @@ router.get("/:id", async (req, res) => {
 
     res.json({ ...rows[0], schedule, reviews });
   } catch (err) {
-    console.error("provider detail:", err);
+    logger.error("provider detail:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -156,7 +157,7 @@ router.get("/me/analytics", authMiddleware, async (req, res) => {
       reviews: rvws,
     });
   } catch (err) {
-    console.error("provider analytics:", err);
+    logger.error("provider analytics:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -187,7 +188,7 @@ router.put("/me", authMiddleware, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("update provider:", err);
+    logger.error("update provider:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -206,7 +207,7 @@ router.get("/me/jobs", authMiddleware, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("provider jobs:", err);
+    logger.error("provider jobs:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -267,7 +268,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
 
     res.status(201).json({ success: true, message: "Application submitted for review" });
   } catch (err) {
-    console.error("provider apply:", err);
+    logger.error("provider apply:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

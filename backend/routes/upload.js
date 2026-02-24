@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 /**
  * File Upload Routes — IMAP Bangladesh
  * POST /api/upload/avatar   → Profile picture (auth required)
@@ -46,7 +47,7 @@ router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) =
     await pool.query("UPDATE users SET avatar=? WHERE id=?", [base64, req.user.id]);
     res.json({ url: base64, mock: true, note: "Cloud storage নেই — base64 dev mode" });
   } catch (err) {
-    console.error("upload-avatar:", err);
+    logger.error("upload-avatar:", err);
     res.status(500).json({ error: err.message || "Upload failed" });
   }
 });
@@ -107,7 +108,7 @@ router.post("/kyc", authMiddleware, upload.fields([
 
     res.json({ uploaded: Object.keys(results), doc_type, doc_number, message: "KYC ডকুমেন্ট আপলোড হয়েছে।" });
   } catch (err) {
-    console.error("upload-kyc:", err);
+    logger.error("upload-kyc:", err);
     res.status(500).json({ error: err.message || "Upload failed" });
   }
 });
@@ -126,7 +127,7 @@ router.post("/proof", authMiddleware, upload.single("file"), async (req, res) =>
     }
     if (booking_id) await pool.query("UPDATE bookings SET completion_proof=? WHERE id=? AND (customer_id=? OR ?='admin')", [url, booking_id, req.user.id, req.user.role]);
     res.json({ url, message: "ছবি আপলোড হয়েছে।" });
-  } catch (err) { console.error("upload-proof:", err); res.status(500).json({ error: err.message || "Upload failed" }); }
+  } catch (err) { logger.error("upload-proof:", err); res.status(500).json({ error: err.message || "Upload failed" }); }
 });
 
 /* ── Error handler ── */

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 /**
  * IMAP AI Routes
  * POST /api/ai/chat          — LLM chatbot (OpenAI if key present, smart fallback otherwise)
@@ -47,12 +48,12 @@ async function callGemini(messages, lang = "bn") {
     );
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
-      console.warn(`⚠️  Gemini error ${res.status}: ${errBody.slice(0, 200)}`);
+      logger.warn(`⚠️  Gemini error ${res.status}: ${errBody.slice(0, 200)}`);
       return null;
     }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch (e) { console.warn("Gemini exception:", e.message); return null; }
+  } catch (e) { logger.warn("Gemini exception:", e.message); return null; }
 }
 
 /* ── OpenAI helper (optional — works without key via fallback) ── */
@@ -184,7 +185,7 @@ router.post("/chat", async (req, res) => {
     const reply = smartFallback(userText, lang);
     res.json({ reply, source: "fallback" });
   } catch (err) {
-    console.error("AI chat error:", err.message);
+    logger.error("AI chat error:", err.message);
     res.json({ reply: "🤖 দুঃখিত, এখন একটু সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করুন।", source: "error" });
   }
 });
@@ -275,7 +276,7 @@ router.post("/chat/stream", async (req, res) => {
       }
     }
   } catch (err) {
-    console.error("Gemini stream error:", err.message);
+    logger.error("Gemini stream error:", err.message);
     send({ text: lang === "bn" ? "দুঃখিত, সমস্যা হচ্ছে।" : "Sorry, an error occurred." });
   }
 
@@ -335,7 +336,7 @@ router.post("/match", async (req, res) => {
     scored.sort((a, b) => b.ai_score - a.ai_score);
     res.json({ providers: scored.slice(0, Number(limit)), scored: true });
   } catch (err) {
-    console.error("AI match error:", err.message);
+    logger.error("AI match error:", err.message);
     res.status(500).json({ error: "Match failed" });
   }
 });

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -22,7 +23,7 @@ router.get("/profile", authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "User not found" });
     res.json(rows[0]);
   } catch (err) {
-    console.error("get profile:", err);
+    logger.error("get profile:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -37,7 +38,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("update profile:", err);
+    logger.error("update profile:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -50,7 +51,7 @@ router.put("/avatar", authMiddleware, async (req, res) => {
     await pool.query("UPDATE users SET avatar = ? WHERE id = ?", [avatar, req.user.id]);
     res.json({ success: true });
   } catch (err) {
-    console.error("update avatar:", err);
+    logger.error("update avatar:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -65,7 +66,7 @@ router.get("/wallet", authMiddleware, async (req, res) => {
     );
     res.json({ balance: balance[0]?.balance || 0, transactions });
   } catch (err) {
-    console.error("wallet:", err);
+    logger.error("wallet:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -84,7 +85,7 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
     );
     res.json({ success: true, balance: b[0].balance });
   } catch (err) {
-    console.error("topup:", err);
+    logger.error("topup:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -106,7 +107,7 @@ router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
     );
     res.json({ success: true, balance: nb[0].balance });
   } catch (err) {
-    console.error("withdraw:", err);
+    logger.error("withdraw:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -143,7 +144,7 @@ router.get("/notifications", authMiddleware, async (req, res) => {
     const unread = rows.filter(n => !n.is_read).length;
     res.json({ notifications: rows, unread });
   } catch (err) {
-    console.error("notifications:", err);
+    logger.error("notifications:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -179,7 +180,7 @@ router.get("/loyalty", authMiddleware, async (req, res) => {
     );
     res.json({ points, history: logs });
   } catch (err) {
-    console.error("loyalty:", err);
+    logger.error("loyalty:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -220,7 +221,7 @@ router.get("/referral", authMiddleware, async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("referral:", err);
+    logger.error("referral:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -237,7 +238,7 @@ router.post("/complaints", authMiddleware, async (req, res) => {
     const refId = `DSP-${String(result.insertId).padStart(5, "0")}`;
     res.json({ success: true, id: result.insertId, ref: refId });
   } catch (err) {
-    console.error("submit complaint:", err);
+    logger.error("submit complaint:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -277,7 +278,7 @@ router.post("/loyalty/redeem", authMiddleware, async (req, res) => {
     const [b] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
     res.json({ success: true, points: b[0].points, balance: b[0].balance, walletCredit });
   } catch (err) {
-    console.error("loyalty redeem:", err);
+    logger.error("loyalty redeem:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -295,7 +296,7 @@ router.put("/settings", authMiddleware, async (req, res) => {
     res.json({ success: true, settings: prefs });
   } catch (err) {
     // If column doesn't exist yet, still return success
-    console.warn("settings save:", err.message);
+    logger.warn("settings save:", err.message);
     res.json({ success: true, settings: req.body });
   }
 });
@@ -342,7 +343,7 @@ router.post("/push-subscribe", authMiddleware, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("push-subscribe:", err);
+    logger.error("push-subscribe:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -372,7 +373,7 @@ router.post("/test-push", authMiddleware, async (req, res) => {
     const sent = results.filter(r => r.status === "fulfilled").length;
     res.json({ success: true, sent });
   } catch (err) {
-    console.error("test-push:", err);
+    logger.error("test-push:", err);
     res.status(500).json({ error: err.message });
   }
 });

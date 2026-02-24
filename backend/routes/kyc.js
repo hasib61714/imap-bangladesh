@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
@@ -12,7 +13,7 @@ router.get("/", authMiddleware, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("kyc get:", err);
+    logger.error("kyc get:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -52,7 +53,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({ id, status: "pending" });
   } catch (err) {
-    console.error("kyc submit:", err);
+    logger.error("kyc submit:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -97,7 +98,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
 
     res.json({ success: true, status: overallStatus });
   } catch (err) {
-    console.error("kyc review:", err);
+    logger.error("kyc review:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

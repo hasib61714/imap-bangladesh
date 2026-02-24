@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
@@ -74,7 +75,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
-    console.error("create booking:", err);
+    logger.error("create booking:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -110,7 +111,7 @@ router.get("/", authMiddleware, async (req, res) => {
     );
     res.json({ bookings: rows, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
-    console.error("my bookings:", err);
+    logger.error("my bookings:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -129,7 +130,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "Booking not found" });
     res.json(rows[0]);
   } catch (err) {
-    console.error("booking detail:", err);
+    logger.error("booking detail:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -204,7 +205,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
 
     res.json({ success: true, status });
   } catch (err) {
-    console.error("update booking status:", err);
+    logger.error("update booking status:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

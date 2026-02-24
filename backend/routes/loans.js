@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 /**
  * Microloan Routes — IMAP Bangladesh
  * GET  /api/loans/score       → Get my loan eligibility score (auth)
@@ -36,7 +37,7 @@ const initTable = async () => {
     ) ENGINE=InnoDB
   `);
 };
-initTable().catch(e => console.warn("microloans table init:", e.message));
+initTable().catch(e => logger.warn("microloans table init:", e.message));
 
 // ── Loan score calculator ─────────────────────────────────
 const calcLoanScore = async (userId) => {
@@ -88,7 +89,7 @@ router.get("/score", authMiddleware, async (req, res) => {
     );
     res.json({ score, has_active_loan: cnt > 0 });
   } catch (err) {
-    console.error("loan score:", err);
+    logger.error("loan score:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -151,7 +152,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
       message:      "আবেদন সফলভাবে জমা হয়েছে।",
     });
   } catch (err) {
-    console.error("loan apply:", err);
+    logger.error("loan apply:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -165,7 +166,7 @@ router.get("/", authMiddleware, async (req, res) => {
     );
     res.json({ loans: rows });
   } catch (err) {
-    console.error("loans list:", err);
+    logger.error("loans list:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -195,7 +196,7 @@ router.get("/admin", authMiddleware, requireRole("admin"), async (req, res) => {
 
     res.json({ loans: rows, total });
   } catch (err) {
-    console.error("loans admin list:", err);
+    logger.error("loans admin list:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -256,7 +257,7 @@ router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
-    console.error("loan update:", err);
+    logger.error("loan update:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
@@ -17,7 +18,7 @@ const initTable = async () => {
     ) ENGINE=InnoDB
   `);
 };
-initTable().catch(e => console.warn("chat table init:", e.message));
+initTable().catch(e => logger.warn("chat table init:", e.message));
 
 // GET /api/chat/:bookingId  — fetch messages (polling)
 router.get("/:bookingId", authMiddleware, async (req, res) => {
@@ -31,7 +32,7 @@ router.get("/:bookingId", authMiddleware, async (req, res) => {
     const [rows] = await pool.query(sql, params);
     res.json({ messages: rows });
   } catch (e) {
-    console.error("chat get:", e);
+    logger.error("chat get:", e);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -83,7 +84,7 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
 
     res.json({ success: true, message: msg });
   } catch (e) {
-    console.error("chat post:", e);
+    logger.error("chat post:", e);
     res.status(500).json({ error: "Server error" });
   }
 });

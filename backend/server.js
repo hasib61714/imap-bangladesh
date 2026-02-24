@@ -8,6 +8,7 @@ const helmet       = require("helmet");
 const rateLimit    = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
+const requestLogger = require("./middleware/requestLogger");
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -126,6 +127,7 @@ app.use(cors({
 }));
 
 app.use(compression());
+app.use(requestLogger);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use("/api", generalLimiter);

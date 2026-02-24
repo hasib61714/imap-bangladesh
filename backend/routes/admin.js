@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
@@ -26,7 +27,7 @@ router.get("/stats", ...auth, async (req, res) => {
       todayBookings: todayBooks.v,
     });
   } catch (err) {
-    console.error("admin stats:", err);
+    logger.error("admin stats:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -60,7 +61,7 @@ router.get("/providers", ...auth, async (req, res) => {
     );
     res.json({ providers: rows, total: total.v });
   } catch (err) {
-    console.error("admin providers:", err);
+    logger.error("admin providers:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -84,7 +85,7 @@ router.get("/users", ...auth, async (req, res) => {
     );
     res.json({ users: rows, total: total.v });
   } catch (err) {
-    console.error("admin users:", err);
+    logger.error("admin users:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -99,7 +100,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("admin update user:", err);
+    logger.error("admin update user:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -127,7 +128,7 @@ router.get("/bookings", ...auth, async (req, res) => {
     );
     res.json({ bookings: rows, total: total.v });
   } catch (err) {
-    console.error("admin bookings:", err);
+    logger.error("admin bookings:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -148,7 +149,7 @@ router.get("/kyc", ...auth, async (req, res) => {
     );
     res.json({ docs: rows, total: total.v });
   } catch (err) {
-    console.error("admin kyc:", err);
+    logger.error("admin kyc:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -175,7 +176,7 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    console.error("admin kyc review:", err);
+    logger.error("admin kyc review:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -196,7 +197,7 @@ router.get("/complaints", ...auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("admin complaints:", err);
+    logger.error("admin complaints:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -237,7 +238,7 @@ router.post("/notify", ...auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    console.error("admin notify:", err);
+    logger.error("admin notify:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -260,7 +261,7 @@ router.get("/revenue", ...auth, async (req, res) => {
     );
     res.json({ monthly, totalRevenue: total.v, totalFees: fees.v });
   } catch (err) {
-    console.error("admin revenue:", err);
+    logger.error("admin revenue:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -351,7 +352,7 @@ router.get("/settings", ...auth, async (req, res) => {
     const result = order.map(k => ({ key: k, val: map[k] !== undefined ? !!map[k] : true }));
     res.json(result);
   } catch (err) {
-    console.error("admin settings get:", err);
+    logger.error("admin settings get:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -368,7 +369,7 @@ router.patch("/settings", ...auth, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("admin settings patch:", err);
+    logger.error("admin settings patch:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

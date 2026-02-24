@@ -1,3 +1,4 @@
+﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
@@ -14,7 +15,7 @@ router.get("/", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("services:", err);
+    logger.error("services:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -31,7 +32,7 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
     );
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error("create category:", err);
+    logger.error("create category:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -55,7 +56,7 @@ router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("update category:", err);
+    logger.error("update category:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
