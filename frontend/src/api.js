@@ -25,6 +25,15 @@ async function req(method, path, body = null, isForm = false) {
 
   let data;
   try { data = await res.json(); } catch { data = {}; }
+
+  // Auto-clear stale auth and reload on 401 (expired / invalid token)
+  if (res.status === 401) {
+    localStorage.removeItem("imap_token");
+    localStorage.removeItem("imap_user");
+    window.location.reload();
+    return {};
+  }
+
   if (!res.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: res.status, data });
   return data;
 }
