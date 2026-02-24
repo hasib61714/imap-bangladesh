@@ -853,7 +853,7 @@ function GuaranteeModal({booking,onClose}){
 }
 
 /* ══ MY BOOKINGS ══ */
-function MyBookings({onRate,onBook,onPay}) {
+function MyBookings({onRate,onBook,onPay,onRefresh}) {
   const C=useC();
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -891,6 +891,7 @@ function MyBookings({onRate,onBook,onPay}) {
     try{
       await bookingsApi.updateStatus(rawId,"cancelled");
       setCancelledIds(prev=>{const n=new Set(prev);n.add(rawId);return n;});
+      onRefresh?.();
     }catch(e){alert(lang==="en"?"Cancel failed: "+(e.data?.error||e.message):"বাতিল ব্যর্থ: "+(e.data?.error||e.message));}
     finally{setCancellingId(null);}
   };
@@ -5065,7 +5066,7 @@ export default function IMAP() {
           {page==="cprofile" && <div className="wp" style={{padding:"0 0 80px"}}><CustomerProfilePage user={authUser} onAvatarUpdate={u=>{setAuthUser(u);}} onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="services"  && <div className="wp sp"><Services/></div>}
           {page==="providers" && <div className="wp sp"><ProvidersPage/></div>}
-          {page==="bookings"  && <div className="wp" style={{padding:"28px 0 80px"}}><MyBookings onRate={p=>{setRateFor(p);}} onBook={goBook} onPay={id=>{setPayBookingId(id);setPayResult(null);setShowPayment(true);}}/></div>}
+          {page==="bookings"  && <div className="wp" style={{padding:"28px 0 80px"}}><MyBookings onRate={p=>{setRateFor(p);}} onBook={goBook} onPay={id=>{setPayBookingId(id);setPayResult(null);setShowPayment(true);}} onRefresh={refreshBookings}/></div>}
           {page==="notifs"    && <div className="wp" style={{padding:"28px 0 80px"}}><NotifPage/></div>}
           {page==="dashboard" && <div className="wp" style={{padding:"28px 0 80px"}}><ProviderDash/></div>}
           {page==="how"       && <div className="wp"><HowPage/></div>}

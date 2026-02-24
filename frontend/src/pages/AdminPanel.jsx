@@ -445,7 +445,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   };
 
   useEffect(() => {
-    if (tab === "overview")           loadProviders();
+    if (tab === "overview")           { loadProviders(); loadBookings(); }
     else if (tab === "providers")     loadProviders(pSearch);
     else if (tab === "users")         loadUsers(uSearch);
     else if (tab === "bookings")      loadBookings(bFilter);
@@ -680,7 +680,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Row gutter={[16,16]}>
                   <Col xs={24} lg={14}>
                     <Card title={lang==="bn"?"🕐 সাম্প্রতিক বুকিং":"🕐 Recent Bookings"} bordered>
-                      <Table dataSource={bookings.slice(0,3)} columns={bookingCols.slice(0,5)}
+                      <Table dataSource={displayBookings.slice(0,3)} columns={bookingCols.slice(0,5)}
                         pagination={false} size="small" rowKey="id" />
                     </Card>
                   </Col>

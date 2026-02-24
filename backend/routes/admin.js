@@ -249,20 +249,23 @@ router.post("/notify", ...auth, async (req, res) => {
 // ── GET /api/admin/revenue ────────────────────────────────
 router.get("/revenue", ...auth, async (req, res) => {
   try {
-    const [monthly] = await pool.query(
-      `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
-              SUM(amount + platform_fee) AS revenue,
-              COUNT(*) AS bookings
-       FROM bookings WHERE status = 'completed'
-       GROUP BY month ORDER BY month DESC LIMIT 12`
-    );
-    const [[total]] = await pool.query(
-      "SELECT COALESCE(SUM(amount+platform_fee),0) AS v FROM bookings WHERE status='completed'"
-    );
-    const [[fees]] = await pool.query(
-      "SELECT COALESCE(SUM(platform_fee),0) AS v FROM bookings WHERE status='completed'"
-    );
-    res.json({ monthly, totalRevenue: total.v, totalFees: fees.v });
+    const data = await cache.getOrSet("admin:revenue", async () => {
+      const [monthly] = await pool.query(
+        `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
+                SUM(amount + platform_fee) AS revenue,
+                COUNT(*) AS bookings
+         FROM bookings WHERE status = 'completed'
+         GROUP BY month ORDER BY month DESC LIMIT 12`
+      );
+      const [[total]] = await pool.query(
+        "SELECT COALESCE(SUM(amount+platform_fee),0) AS v FROM bookings WHERE status='completed'"
+      );
+      const [[fees]] = await pool.query(
+        "SELECT COALESCE(SUM(platform_fee),0) AS v FROM bookings WHERE status='completed'"
+      );
+      return { monthly, totalRevenue: total.v, totalFees: fees.v };
+    }, 60);
+    res.json(data);
   } catch (err) {
     logger.error("admin revenue:", err);
     res.status(500).json({ error: "Server error" });
