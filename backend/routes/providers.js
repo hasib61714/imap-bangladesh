@@ -61,7 +61,8 @@ router.get("/", async (req, res) => {
     logger.error("providers list:", err);
     res.status(500).json({ error: "Server error" });
   }
-});\n
+});
+
 // SQL builder helpers (shared by hot-path cache and regular path)
 function buildSql(w, ord) {
   return `

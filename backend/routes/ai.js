@@ -562,7 +562,7 @@ router.get("/forecast", async (req, res) => {
       LIMIT 5
     `);
 
-    res.json({
+    return {
       monthlyRevenue,
       serviceDemand,
       areaDemand,
