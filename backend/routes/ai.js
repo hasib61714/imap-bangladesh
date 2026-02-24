@@ -301,7 +301,7 @@ router.post("/match", async (req, res) => {
       JOIN users u ON u.id = p.user_id
       LEFT JOIN bookings b ON b.provider_id = p.id
       LEFT JOIN reviews r ON r.provider_id = p.id
-      WHERE p.is_active = 1
+      WHERE p.is_available = 1
     `;
     const params = [];
 
@@ -589,9 +589,9 @@ router.get("/churn", async (req, res) => {
              COUNT(b.id) AS total_bookings,
              DATEDIFF(NOW(), COALESCE(MAX(b.created_at), p.created_at)) AS days_inactive
       FROM providers p
-      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users u ON u.id = p.user_id
       LEFT JOIN bookings b ON b.provider_id = p.id
-      WHERE p.is_active = 1
+      WHERE p.is_available = 1
       GROUP BY p.id
       HAVING days_inactive > 14
       ORDER BY days_inactive DESC

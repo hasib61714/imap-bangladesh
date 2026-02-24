@@ -212,6 +212,9 @@ router.get("/me/jobs", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/providers/apply  (existing user applies as provider) ──────────
+// Add nid_number column if it doesn't exist (safe migration)
+pool.query("ALTER TABLE users ADD COLUMN nid_number VARCHAR(30) NULL").catch(()=>{});
+
 router.post("/apply", authMiddleware, async (req, res) => {
   try {
     const { service_type_bn, service_type_en, area_bn, area_en, bio_bn, bio_en,
