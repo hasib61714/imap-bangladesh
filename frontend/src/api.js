@@ -26,12 +26,12 @@ async function req(method, path, body = null, isForm = false) {
   let data;
   try { data = await res.json(); } catch { data = {}; }
 
-  // Auto-clear stale auth and reload on 401 (expired / invalid token)
-  if (res.status === 401) {
+  // Auto-logout on 401 — only when we sent a token (authenticated request)
+  // Uses custom event so React state updates cleanly (no reload loop)
+  if (res.status === 401 && token) {
     localStorage.removeItem("imap_token");
     localStorage.removeItem("imap_user");
-    window.location.reload();
-    return {};
+    window.dispatchEvent(new Event("imap-unauthorized"));
   }
 
   if (!res.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: res.status, data });

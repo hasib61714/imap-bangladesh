@@ -4032,6 +4032,15 @@ export default function IMAP() {
   const doLogin  = u  => { localStorage.setItem("imap_user",JSON.stringify(u)); localStorage.setItem("imap_ob","1"); setOnboard(false); setAuthUser(u); setShowLanding(false); };
   const doLogout = () => { localStorage.removeItem("imap_user"); localStorage.removeItem("imap_token"); setAuthUser(null); setShowLanding(true); };
 
+  // Auto-logout when any authenticated API call returns 401 (expired/invalid token)
+  // Using custom event avoids a window.location.reload() loop
+  useEffect(()=>{
+    const handler = () => doLogout();
+    window.addEventListener("imap-unauthorized", handler);
+    return () => window.removeEventListener("imap-unauthorized", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   // ── VOICE COMMAND HANDLER ──
   const handleVoiceCommand = useCallback(({ transcript, match }) => {
     if (!match) return;
