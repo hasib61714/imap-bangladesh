@@ -22,5 +22,5 @@ export const LiveDataCtx = createContext({
 export const useLiveData = () => useContext(LiveDataCtx);
 
 /** Auth user context — available to all child components */
-export const UserCtx = createContext({ user: null });
+export const UserCtx = createContext({ user: null, setUser: () => {} });
 export const useUser = () => useContext(UserCtx);

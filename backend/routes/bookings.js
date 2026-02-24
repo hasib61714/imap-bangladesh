@@ -84,6 +84,7 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
 
     // Bust admin stats cache — new booking changes counts/revenue
     cache.del("admin:stats");
+    cache.del("admin:revenue");
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
@@ -222,6 +223,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
         }
       }
       cache.del("admin:stats");
+      cache.del("admin:revenue");
       // Notify via socket too
       if (io) {
         io.emit(`user_${booking.customer_id}`, {
@@ -246,6 +248,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
          `Booking cancellation refund #${req.params.id.slice(0,8)}`, "refund"]
       );
       cache.del("admin:stats");
+      cache.del("admin:revenue");
     }
 
     res.json({ success: true, status });

@@ -492,7 +492,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                   style={{flex:1,padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:10,fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={async()=>{
                   if(!withdrawAmt) return;
-                  try{ await usersApi.withdraw(parseFloat(withdrawAmt),"bKash/Nagad"); showToast(tr.ppWithdrawDone); setWithdrawAmt(""); }
+                  try{ await usersApi.withdraw(parseFloat(withdrawAmt),"bKash/Nagad"); showToast(tr.ppWithdrawDone); setEarnings(e=>({...e,balance:Math.max(0,e.balance-parseFloat(withdrawAmt))})); setWithdrawAmt(""); }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
                 }} style={{padding:"11px 20px",background:C.p,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>bKash/Nagad</button>
               </div>

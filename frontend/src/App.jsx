@@ -449,6 +449,7 @@ function BookModal({p,onClose}) {
   const C=useC();
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
+  const {setBalance}=useLiveData();
   const name=lang==="en"?p.nameEn:p.name;
   const svc=lang==="en"?p.svcEn:p.svc;
   const eta=lang==="en"?p.etaEn:p.eta;
@@ -460,6 +461,7 @@ function BookModal({p,onClose}) {
   const [bundles,setBundles]=useState([]);
   const [dynPrice,setDynPrice]=useState(null);
   const [loadingConfirm,setLoadingConfirm]=useState(false);
+  const [bookErr,setBookErr]=useState(null);
   const [otpStep,setOtpStep]=useState(false);
   const [otpVal,setOtpVal]=useState("");
   const [otpCode]=useState(()=>String(Math.floor(100000+Math.random()*900000)));
@@ -508,7 +510,9 @@ function BookModal({p,onClose}) {
         total_amount:   dynPrice?.dynamicPrice||baseAmount,
         notes:          "",
       });
-    } catch(e){ console.error("Booking error:",e); }
+    } catch(e){ setLoadingConfirm(false); setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")); return; }
+    // Refresh wallet balance in context
+    usersApi.getWallet().then(d=>{if(d.balance!=null)setBalance(d.balance);}).catch(()=>{});
     // Bundle suggestions
     try{
       const b=await ai.bundleSuggest(p.svcEn||p.svc||"general");
@@ -653,9 +657,10 @@ function BookModal({p,onClose}) {
             </div>
           </div>
         </div>
+        {bookErr&&<div style={{background:"#FEE2E2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#B91C1C",fontWeight:600}}>❌ {bookErr}</div>}
         <div className="row" style={{gap:8}}>
           <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={()=>setStep(1)}>{tr.backBtn}</button>
-          <button className="btn btn-g" style={{flex:2}} disabled={loadingConfirm} onClick={()=>handleConfirm(false)}>{loadingConfirm?(lang==="en"?"Checking...":"যাচাই হচ্ছে..."):tr.confirmBtn}</button>
+          <button className="btn btn-g" style={{flex:2}} disabled={loadingConfirm} onClick={()=>{setBookErr(null);handleConfirm(false);}}>{loadingConfirm?(lang==="en"?"Checking...":"যাচাই হচ্ছে..."):tr.confirmBtn}</button>
         </div>
       </>}
     </div>
@@ -1753,6 +1758,7 @@ function NotifPage() {
           unread: !n.is_read,
           type: n.type||"info",
         })));
+        usersApi.markNotifRead().catch(()=>{});
       }
     }).catch(()=>{});
   },[]);
@@ -2299,7 +2305,7 @@ function AnalyticsPage(){
 function SettingsPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [tab,setTab]=useState("profile");
-  const {user:authUser}=useUser();
+  const {user:authUser,setUser}=useUser();
   const [name,setName]=useState(authUser?.name||"");
   const [email,setEmail]=useState(authUser?.email||"");
   const [phone,setPhone]=useState(authUser?.phone||"");
@@ -2312,7 +2318,8 @@ function SettingsPage(){
 
   const doSave=async()=>{
     try{
-      await usersApi.updateProfile({name,email,phone});
+      const profResult=await usersApi.updateProfile({name,email,phone});
+      if(profResult?.user) setUser(profResult.user);
       await usersApi.saveSettings({notif_booking:notifBook,notif_promo:notifPromo,notif_sms:notifSms,privacy_2fa:privacy2fa,privacy_location:privacyLoc});
       // persist toggles locally too
       localStorage.setItem("imap_notif_book",String(notifBook));
@@ -5049,7 +5056,7 @@ export default function IMAP() {
   /* ── MAIN RENDER ── */
   return (
     <ThemeCtx.Provider value={C}>
-    <UserCtx.Provider value={{user:authUser}}>
+    <UserCtx.Provider value={{user:authUser,setUser:u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}}>
     <LiveDataCtx.Provider value={{providers:liveProviders,bookings:liveBookings,balance:walletBalance,setBalance:setWalletBalance,refreshBookings}}>
     <FavsCtx.Provider value={{favs,toggleFav}}>
     <LangCtx.Provider value={tr}>
