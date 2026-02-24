@@ -681,6 +681,7 @@ function RatingModal({p,onClose,onSuccess}) {
   const [selTags,setSelTags]=useState([]);
   const [comment,setComment]=useState("");
   const [done,setDone]=useState(false);
+  const [reviewSubmitting,setReviewSubmitting]=useState(false);
   const LABELS=["",tr.rl1,tr.rl2,tr.rl3,tr.rl4,tr.rl5];
   const TAGS=tr.rtags.split(",");
   if(done) return (
@@ -708,8 +709,9 @@ function RatingModal({p,onClose,onSuccess}) {
       <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder={tr.commentPh} rows={3} style={{width:"100%",padding:"11px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,resize:"none",marginBottom:14}}/>
       <div className="row" style={{gap:8}}>
         <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={onClose}>{tr.cancelBtn}</button>
-        <button className="btn btn-g" style={{flex:2}} disabled={!rating} onClick={async()=>{
-          if(!rating)return;
+        <button className="btn btn-g" style={{flex:2}} disabled={!rating||reviewSubmitting} onClick={async()=>{
+          if(!rating||reviewSubmitting)return;
+          setReviewSubmitting(true);
           // Fake review check via AI
           try{
             const chk=await ai.reviewCheck(p?.id,rating,comment,null);
@@ -719,12 +721,12 @@ function RatingModal({p,onClose,onSuccess}) {
                   ?`AI flagged this review (${chk.confidence}% confidence).\n${chk.reasons.join("\n")}\n\nStill submit?`
                   :`AI এই রিভিউতে সমস্যা পেয়েছে (${chk.confidence}% নিশ্চিত)।\n${chk.reasons.join("\n")}\n\nতবুও জমা দেবেন?`
               );
-              if(!ok)return;
+              if(!ok){setReviewSubmitting(false);return;}
             }
           }catch(e){ console.warn("review-check:",e.message); }
           const bk=ctxBookings.find(b=>(b.provider_id||b.pid)===p?.id&&(b.status==="completed"||b.status==="সম্পন্ন"));
-          try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});setDone(true);onSuccess?.();}catch(e){console.error("review:",e);alert(lang==="en"?"Failed to submit review. Please try again.":"রিভিউ জমা ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
-        }}>{tr.submitRating}</button>
+          try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});setDone(true);onSuccess?.();}catch(e){console.error("review:",e);alert(lang==="en"?"Failed to submit review. Please try again.":"রিভিউ জমা ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}finally{setReviewSubmitting(false);}
+        }}>{reviewSubmitting?"⏳...":tr.submitRating}</button>
       </div>
     </div>
   );
@@ -2424,8 +2426,19 @@ function ServiceRequestPage(){
   const [budget,setBudget]=useState("");
   const [urgent,setUrgent]=useState(false);
   const [submitted,setSubmitted]=useState(false);
+  const [srSubmitting,setSrSubmitting]=useState(false);
 
-  const doSubmit=async()=>{try{await bookingsApi.create({service_name_en:svcType,address,scheduled_time:date&&time?`${date} ${time}`:date,amount:parseInt(budget)||300,payment_method:"cash",is_urgent:urgent?1:0,note:desc});setSubmitted(true);}catch(e){console.error("svcReq:",e);alert(lang==="en"?"Failed to submit request. Please try again.":"অনুরোধ পাঠানো ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}};
+  const doSubmit=async()=>{
+    if(srSubmitting)return;
+    setSrSubmitting(true);
+    try{
+      await bookingsApi.create({service_name_en:svcType,address,scheduled_time:date&&time?`${date} ${time}`:date,amount:parseInt(budget)||300,payment_method:"cash",is_urgent:urgent?1:0,note:desc});
+      setSubmitted(true);
+    }catch(e){
+      console.error("svcReq:",e);
+      alert(lang==="en"?"Failed to submit request. Please try again.":"অনুরোধ পাঠানো ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+    }finally{setSrSubmitting(false);}
+  };
   const canNext1=svcType&&address;
   const canNext2=date&&time;
 
@@ -2509,7 +2522,7 @@ function ServiceRequestPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← পিছনে"}</button>
-            <button onClick={doSubmit} style={{flex:2,padding:"12px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.srSubmit}</button>
+            <button onClick={doSubmit} disabled={srSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:srSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:srSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{srSubmitting?"⏳...":tr.srSubmit}</button>
           </div>
         </div>
       )}
@@ -2808,6 +2821,7 @@ function ProviderRegPage(){
   const [area,setArea]=useState("");
   const [exp,setExp]=useState("1");
   const [done,setDone]=useState(false);
+  const [regSubmitting,setRegSubmitting]=useState(false);
 
   if(done) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",textAlign:"center"}}>
@@ -2867,7 +2881,13 @@ function ProviderRegPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>←</button>
-            <button onClick={async()=>{try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});setDone(true);}catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}}} style={{flex:2,padding:"12px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.prRegSubmit}</button>
+            <button onClick={async()=>{
+              if(regSubmitting)return;
+              setRegSubmitting(true);
+              try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});setDone(true);}
+              catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
+              finally{setRegSubmitting(false);}
+            }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>
           </div>
         </>}
       </div>
@@ -3191,6 +3211,7 @@ function WalletPage() {
   const [selMethod,setSelMethod]=useState("bkash");
   const [success,setSuccess]=useState(false);
   const [balance,setBalance]=useState(ctxBalance);
+  const [topping,setTopping]=useState(false);
   const [apiTxns,setApiTxns]=useState(null); // null = not loaded yet
 
   // Load real transactions from API
@@ -3228,7 +3249,8 @@ function WalletPage() {
   const finalAmt=custAmt?parseInt(custAmt)||0:selAmt;
 
   const doTopUp=async()=>{
-    if(!finalAmt||finalAmt<10) return;
+    if(!finalAmt||finalAmt<10||topping) return;
+    setTopping(true);
     try {
       const d=await usersApi.topup(finalAmt,selMethod);
       const newBal=d.balance??balance+finalAmt;
@@ -3252,6 +3274,7 @@ function WalletPage() {
         }
       }).catch(()=>{});
     } catch(e){ console.error("topup:",e); alert(lang==="en"?"Top-up failed. Please try again.":"টপ-আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"); }
+    finally{ setTopping(false); }
   };
 
   const txColor=t=>t.amount>0?"#16A34A":"#DC2626";
@@ -3392,9 +3415,9 @@ function WalletPage() {
             <span style={{fontSize:18,fontWeight:800,color:C.p}}>৳{(finalAmt||0).toLocaleString()}</span>
           </div>
 
-          <button onClick={doTopUp} disabled={!finalAmt||finalAmt<10}
-            style={{width:"100%",padding:"14px",borderRadius:14,background:finalAmt>=10?C.p:"#ccc",border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:finalAmt>=10?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            ➕ {tr.wlTopUp} via {TOPUP_METHODS.find(m=>m.id===selMethod)?.label}
+          <button onClick={doTopUp} disabled={!finalAmt||finalAmt<10||topping}
+            style={{width:"100%",padding:"14px",borderRadius:14,background:(finalAmt>=10&&!topping)?C.p:"#ccc",border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:(finalAmt>=10&&!topping)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+            {topping?"⏳ প্রক্রিয়া হচ্ছে...":`➕ ${tr.wlTopUp} via ${TOPUP_METHODS.find(m=>m.id===selMethod)?.label}`}
           </button>
         </div>
       )}
