@@ -305,8 +305,8 @@ router.post("/match", async (req, res) => {
     `;
     const params = [];
 
-    if (serviceType) { query += ` AND p.service_type LIKE ?`; params.push(`%${serviceType}%`); }
-    if (area)        { query += ` AND (p.service_area LIKE ? OR u.city LIKE ?)`; params.push(`%${area}%`, `%${area}%`); }
+    if (serviceType) { query += ` AND (p.service_type_en LIKE ? OR p.service_type_bn LIKE ?)`; params.push(`%${serviceType}%`, `%${serviceType}%`); }
+    if (area)        { query += ` AND (p.area_en LIKE ? OR p.area_bn LIKE ?)`; params.push(`%${area}%`, `%${area}%`); }
 
     query += ` GROUP BY p.id ORDER BY avg_rating DESC, total_bookings DESC LIMIT ?`;
     params.push(Number(limit) * 3); // fetch more to re-rank
@@ -360,8 +360,8 @@ router.post("/dynamic-price", async (req, res) => {
     // Demand multiplier from recent bookings
     const [demandRows] = await db.query(
       `SELECT COUNT(*) AS cnt FROM bookings 
-       WHERE service LIKE ? AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
-      [`%${serviceType}%`]
+       WHERE (service_name_en LIKE ? OR service_name_bn LIKE ?) AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+      [`%${serviceType}%`, `%${serviceType}%`]
     );
     const demandCount = demandRows[0]?.cnt || 0;
 
