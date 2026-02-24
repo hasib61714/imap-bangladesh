@@ -78,15 +78,23 @@ router.get("/users", ...auth, async (req, res) => {
     if (q) { where.push("(name LIKE ? OR email LIKE ? OR phone LIKE ?)"); const l = `%${q}%`; params.push(l,l,l); }
     if (role) { where.push("role = ?"); params.push(role); }
 
-    const [rows] = await pool.query(
-      `SELECT id, name, email, phone, role, kyc_status, verified, balance, points, is_active, joined_at
-       FROM users WHERE ${where.join(" AND ")} ORDER BY joined_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    const [[total]] = await pool.query(
-      `SELECT COUNT(*) AS v FROM users WHERE ${where.join(" AND ")}`, params
-    );
-    res.json({ users: rows, total: total.v });
+    // Short-lived cache for default (no filter) page-1 queries only
+    const isDefault = !q && !role && parseInt(page) === 1 && parseInt(limit) === 30;
+    const fetchUsers = async () => {
+      const [rows] = await pool.query(
+        `SELECT id, name, email, phone, role, kyc_status, verified, balance, points, is_active, joined_at
+         FROM users WHERE ${where.join(" AND ")} ORDER BY joined_at DESC LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      );
+      const [[total]] = await pool.query(
+        `SELECT COUNT(*) AS v FROM users WHERE ${where.join(" AND ")}`, params
+      );
+      return { users: rows, total: total.v };
+    };
+    const data = isDefault
+      ? await cache.getOrSet("admin:users:default", fetchUsers, 10)
+      : await fetchUsers();
+    res.json(data);
   } catch (err) {
     logger.error("admin users:", err);
     res.status(500).json({ error: "Server error" });
@@ -102,6 +110,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
       [is_active !== undefined ? is_active : null, role || null, req.params.id]
     );
     cache.del("admin:stats");
+    cache.del("admin:users:default");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin update user:", err);
@@ -117,20 +126,28 @@ router.get("/bookings", ...auth, async (req, res) => {
     let where = ["1=1"], params = [];
     if (status) { where.push("b.status = ?"); params.push(status); }
 
-    const [rows] = await pool.query(
-      `SELECT b.*, cu.name AS customer_name, pu.name AS provider_name
-       FROM bookings b
-       LEFT JOIN users cu ON cu.id = b.customer_id
-       LEFT JOIN providers p ON p.id = b.provider_id
-       LEFT JOIN users pu ON pu.id = p.user_id
-       WHERE ${where.join(" AND ")}
-       ORDER BY b.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    const [[total]] = await pool.query(
-      `SELECT COUNT(*) AS v FROM bookings b WHERE ${where.join(" AND ")}`, params
-    );
-    res.json({ bookings: rows, total: total.v });
+    // Short-lived cache for default (no filter) page-1 queries only
+    const isDefault = !status && parseInt(page) === 1 && parseInt(limit) === 30;
+    const fetchBookings = async () => {
+      const [rows] = await pool.query(
+        `SELECT b.*, cu.name AS customer_name, pu.name AS provider_name
+         FROM bookings b
+         LEFT JOIN users cu ON cu.id = b.customer_id
+         LEFT JOIN providers p ON p.id = b.provider_id
+         LEFT JOIN users pu ON pu.id = p.user_id
+         WHERE ${where.join(" AND ")}
+         ORDER BY b.created_at DESC LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      );
+      const [[total]] = await pool.query(
+        `SELECT COUNT(*) AS v FROM bookings b WHERE ${where.join(" AND ")}`, params
+      );
+      return { bookings: rows, total: total.v };
+    };
+    const data = isDefault
+      ? await cache.getOrSet("admin:bookings:default", fetchBookings, 10)
+      : await fetchBookings();
+    res.json(data);
   } catch (err) {
     logger.error("admin bookings:", err);
     res.status(500).json({ error: "Server error" });

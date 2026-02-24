@@ -57,6 +57,7 @@ router.post("/", authMiddleware, reviewRules, async (req, res) => {
     cache.del(`review:provider:${booking.provider_id}`);
     cache.del(`provider:detail:${booking.provider_id}`);
     if (prov.length) cache.del(`provider:analytics:${prov[0].user_id}`);
+    cache.del("admin:stats"); // avgRating changes
 
     res.status(201).json({ success: true });
   } catch (err) {

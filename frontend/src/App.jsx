@@ -1569,30 +1569,26 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
   const C=useC();
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
-  const { balance: ctxBalance } = useLiveData();
+  const { balance: ctxBalance, bookings: ctxBookings } = useLiveData();
   const u=user||{name:"অতিথি",email:"guest@example.com",role:"customer",kycStatus:"pending",points:320};
   const kycColor={verified:"#10B981",pending:"#F59E0B",rejected:"#EF4444"};
   const kycLabel=lang==="bn"?{verified:"✅ যাচাইকৃত",pending:"⏳ অপেক্ষায়",rejected:"❌ প্রত্যাখ্যাত"}:{verified:"✅ Verified",pending:"⏳ Pending",rejected:"❌ Rejected"};
   const statusBg={completed:["#D1FAE5","#065F46"],cancelled:["#FEE2E2","#B91C1C"],pending:["#FEF9C3","#7C5800"]};
   const statusLabel=lang==="bn"?{completed:"সম্পন্ন",cancelled:"বাতিল",pending:"অপেক্ষায়"}:{completed:"Completed",cancelled:"Cancelled",pending:"Pending"};
 
-  const [recentBookings,setRecentBookings]=useState([]);
-  const [totalBookings,setTotalBookings]=useState(0);
   const [referralCount,setReferralCount]=useState(0);
 
+  // Derive recent bookings from live context — no extra API call
+  const recentBookings = ctxBookings.slice(0,3).map(b=>({
+    id:b.id||"—",
+    service:lang==="bn"?(b.service_name_bn||b.service_name_en||"সেবা"):(b.service_name_en||b.service_name_bn||"Service"),
+    provider:b.provider_name||(lang==="bn"?"প্রদানকারী":"Provider"),
+    date:b.scheduled_time?(new Date(b.scheduled_time).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB")):(b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB"):(b.date||"—")),
+    status:b.status||"pending",
+  }));
+  const totalBookings = ctxBookings.length;
+
   useEffect(()=>{
-    bookingsApi.list({limit:3}).then(data=>{
-      const list=Array.isArray(data)?data:(data.bookings||[]);
-      const tot=data.total||list.length;
-      setTotalBookings(tot);
-      setRecentBookings(list.slice(0,3).map(b=>({
-        id:b.id||"—",
-        service:lang==="bn"?(b.service_name_bn||b.service_name_en||"সেবা"):(b.service_name_en||b.service_name_bn||"Service"),
-        provider:b.provider_name||(lang==="bn"?"প্রদানকারী":"Provider"),
-        date:b.scheduled_time?(new Date(b.scheduled_time).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB")):(b.scheduled_at?new Date(b.scheduled_at).toLocaleDateString(lang==="bn"?"bn-BD":"en-GB"):(b.date||"—")),
-        status:b.status||"pending",
-      })));
-    }).catch(()=>{});
     usersApi.getReferral().then(d=>{
       setReferralCount(d.friends?.length||d.referrals?.length||d.count||0);
     }).catch(()=>{});

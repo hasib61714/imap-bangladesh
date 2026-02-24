@@ -293,6 +293,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
     );
 
     bustProvidersCache(); // new provider → stale list
+    cache.del("admin:stats"); // pending provider count changes
     res.status(201).json({ success: true, message: "Application submitted for review" });
   } catch (err) {
     logger.error("provider apply:", err);

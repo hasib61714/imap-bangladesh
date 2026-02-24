@@ -85,6 +85,7 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     // Bust admin stats cache — new booking changes counts/revenue
     cache.del("admin:stats");
     cache.del("admin:revenue");
+    cache.del("admin:bookings:default");
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
@@ -224,6 +225,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       }
       cache.del("admin:stats");
       cache.del("admin:revenue");
+      cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
       // Notify via socket too
       if (io) {
@@ -250,6 +252,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       );
       cache.del("admin:stats");
       cache.del("admin:revenue");
+      cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
     }
 
