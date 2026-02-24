@@ -24,7 +24,7 @@ router.post("/initiate", authMiddleware, async (req, res) => {
     if (!booking_id) return res.status(400).json({ error: "booking_id required" });
 
     const [brows] = await pool.query(
-      "SELECT b.*, u.name AS cus_name, u.email AS cus_email, u.phone AS cus_phone FROM bookings b JOIN users u ON u.id = b.customer_id WHERE b.id = ? AND b.customer_id = ?",
+      "SELECT b.*, u.name AS cus_name, u.email AS cus_email, u.phone AS cus_phone FROM bookings b LEFT JOIN users u ON u.id = b.customer_id WHERE b.id = ? AND b.customer_id = ?",
       [booking_id, req.user.id]
     );
     if (!brows.length) return res.status(404).json({ error: "Booking not found" });

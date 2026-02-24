@@ -275,7 +275,7 @@ app.get("/api/admin/seed-demo", async (req, res) => {
 
     // ── Fix existing providers with empty service/area ────
     const [empties] = await pool.query(
-      `SELECT p.id, u.name FROM providers p JOIN users u ON u.id=p.user_id
+      `SELECT p.id, u.name FROM providers p LEFT JOIN users u ON u.id=p.user_id
        WHERE (p.service_type_bn IS NULL OR p.service_type_bn='')
          AND (p.service_type_en IS NULL OR p.service_type_en='')`
     );

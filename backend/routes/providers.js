@@ -71,7 +71,7 @@ router.get("/me", authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT p.*, u.name, u.avatar, u.phone, u.email
-       FROM providers p JOIN users u ON u.id = p.user_id
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id
        WHERE p.user_id = ?`,
       [req.user.id]
     );

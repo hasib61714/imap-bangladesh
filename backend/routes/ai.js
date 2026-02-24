@@ -298,7 +298,7 @@ router.post("/match", async (req, res) => {
         COUNT(DISTINCT b.id)       AS total_bookings,
         COUNT(DISTINCT r.id)       AS review_count
       FROM providers p
-      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users u ON u.id = p.user_id
       LEFT JOIN bookings b ON b.provider_id = p.id
       LEFT JOIN reviews r ON r.provider_id = p.id
       WHERE p.is_available = 1
