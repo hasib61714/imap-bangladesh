@@ -860,11 +860,14 @@ function MyBookings({onRate,onBook,onPay}) {
   const [filter,setFilter]=useState("all");
   const [dispute,setDispute]=useState(null);
   const [guarantee,setGuarantee]=useState(null);
+  const [cancelledIds,setCancelledIds]=useState(()=>new Set());
+  const [cancellingId,setCancellingId]=useState(null);
   const { bookings: ctxBookings, providers: ctxProviders } = useLiveData();
 
   // Normalize API booking fields to the shape the UI expects
   const toUiBk = b=>({
     ...b,
+    rawId:      b.id,
     id:         b.booking_ref || b.id,
     svc:        b.service_name_bn || b.service_type || b.svc || "",
     svcEn:      b.service_name_en || b.service_type || b.svcEn || "",
@@ -881,7 +884,16 @@ function MyBookings({onRate,onBook,onPay}) {
   const bookingsData = ctxBookings.map(toUiBk);
 
   const STATUS_DISPLAY={completed:{bn:"সম্পন্ন",en:"Completed",bg:"#D1FAE5",col:"#065F46"},ongoing:{bn:"চলমান",en:"Ongoing",bg:"#DBEAFE",col:"#1D4ED8"},cancelled:{bn:"বাতিল",en:"Cancelled",bg:"#FEE2E2",col:"#B91C1C"}};
-  const getStatus=b=>{if(b.status==="সম্পন্ন"||b.status==="completed"||b.statusEn==="Completed")return"completed";if(b.status==="বাতিল"||b.status==="cancelled"||b.statusEn==="Cancelled")return"cancelled";return"ongoing";};
+  const getStatus=b=>{if(cancelledIds.has(b.rawId))return"cancelled";if(b.status==="সম্পন্ন"||b.status==="completed"||b.statusEn==="Completed")return"completed";if(b.status==="বাতিল"||b.status==="cancelled"||b.statusEn==="Cancelled")return"cancelled";return"ongoing";};
+  const cancelBooking=async(rawId)=>{
+    if(cancellingId) return;
+    setCancellingId(rawId);
+    try{
+      await bookingsApi.updateStatus(rawId,"cancelled");
+      setCancelledIds(prev=>{const n=new Set(prev);n.add(rawId);return n;});
+    }catch(e){alert(lang==="en"?"Cancel failed: "+(e.data?.error||e.message):"বাতিল ব্যর্থ: "+(e.data?.error||e.message));}
+    finally{setCancellingId(null);}
+  };
   const list=filter==="all"?bookingsData:bookingsData.filter(b=>getStatus(b)===filter);
   // Find provider for rate/rebook (try context providers first, fall back to static)
   const findProvider = pid => ctxProviders.find(p=>p.id===pid)||PROVIDERS.find(p=>p.id===pid);
@@ -1003,7 +1015,7 @@ function MyBookings({onRate,onBook,onPay}) {
                 <span className="badge" style={{background:S.bg,color:S.col,marginTop:4,display:"inline-flex"}}>{S[lang]||S.en}</span>
               </div>
             </div>
-            {st==="ongoing"&&(<div><div style={{background:"#EFF6FF",borderRadius:10,padding:10,border:"1px solid #BFDBFE"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}</div>)}
+            {st==="ongoing"&&(<div><div style={{background:"#EFF6FF",borderRadius:10,padding:10,border:"1px solid #BFDBFE"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}<button onClick={()=>{if(window.confirm(lang==="en"?"Cancel this booking? Your wallet will be refunded.":"এই বুকিং বাতিল করবেন? আপনার ওয়ালেটে রিফান্ড হবে।"))cancelBooking(b.rawId||b.id);}} disabled={cancellingId===( b.rawId||b.id)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid #EF4444",background:"#FEF2F2",color:"#EF4444",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>❌ {cancellingId===(b.rawId||b.id)?(lang==="bn"?"বাতিল হচ্ছে...":"Cancelling..."):(lang==="bn"?"বুকিং বাতিল করুন":"Cancel Booking")}</button></div>)}
             {st==="completed"&&<div style={{marginTop:10}}>
               <div className="row" style={{gap:8,marginBottom:7}}>
                 <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`,fontSize:12}} onClick={()=>onRate(findProvider(b.pid))}>{tr.giveRating}</button>

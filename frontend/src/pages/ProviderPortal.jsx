@@ -111,8 +111,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     providersApi.getMe().then(data=>{
       if(data && data.user_id) {
         setAvailable(data.is_available !== undefined ? !!data.is_available : true);
-        setProfile(p=>({}
-        ...p,
+        setProfile(p=>({...p,
         name:     data.name     || p.name,
         service:  lang==="bn" ? (data.service_type_bn||data.service_type_en||p.service)
                                : (data.service_type_en||data.service_type_bn||p.service),
