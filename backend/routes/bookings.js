@@ -224,6 +224,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       }
       cache.del("admin:stats");
       cache.del("admin:revenue");
+      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
       // Notify via socket too
       if (io) {
         io.emit(`user_${booking.customer_id}`, {
@@ -249,6 +250,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       );
       cache.del("admin:stats");
       cache.del("admin:revenue");
+      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
     }
 
     res.json({ success: true, status });

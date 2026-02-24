@@ -105,30 +105,32 @@ router.get("/me", authMiddleware, async (req, res) => {
 // ── GET /api/providers/:id ────────────────────────────────
 router.get("/:id", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT p.*, u.name, u.avatar, u.phone, u.email, u.kyc_status,
-              c.name_bn AS cat_bn, c.name_en AS cat_en, c.icon AS cat_icon
-       FROM providers p
-       LEFT JOIN users u ON u.id = p.user_id
-       LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.id = ?`,
-      [req.params.id]
-    );
-    if (!rows.length) return res.status(404).json({ error: "Provider not found" });
-
-    const [schedule] = await pool.query(
-      "SELECT * FROM provider_schedule WHERE provider_id = ? ORDER BY id",
-      [req.params.id]
-    );
-    const [reviews] = await pool.query(
-      `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
-       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
-       WHERE r.provider_id = ? ORDER BY r.created_at DESC LIMIT 20`,
-      [req.params.id]
-    );
-
-    res.json({ ...rows[0], schedule, reviews });
+    const data = await cache.getOrSet(`provider:detail:${req.params.id}`, async () => {
+      const [rows] = await pool.query(
+        `SELECT p.*, u.name, u.avatar, u.phone, u.email, u.kyc_status,
+                c.name_bn AS cat_bn, c.name_en AS cat_en, c.icon AS cat_icon
+         FROM providers p
+         LEFT JOIN users u ON u.id = p.user_id
+         LEFT JOIN categories c ON c.id = p.category_id
+         WHERE p.id = ?`,
+        [req.params.id]
+      );
+      if (!rows.length) { const e = new Error("Provider not found"); e.status = 404; throw e; }
+      const [schedule] = await pool.query(
+        "SELECT * FROM provider_schedule WHERE provider_id = ? ORDER BY id",
+        [req.params.id]
+      );
+      const [reviews] = await pool.query(
+        `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
+         FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
+         WHERE r.provider_id = ? ORDER BY r.created_at DESC LIMIT 20`,
+        [req.params.id]
+      );
+      return { ...rows[0], schedule, reviews };
+    }, 60);
+    res.json(data);
   } catch (err) {
+    if (err.status === 404) return res.status(404).json({ error: err.message });
     logger.error("provider detail:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -137,44 +139,43 @@ router.get("/:id", async (req, res) => {
 // ── GET /api/providers/me/analytics ──────────────────────
 router.get("/me/analytics", authMiddleware, async (req, res) => {
   try {
-    const [prov] = await pool.query("SELECT * FROM providers WHERE user_id = ?", [req.user.id]);
-    if (!prov.length) return res.status(404).json({ error: "Provider not found" });
-    const pid = prov[0].id;
-
-    // Last 6 months earnings from completed bookings
-    const [monthly] = await pool.query(
-      `SELECT DATE_FORMAT(created_at,'%b') AS month,
-              SUM(amount) AS total
-       FROM bookings
-       WHERE provider_id = ? AND status = 'completed'
-         AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-       GROUP BY YEAR(created_at), MONTH(created_at)
-       ORDER BY YEAR(created_at), MONTH(created_at)`,
-      [pid]
-    );
-
-    // Recent reviews
-    const [rvws] = await pool.query(
-      `SELECT r.rating AS stars, r.comment AS text, r.comment AS textEn,
-              u.name, DATE_FORMAT(r.created_at,'%d %b') AS date
-       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
-       WHERE r.provider_id = ?
-       ORDER BY r.created_at DESC LIMIT 5`,
-      [pid]
-    );
-
-    res.json({
-      months:   monthly.map(r => r.month),
-      earnings: monthly.map(r => Number(r.total) || 0),
-      stats: {
-        jobs:      prov[0].total_jobs || 0,
-        rating:    prov[0].rating     || 0,
-        views:     (prov[0].total_jobs || 0) * 4,
-        thisMonth: monthly.length ? (Number(monthly[monthly.length - 1].total) || 0) : 0,
-      },
-      reviews: rvws,
-    });
+    const result = await cache.getOrSet(`provider:analytics:${req.user.id}`, async () => {
+      const [prov] = await pool.query("SELECT * FROM providers WHERE user_id = ?", [req.user.id]);
+      if (!prov.length) { const e = new Error("Provider not found"); e.status = 404; throw e; }
+      const pid = prov[0].id;
+      const [monthly] = await pool.query(
+        `SELECT DATE_FORMAT(created_at,'%b') AS month,
+                SUM(amount) AS total
+         FROM bookings
+         WHERE provider_id = ? AND status = 'completed'
+           AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+         GROUP BY YEAR(created_at), MONTH(created_at)
+         ORDER BY YEAR(created_at), MONTH(created_at)`,
+        [pid]
+      );
+      const [rvws] = await pool.query(
+        `SELECT r.rating AS stars, r.comment AS text, r.comment AS textEn,
+                u.name, DATE_FORMAT(r.created_at,'%d %b') AS date
+         FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
+         WHERE r.provider_id = ?
+         ORDER BY r.created_at DESC LIMIT 5`,
+        [pid]
+      );
+      return {
+        months:   monthly.map(r => r.month),
+        earnings: monthly.map(r => Number(r.total) || 0),
+        stats: {
+          jobs:      prov[0].total_jobs || 0,
+          rating:    prov[0].rating     || 0,
+          views:     (prov[0].total_jobs || 0) * 4,
+          thisMonth: monthly.length ? (Number(monthly[monthly.length - 1].total) || 0) : 0,
+        },
+        reviews: rvws,
+      };
+    }, 60);
+    res.json(result);
   } catch (err) {
+    if (err.status === 404) return res.status(404).json({ error: err.message });
     logger.error("provider analytics:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -205,6 +206,9 @@ router.put("/me", authMiddleware, async (req, res) => {
        experience_yrs||null, req.user.id]
     );
     bustProvidersCache(); // availability or profile change → stale list
+    cache.del(`provider:detail:${rows[0].id}`);
+    cache.del(`provider:analytics:${req.user.id}`);
+    cache.del(`provider:jobs:${req.user.id}`);
     res.json({ success: true });
   } catch (err) {
     logger.error("update provider:", err);
@@ -215,17 +219,20 @@ router.put("/me", authMiddleware, async (req, res) => {
 // ── GET /api/providers/me/jobs ────────────────────────────
 router.get("/me/jobs", authMiddleware, async (req, res) => {
   try {
-    const [prov] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
-    if (!prov.length) return res.status(404).json({ error: "Provider not found" });
-
-    const [rows] = await pool.query(
-      `SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, u.avatar AS customer_avatar
-       FROM bookings b LEFT JOIN users u ON u.id = b.customer_id
-       WHERE b.provider_id = ? ORDER BY b.created_at DESC`,
-      [prov[0].id]
-    );
-    res.json(rows);
+    const data = await cache.getOrSet(`provider:jobs:${req.user.id}`, async () => {
+      const [prov] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
+      if (!prov.length) { const e = new Error("Provider not found"); e.status = 404; throw e; }
+      const [rows] = await pool.query(
+        `SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, u.avatar AS customer_avatar
+         FROM bookings b LEFT JOIN users u ON u.id = b.customer_id
+         WHERE b.provider_id = ? ORDER BY b.created_at DESC`,
+        [prov[0].id]
+      );
+      return rows;
+    }, 15);
+    res.json(data);
   } catch (err) {
+    if (err.status === 404) return res.status(404).json({ error: err.message });
     logger.error("provider jobs:", err);
     res.status(500).json({ error: "Server error" });
   }

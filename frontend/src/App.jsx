@@ -445,7 +445,7 @@ function PDetail({p,onClose,onBook,onChat}) {
 }
 
 /* ══ BOOKING MODAL ══ */
-function BookModal({p,onClose}) {
+function BookModal({p,onClose,onSuccess}) {
   const C=useC();
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -591,7 +591,7 @@ function BookModal({p,onClose}) {
           </div>
         </div>
       )}
-      <button className="btn btn-g" style={{width:"100%",padding:"14px"}} onClick={onClose}>{tr.doneBtn}</button>
+      <button className="btn btn-g" style={{width:"100%",padding:"14px"}} onClick={()=>{onSuccess?.();onClose();}}>{tr.doneBtn}</button>
     </div>
   );
   return (
@@ -3223,12 +3223,24 @@ function WalletPage() {
       const d=await usersApi.topup(finalAmt,selMethod);
       const newBal=d.balance??balance+finalAmt;
       setBalance(newBal); setCtxBalance(newBal);
-    } catch {
-      setBalance(b=>b+finalAmt); // optimistic fallback
-    }
-    setSuccess(true);
-    setCustAmt(""); setSelAmt(500);
-    setTimeout(()=>setSuccess(false),2500);
+      // Reload transaction history to show new topup entry
+      usersApi.getWallet().then(data=>{
+        if(Array.isArray(data.transactions)){
+          setApiTxns(data.transactions.map(t=>({
+            id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
+            icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+            type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
+            titleBn: t.description_bn||t.description||"লেনদেন",
+            titleEn: t.description_en||t.description||"Transaction",
+            provider: "",
+            amount: t.type==="debit"?-Math.abs(parseFloat(t.amount||0)):+Math.abs(parseFloat(t.amount||0)),
+            method: t.method||"Wallet",
+            date: t.created_at?new Date(t.created_at).toLocaleDateString("bn-BD"):"সম্প্রতি",
+            dateEn: t.created_at?new Date(t.created_at).toLocaleDateString("en-GB"):"Recent",
+            status:"success",
+          })));
+        }
+      }).catch(()=>{});
   };
 
   const txColor=t=>t.amount>0?"#16A34A":"#DC2626";
