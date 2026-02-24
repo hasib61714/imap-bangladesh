@@ -22,23 +22,33 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000)
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const doFetch = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const r = await fetch(`${BASE}${path}`, {
+        method,
+        headers,
+        body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return r;
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === "AbortError") throw Object.assign(new Error("সার্ভার সংযোগ timeout হয়েছে, আবার চেষ্টা করুন"), { status: 0 });
+      throw err;
+    }
+  };
 
   let res;
   try {
-    res = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-      signal: controller.signal,
-    });
-  } catch (err) {
-    clearTimeout(timer);
-    if (err.name === "AbortError") throw Object.assign(new Error("সার্ভার সংযোগ timeout হয়েছে, আবার চেষ্টা করুন"), { status: 0 });
-    throw err;
+    res = await doFetch();
+  } catch {
+    // Retry once after 1 s on transient network failure (offline / Render cold-start)
+    await new Promise(r => setTimeout(r, 1000));
+    res = await doFetch();
   }
-  clearTimeout(timer);
 
   let data;
   try { data = await res.json(); } catch { data = {}; }
@@ -91,6 +101,9 @@ export const auth = {
 
   /** Get current logged-in user (checks token) */
   me: () => get("/auth/me"),
+
+  /** Exchange a valid JWT for a fresh one (call before expiry or after app focus) */
+  refresh: () => post("/auth/refresh", {}),
 };
 
 // ═══════════════════════════════════════════════════════════════

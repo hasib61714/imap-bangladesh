@@ -233,5 +233,21 @@ const { authMiddleware } = require("../middleware/auth");
 router.get("/me", authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
-
+// ── POST /api/auth/refresh ─────────────────────────────────────
+// Exchange a still-valid JWT for a fresh one with a new expiry.
+// Requires: Authorization: Bearer <token>
+router.post("/refresh", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points FROM users WHERE id = ? AND is_active = 1",
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(401).json({ error: "User not found or inactive" });
+    const token = makeToken(rows[0]);
+    res.json({ token, user: rows[0] });
+  } catch (err) {
+    logger.error("token refresh:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 module.exports = router;

@@ -301,18 +301,33 @@ app.get("/api/admin/seed-demo", async (req, res) => {
 
     res.json({ ok: true, created, updated, log });
   } catch (err) {
-    console.error("seed-demo error:", err);
+    logger.error("seed-demo error", { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });
 
 // ── Health check ──────────────────────────────────────────
-app.get("/api/health", (_req, res) => res.json({
-  status: "ok",
-  time: new Date().toISOString(),
-  socketio: "enabled",
-  connectedSockets: io.engine.clientsCount,
-}));
+app.get("/api/health", async (_req, res) => {
+  let dbStatus = "ok";
+  let dbLatencyMs = null;
+  try {
+    const pool = require("./db");
+    const t0 = Date.now();
+    await pool.query("SELECT 1");
+    dbLatencyMs = Date.now() - t0;
+  } catch (e) {
+    dbStatus = `error: ${e.message}`;
+  }
+  const mem = process.memoryUsage();
+  res.json({
+    status: dbStatus === "ok" ? "ok" : "degraded",
+    db: { status: dbStatus, latencyMs: dbLatencyMs },
+    uptime: Math.floor(process.uptime()),
+    memory: { heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024), rssMB: Math.round(mem.rss / 1024 / 1024) },
+    time: new Date().toISOString(),
+    socketio: { status: "enabled", clients: io.engine.clientsCount },
+  });
+});
 
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));

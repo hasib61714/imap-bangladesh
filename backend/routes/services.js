@@ -2,17 +2,22 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
+const cache  = require("../utils/cache");
 
 // ── GET /api/services ─────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
     const all = req.query.all === "1";
-    const where = all ? "" : "WHERE c.is_active = 1";
-    const [rows] = await pool.query(
-      `SELECT c.*,
-         (SELECT COUNT(*) FROM providers p WHERE p.category_id = c.id AND p.is_available = 1) AS available_count
-       FROM categories c ${where} ORDER BY c.sort_order`
-    );
+    const key = `services:${all ? "all" : "active"}`;
+    const rows = await cache.getOrSet(key, async () => {
+      const where = all ? "" : "WHERE c.is_active = 1";
+      const [r] = await pool.query(
+        `SELECT c.*,
+           (SELECT COUNT(*) FROM providers p WHERE p.category_id = c.id AND p.is_available = 1) AS available_count
+         FROM categories c ${where} ORDER BY c.sort_order`
+      );
+      return r;
+    }, 60);
     res.json(rows);
   } catch (err) {
     logger.error("services:", err);
@@ -30,6 +35,7 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
       "INSERT INTO categories (slug, name_bn, name_en, icon, color, base_price, sort_order) VALUES (?,?,?,?,?,?,?)",
       [slug, name_bn, name_en, icon || "🔧", color || "#1DBF73", base_price || 300, sort_order || 0]
     );
+    cache.del("services:active"); cache.del("services:all");
     res.status(201).json({ success: true });
   } catch (err) {
     logger.error("create category:", err);
@@ -54,6 +60,7 @@ router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
       [name_bn||null, name_en||null, icon||null, color||null, base_price||null,
        is_active !== undefined ? is_active : null, sort_order||null, req.params.id]
     );
+    cache.del("services:active"); cache.del("services:all");
     res.json({ success: true });
   } catch (err) {
     logger.error("update category:", err);
@@ -61,10 +68,11 @@ router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
   }
 });
 
-// ── DELETE /api/services/:id  (admin) ────────────────────
+// ── DELETE /api/services/:id  (admin) ────────────────────────
 router.delete("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
   try {
     await pool.query("UPDATE categories SET is_active = 0 WHERE id = ?", [req.params.id]);
+    cache.del("services:active"); cache.del("services:all");
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Server error" });

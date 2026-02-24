@@ -4,9 +4,17 @@ const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const { sendPush } = require("../utils/push");
+const { validate, body } = require("../middleware/validate");
+
+const createBookingRules = validate([
+  body("provider_id").notEmpty().withMessage("provider_id required"),
+  body("amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("amount must be a positive number"),
+  body("total_amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("total_amount must be a positive number"),
+  body("payment_method").optional().isIn(["bKash","Nagad","Rocket","card","cash"]).withMessage("Invalid payment method"),
+]);
 
 // ── POST /api/bookings ────────────────────────────────────
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, createBookingRules, async (req, res) => {
   try {
     const {
       provider_id, category_id,
