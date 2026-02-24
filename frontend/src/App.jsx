@@ -4175,6 +4175,8 @@ export default function IMAP() {
   useEffect(()=>{
     if(typeof window.hideSplash==="function") window.hideSplash();
     setTimeout(()=>setAnim(true),80);
+    // Clear error-reload counter on successful mount
+    sessionStorage.removeItem('imap_reloads');
     // Wake Render backend immediately so it's ready when user acts
     wakeBackend();
     const check=()=>setIsMobile(window.innerWidth<=640);

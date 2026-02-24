@@ -8,8 +8,14 @@ class ErrorBoundary extends Component {
   static getDerivedStateFromError(e) { return { err: e }; }
   componentDidCatch(e) {
     console.error('[IMAP Error]', e);
-    // Do NOT clear auth — just reload so the user stays logged in
-    setTimeout(() => window.location.reload(), 1500);
+    // Limit reloads to 2 times — prevents infinite loop on persistent JS errors
+    const reloadCount = parseInt(sessionStorage.getItem('imap_reloads') || '0', 10);
+    if (reloadCount < 2) {
+      sessionStorage.setItem('imap_reloads', String(reloadCount + 1));
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      sessionStorage.removeItem('imap_reloads');
+    }
   }
   render() {
     if (this.state.err) {
