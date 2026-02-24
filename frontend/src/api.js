@@ -145,6 +145,7 @@ export const providers = {
   apply:    (data)     => post("/providers/apply", data),
   myJobs:    (params = {}) => get(`/providers/me/jobs?${new URLSearchParams(params)}`),
   analytics: ()            => get("/providers/me/analytics"),
+  toggleAvailability: (val) => patch("/providers/me/availability", { is_available: val ? 1 : 0 }),
 };
 
 // ═══════════════════════════════════════════════════════════════

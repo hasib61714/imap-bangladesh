@@ -1,7 +1,13 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
+
+// Helper: flush all cached providers list keys
+const bustProvidersCache = () => {
+  ["rating","price","jobs","new"].forEach(s => cache.del(`providers:list:${s}`));
+};
 
 // ── GET /api/providers  (list / search / filter) ──────────
 router.get("/", async (req, res) => {
@@ -33,7 +39,32 @@ router.get("/", async (req, res) => {
     const orderMap = { rating: "p.rating DESC", price: "p.hourly_rate ASC", jobs: "p.total_jobs DESC", new: "p.created_at DESC" };
     const orderSql = orderMap[sort] || "p.rating DESC";
 
-    const sql = `
+    // Cache the default first page (no filters applied) for 45 s
+    const isHotPath = !q && !category && !min_rating && !max_price && parseInt(page) === 1;
+    if (isHotPath) {
+      const cacheKey = `providers:list:${sort}`;
+      const cached = await cache.getOrSet(cacheKey, async () => {
+        const [rows] = await pool.query(buildSql(where, orderSql), [...params, parseInt(limit), 0]);
+        const [cnt]  = await pool.query(buildCntSql(where), params);
+        return { providers: rows, total: cnt[0].total, page: 1, limit: parseInt(limit) };
+      }, 45);
+      return res.json(cached);
+    }
+
+    const sql = buildSql(where, orderSql);
+    params.push(parseInt(limit), offset);
+    const [rows] = await pool.query(sql, params);
+    const [cnt]  = await pool.query(buildCntSql(where), params.slice(0, -2));
+
+    res.json({ providers: rows, total: cnt[0].total, page: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    logger.error("providers list:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});\n
+// SQL builder helpers (shared by hot-path cache and regular path)
+function buildSql(w, ord) {
+  return `
       SELECT p.id, p.user_id, u.name, u.avatar, u.phone,
              p.service_type_bn, p.service_type_en,
              p.area_bn, p.area_en,
@@ -46,26 +77,13 @@ router.get("/", async (req, res) => {
       FROM providers p
       LEFT JOIN users u ON u.id = p.user_id
       LEFT JOIN categories c ON c.id = p.category_id
-      WHERE ${where.join(" AND ")}
-      ORDER BY ${orderSql}
+      WHERE ${w.join(" AND ")}
+      ORDER BY ${ord}
       LIMIT ? OFFSET ?`;
-
-    params.push(parseInt(limit), offset);
-    const [rows] = await pool.query(sql, params);
-
-    // total count
-    const [cnt] = await pool.query(
-      `SELECT COUNT(*) AS total FROM providers p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN categories c ON c.id = p.category_id WHERE ${where.join(" AND ")}`,
-
-      params.slice(0, -2)
-    );
-
-    res.json({ providers: rows, total: cnt[0].total, page: parseInt(page), limit: parseInt(limit) });
-  } catch (err) {
-    logger.error("providers list:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+}
+function buildCntSql(w) {
+  return `SELECT COUNT(*) AS total FROM providers p LEFT JOIN users u ON u.id = p.user_id LEFT JOIN categories c ON c.id = p.category_id WHERE ${w.join(" AND ")}`;
+}
 
 // ── GET /api/providers/me ───────────────────────────────
 router.get("/me", authMiddleware, async (req, res) => {
@@ -186,6 +204,7 @@ router.put("/me", authMiddleware, async (req, res) => {
        is_available !== undefined ? is_available : null,
        experience_yrs||null, req.user.id]
     );
+    bustProvidersCache(); // availability or profile change → stale list
     res.json({ success: true });
   } catch (err) {
     logger.error("update provider:", err);
@@ -266,9 +285,31 @@ router.post("/apply", authMiddleware, async (req, res) => {
        "Your provider application will be reviewed within 24–48 hours."]
     );
 
+    bustProvidersCache(); // new provider → stale list
     res.status(201).json({ success: true, message: "Application submitted for review" });
   } catch (err) {
     logger.error("provider apply:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── PATCH /api/providers/me/availability ──────────────────
+// Lightweight toggle — avoids sending entire profile for a single on/off flip
+router.patch("/me/availability", authMiddleware, async (req, res) => {
+  try {
+    const { is_available } = req.body;
+    if (is_available === undefined || ![0, 1, true, false].includes(is_available)) {
+      return res.status(400).json({ error: "is_available must be 0 or 1" });
+    }
+    const val = is_available ? 1 : 0;
+    const [rows] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: "Provider profile not found" });
+    await pool.query("UPDATE providers SET is_available = ? WHERE user_id = ?", [val, req.user.id]);
+    bustProvidersCache();
+    logger.info(`Provider ${req.user.id} availability → ${val}`);
+    res.json({ success: true, is_available: val });
+  } catch (err) {
+    logger.error("availability toggle:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -3,6 +3,21 @@ const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const { validate, body } = require("../middleware/validate");
+
+const kycRules = validate([
+  body("doc_type")
+    .isIn(["nid","passport","birth_cert","driving_license"])
+    .withMessage("doc_type must be nid, passport, birth_cert, or driving_license"),
+  body("doc_number")
+    .trim().isLength({ min: 5 })
+    .withMessage("doc_number must be at least 5 characters"),
+  body("front_image")
+    .notEmpty()
+    .withMessage("front_image (base64) is required"),
+  body("back_image").optional(),
+  body("selfie_image").optional(),
+]);
 
 // ── GET /api/kyc ──────────────────────────────────────────
 router.get("/", authMiddleware, async (req, res) => {
@@ -19,11 +34,9 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/kyc ─────────────────────────────────────────
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, kycRules, async (req, res) => {
   try {
     const { doc_type, doc_number, front_image, back_image, selfie_image } = req.body;
-    if (!doc_type || !doc_number) return res.status(400).json({ error: "doc_type and doc_number required" });
-    if (!front_image) return res.status(400).json({ error: "Front image required" });
 
     // Remove previous for same type
     await pool.query("DELETE FROM kyc_docs WHERE user_id = ? AND doc_type = ?", [req.user.id, doc_type]);

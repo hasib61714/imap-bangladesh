@@ -109,7 +109,9 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     }).catch(()=>{});
     // Provider profile
     providersApi.getMe().then(data=>{
-      if(data && data.user_id) setProfile(p=>({
+      if(data && data.user_id) {
+        setAvailable(data.is_available !== undefined ? !!data.is_available : true);
+        setProfile(p=>({}
         ...p,
         name:     data.name     || p.name,
         service:  lang==="bn" ? (data.service_type_bn||data.service_type_en||p.service)
@@ -121,6 +123,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         rate:     data.hourly_rate||p.rate,
         phone:    data.phone||p.phone,
       }));
+      }
     }).catch(()=>{});
   },[]);
 
@@ -269,7 +272,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:isMobile?5:8}}>
           {/* Available toggle — always visible */}
-          <div onClick={()=>{setAvailable(!available);showToast(available?(lang==="bn"?"ব্যস্ত মোড চালু":"Busy mode on"):(lang==="bn"?"উপলব্ধ":"Available"));}} style={{display:"flex",alignItems:"center",gap:6,background:available?C.plt:"#FEE2E2",borderRadius:20,padding:isMobile?"5px 8px":"5px 12px",cursor:"pointer",border:`1px solid ${available?C.p+"44":"#EF444444"}`}}>
+          <div onClick={()=>{const next=!available;setAvailable(next);showToast(next?(lang==="bn"?"উপলব্ধ":"Available"):(lang==="bn"?"ব্যস্ত মোড চালু":"Busy mode on"));providersApi.toggleAvailability(next).catch(()=>{});}}   style={{display:"flex",alignItems:"center",gap:6,background:available?C.plt:"#FEE2E2",borderRadius:20,padding:isMobile?"5px 8px":"5px 12px",cursor:"pointer",border:`1px solid ${available?C.p+"44":"#EF444444"}`}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
             <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"✓":"✗"):(available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>

@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
 const { sendPush } = require("../utils/push");
 const { validate, body } = require("../middleware/validate");
@@ -80,6 +81,9 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
         [req.user.id, pts, "বুকিং পয়েন্ট", "Booking points", id]
       );
     }
+
+    // Bust admin stats cache — new booking changes counts/revenue
+    cache.del("admin:stats");
 
     res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
   } catch (err) {
