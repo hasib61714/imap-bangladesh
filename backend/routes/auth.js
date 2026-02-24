@@ -75,7 +75,7 @@ router.post("/register", registerRules, async (req, res) => {
     }
 
     const [rows] = await pool.query(
-      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points FROM users WHERE id = ?",
+      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, referral_code FROM users WHERE id = ?",
       [id]
     );
 

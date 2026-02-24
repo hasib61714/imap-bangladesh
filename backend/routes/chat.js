@@ -45,6 +45,20 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
     if (!message?.trim()) return res.status(400).json({ error: "Empty message" });
     const user = req.user;
     const role = user.role || "customer";
+
+    // Verify sender is a participant (customer or provider) of this booking
+    const [bCheck] = await pool.query(
+      `SELECT b.customer_id, p.user_id AS provider_user_id
+       FROM bookings b LEFT JOIN providers p ON p.id = b.provider_id
+       WHERE b.id = ? LIMIT 1`,
+      [bookingId]
+    );
+    if (!bCheck.length) return res.status(404).json({ error: "Booking not found" });
+    const { customer_id, provider_user_id } = bCheck[0];
+    const isAdmin = user.role === "admin";
+    const isParticipant = String(user.id) === String(customer_id) || String(user.id) === String(provider_user_id);
+    if (!isParticipant && !isAdmin) return res.status(403).json({ error: "Access denied" });
+
     const [result] = await pool.query(
       "INSERT INTO chat_messages (booking_id,sender_id,sender_role,message) VALUES (?,?,?,?)",
       [bookingId, user.id, role, message.trim()]
@@ -61,24 +75,15 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
       });
     }
 
-    // Push notification to the other party
+    // Push notification to the other party (reuse bCheck data fetched above)
     try {
-      const [bRows] = await pool.query(
-        `SELECT b.customer_id, p.user_id AS provider_user_id
-         FROM bookings b JOIN providers p ON p.id = b.provider_id
-         WHERE b.id = ? LIMIT 1`,
-        [bookingId]
-      );
-      if (bRows.length) {
-        const { customer_id, provider_user_id } = bRows[0];
-        const otherId = String(user.id) === String(provider_user_id) ? customer_id : provider_user_id;
-        if (otherId) {
-          sendPush(otherId, {
-            title: `💬 ${user.name || "বার্তা"}`,
-            body:  message.trim().slice(0, 80),
-            url:   "/",
-          }).catch(() => {});
-        }
+      const otherId = String(user.id) === String(provider_user_id) ? customer_id : provider_user_id;
+      if (otherId) {
+        sendPush(otherId, {
+          title: `💬 ${user.name || "বার্তা"}`,
+          body:  message.trim().slice(0, 80),
+          url:   "/",
+        }).catch(() => {});
       }
     } catch {}
 
