@@ -30,6 +30,20 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const [profile,setProfile]=useState({name:user.name,service:lang==="bn"?"ইলেকট্রিশিয়ান":"Electrician",area:lang==="bn"?"ঢাকা":"Dhaka",bio:lang==="bn"?"৫+ বছরের অভিজ্ঞতাসম্পন্ন দক্ষ পেশাদার।":"Skilled professional with 5+ years of experience.",rate:600,phone:user.phone});
   const [withdrawAmt,setWithdrawAmt]=useState("");
   const [dotMenu,setDotMenu]=useState(false);
+  // ── All data state — must be declared BEFORE useEffects that reference them ──
+  const [jobs,setJobs]=useState([]);
+  const [gpsTracking,setGpsTracking]=useState({});
+  const [earnings,setEarnings]=useState({balance:0,thisWeek:0,thisMonth:0,total:0,history:[]});
+  const [schedule,setSchedule]=useState({slots:{}});
+  const [reviews,setReviews]=useState([]);
+  const avgRating=reviews.length?(reviews.reduce((a,r)=>a+r.rating,0)/reviews.length).toFixed(1):"0.0";
+  const ratingDist=[5,4,3,2,1].map(s=>({s,count:reviews.filter(r=>r.rating===s).length}));
+  const [chatSessions,setChatSessions]=useState([]);
+  const [chatLoading,setChatLoading]=useState(false);
+  const [activeChatId,setActiveChatId]=useState(null);
+  const [chatMessages,setChatMessages]=useState({});
+  const [chatInput,setChatInput]=useState("");
+  const [pNotifs,setPNotifs]=useState([]);
 
   // Hide splash screen on mount
   useEffect(()=>{ if(typeof window.hideSplash==="function") window.hideSplash(); },[]);
@@ -179,8 +193,6 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     w.document.close();
   };
 
-  const [jobs,setJobs]=useState([]);
-  const [gpsTracking,setGpsTracking]=useState({}); // { [jobId]: watchId }
   const toggleGps=(jobId)=>{
     if(gpsTracking[jobId]!=null){
       navigator.geolocation.clearWatch(gpsTracking[jobId]);
@@ -199,22 +211,6 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     setGpsTracking(p=>({...p,[jobId]:watchId}));
     showToast(lang==="bn"?"📍 লাইভ লোকেশন চালু":"📍 Live location ON");
   };
-
-  const [earnings,setEarnings]=useState({balance:0,thisWeek:0,thisMonth:0,total:0,history:[]});
-
-  const [schedule,setSchedule]=useState({slots:{}});
-
-  const [reviews,setReviews]=useState([]);
-  const avgRating=reviews.length?(reviews.reduce((a,r)=>a+r.rating,0)/reviews.length).toFixed(1):"0.0";
-  const ratingDist=[5,4,3,2,1].map(s=>({s,count:reviews.filter(r=>r.rating===s).length}));
-
-  const [chatSessions, setChatSessions]=useState([]);
-  const [chatLoading, setChatLoading]=useState(false);
-  const [activeChatId,setActiveChatId]=useState(null);
-  const [chatMessages,setChatMessages]=useState({});
-  const [chatInput,setChatInput]=useState("");
-
-  const [pNotifs,setPNotifs]=useState([]);
 
   const sendChatMsg=()=>{
     const txt=chatInput.trim();
