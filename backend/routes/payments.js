@@ -1,4 +1,5 @@
 ﻿const logger = require('../utils/logger');
+const cache  = require('../utils/cache');
 /**
  * Payment Routes — IMAP Bangladesh
  * POST   /api/payments/initiate  → Start payment session (auth required)
@@ -55,6 +56,8 @@ router.post("/initiate", authMiddleware, async (req, res) => {
     // Mock (dev mode)
     await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=?", ["MOCK-"+payId, payId]);
     await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [booking_id]);
+    cache.delPattern(new RegExp(`^payments:user:${req.user.id}:`));
+    cache.delPattern(/^payments:admin:all:/);
     res.json({ mock: true, paymentId: payId, message: "মক পেমেন্ট সফল (dev mode — SSLCommerz credentials .env এ যোগ করুন)" });
   } catch (err) {
     logger.error("payment-initiate:", err);
@@ -77,6 +80,8 @@ router.post("/ipn", async (req, res) => {
     await pool.query("INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
       [payRows[0].user_id, "✅", "payment", "পেমেন্ট সফল", "Payment Successful",
        `৳${parseFloat(amount).toFixed(0)} পেমেন্ট গ্রহণ করা হয়েছে।`, `Payment of ৳${parseFloat(amount).toFixed(0)} received.`]);
+    cache.delPattern(new RegExp(`^payments:user:${payRows[0].user_id}:`));
+    cache.delPattern(/^payments:admin:all:/);
     res.json({ status: "processed" });
   } catch (err) {
     logger.error("ipn:", err);
@@ -104,13 +109,17 @@ router.post("/cancel", (req, res) => res.redirect(`${FE()}?payment=cancelled&tra
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page)-1)*parseInt(limit);
-    const [rows] = await pool.query(
-      "SELECT p.*, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN bookings b ON b.id=p.booking_id WHERE p.user_id=? ORDER BY p.created_at DESC LIMIT ? OFFSET ?",
-      [req.user.id, parseInt(limit), offset]
-    );
-    const [[{total}]] = await pool.query("SELECT COUNT(*) AS total FROM payments WHERE user_id=?", [req.user.id]);
-    res.json({ data: rows, total, page: parseInt(page) });
+    const key = `payments:user:${req.user.id}:${page}:${limit}`;
+    const result = await cache.getOrSet(key, async () => {
+      const offset = (parseInt(page)-1)*parseInt(limit);
+      const [rows] = await pool.query(
+        "SELECT p.*, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN bookings b ON b.id=p.booking_id WHERE p.user_id=? ORDER BY p.created_at DESC LIMIT ? OFFSET ?",
+        [req.user.id, parseInt(limit), offset]
+      );
+      const [[{total}]] = await pool.query("SELECT COUNT(*) AS total FROM payments WHERE user_id=?", [req.user.id]);
+      return { data: rows, total, page: parseInt(page) };
+    }, 30);
+    res.json(result);
   } catch(err) { logger.error("payments-list:", err); res.status(500).json({ error: "Server error" }); }
 });
 
@@ -118,15 +127,19 @@ router.get("/", authMiddleware, async (req, res) => {
 router.get("/admin/all", authMiddleware, requireRole("admin"), async (req, res) => {
   try {
     const { status, page = 1, limit = 50 } = req.query;
-    const offset = (parseInt(page)-1)*parseInt(limit);
-    let where = "1=1"; let params = [];
-    if (status) { where += " AND p.status=?"; params.push(status); }
-    const [rows] = await pool.query(
-      `SELECT p.*, u.name AS user_name, u.phone AS user_phone, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN users u ON u.id=p.user_id LEFT JOIN bookings b ON b.id=p.booking_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    const [[{total}]] = await pool.query(`SELECT COUNT(*) AS total FROM payments p WHERE ${where}`, params);
-    res.json({ data: rows, total, page: parseInt(page) });
+    const key = `payments:admin:all:${status||'all'}:${page}:${limit}`;
+    const result = await cache.getOrSet(key, async () => {
+      const offset = (parseInt(page)-1)*parseInt(limit);
+      let where = "1=1"; let params = [];
+      if (status) { where += " AND p.status=?"; params.push(status); }
+      const [rows] = await pool.query(
+        `SELECT p.*, u.name AS user_name, u.phone AS user_phone, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN users u ON u.id=p.user_id LEFT JOIN bookings b ON b.id=p.booking_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      );
+      const [[{total}]] = await pool.query(`SELECT COUNT(*) AS total FROM payments p WHERE ${where}`, params);
+      return { data: rows, total, page: parseInt(page) };
+    }, 30);
+    res.json(result);
   } catch(err) { logger.error("admin-payments:", err); res.status(500).json({ error: "Server error" }); }
 });
 

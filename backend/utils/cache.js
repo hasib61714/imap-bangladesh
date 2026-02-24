@@ -30,6 +30,13 @@ const getOrSet = async (key, fn, ttlSec = 30) => {
 /** Force-expire a key */
 const del = (key) => store.delete(key);
 
+/** Delete all keys matching a regex pattern */
+const delPattern = (pattern) => {
+  for (const k of store.keys()) {
+    if (pattern.test(k)) store.delete(k);
+  }
+};
+
 /** Flush all cached entries */
 const flush = () => store.clear();
 
@@ -47,4 +54,4 @@ const evictExpired = () => {
 // Evict stale entries every 5 minutes
 setInterval(evictExpired, 5 * 60 * 1000).unref();
 
-module.exports = { getOrSet, del, flush, size };
+module.exports = { getOrSet, del, delPattern, flush, size };
