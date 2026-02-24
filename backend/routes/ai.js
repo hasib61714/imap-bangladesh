@@ -643,7 +643,7 @@ router.get("/heatmap", async (req, res) => {
         COUNT(DISTINCT b.customer_id) AS unique_customers,
         ROUND(AVG(b.amount), 0) AS avg_amount
       FROM bookings b
-      JOIN users u ON u.id = b.customer_id
+      LEFT JOIN users u ON u.id = b.customer_id
       WHERE b.created_at > DATE_SUB(NOW(), INTERVAL 90 DAY)
       GROUP BY area
       ORDER BY total_bookings DESC

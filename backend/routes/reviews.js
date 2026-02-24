@@ -57,7 +57,7 @@ router.get("/provider/:id", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
-       FROM reviews r JOIN users u ON u.id = r.customer_id
+       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
        WHERE r.provider_id = ? ORDER BY r.created_at DESC`,
       [req.params.id]
     );

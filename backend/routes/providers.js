@@ -102,7 +102,7 @@ router.get("/:id", async (req, res) => {
     );
     const [reviews] = await pool.query(
       `SELECT r.*, u.name AS customer_name, u.avatar AS customer_avatar
-       FROM reviews r JOIN users u ON u.id = r.customer_id
+       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
        WHERE r.provider_id = ? ORDER BY r.created_at DESC LIMIT 20`,
       [req.params.id]
     );
@@ -137,7 +137,7 @@ router.get("/me/analytics", authMiddleware, async (req, res) => {
     const [rvws] = await pool.query(
       `SELECT r.rating AS stars, r.comment AS text, r.comment AS textEn,
               u.name, DATE_FORMAT(r.created_at,'%d %b') AS date
-       FROM reviews r JOIN users u ON u.id = r.customer_id
+       FROM reviews r LEFT JOIN users u ON u.id = r.customer_id
        WHERE r.provider_id = ?
        ORDER BY r.created_at DESC LIMIT 5`,
       [pid]
@@ -199,7 +199,7 @@ router.get("/me/jobs", authMiddleware, async (req, res) => {
 
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS customer_name, u.phone AS customer_phone, u.avatar AS customer_avatar
-       FROM bookings b JOIN users u ON u.id = b.customer_id
+       FROM bookings b LEFT JOIN users u ON u.id = b.customer_id
        WHERE b.provider_id = ? ORDER BY b.created_at DESC`,
       [prov[0].id]
     );

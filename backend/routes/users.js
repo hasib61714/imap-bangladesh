@@ -205,7 +205,7 @@ router.get("/referral", authMiddleware, async (req, res) => {
       `SELECT u.name, r.status, r.bonus_paid AS earned,
               DATE_FORMAT(r.created_at,'%b %d') AS date
        FROM referrals r
-       JOIN users u ON u.id = r.referred_id
+       LEFT JOIN users u ON u.id = r.referred_id
        WHERE r.referrer_id = ?
        ORDER BY r.created_at DESC`,
       [req.user.id]
