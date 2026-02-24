@@ -288,17 +288,33 @@ function PDetail({p,onClose,onBook,onChat}) {
   const [tab,setTab]=useState("about");
   const [realRevs,setRealRevs]=useState(null);
   const [revLoading,setRevLoading]=useState(false);
+  const [revSummary,setRevSummary]=useState(null);
+  const [revSumLoading,setRevSumLoading]=useState(false);
   const REVS=[
     {av:"আ",name:tr.rv1name,r:5,t:tr.rv1,d:tr.rv1d},
     {av:"স",name:tr.rv2name,r:5,t:tr.rv2,d:tr.rv2d},
     {av:"ক",name:tr.rv3name,r:4,t:tr.rv3,d:tr.rv3d},
   ];
-  // Load real reviews when reviews tab opens
+  // Load real reviews + AI summary when reviews tab opens
   useEffect(()=>{
     if(tab==="reviews"&&p.id&&realRevs===null){
       setRevLoading(true);
       reviewsApi.getByProvider(p.id)
-        .then(d=>setRealRevs(d.reviews||[]))
+        .then(d=>{
+          const revs=d.reviews||[];
+          setRealRevs(revs);
+          if(revs.length>=2&&!revSummary){
+            setRevSumLoading(true);
+            const texts=revs.slice(0,6).map(r=>`${r.rating}★: ${r.comment||""}`).join("\n");
+            const prompt=lang==="en"
+              ?`Summarize these service provider reviews in 1-2 sentences with overall sentiment:\n${texts}`
+              :`এই service provider এর reviews এর ১-২ বাক্যে সারসংক্ষেপ দাও:\n${texts}`;
+            ai.chat([{role:"user",content:prompt}],lang)
+              .then(r=>setRevSummary(r.reply))
+              .catch(()=>{})
+              .finally(()=>setRevSumLoading(false));
+          }
+        })
         .catch(()=>setRealRevs([]))
         .finally(()=>setRevLoading(false));
     }
@@ -357,6 +373,10 @@ function PDetail({p,onClose,onBook,onChat}) {
         </div>
       </div>}
       {tab==="reviews"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {(revSummary||revSumLoading)&&<div style={{background:`linear-gradient(135deg,${C.plt},#fff)`,border:`1.5px solid ${C.p}`,borderRadius:12,padding:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.p,marginBottom:5}}>🤖 AI {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
+          {revSumLoading?<div style={{fontSize:12,color:C.muted}}>✨ {lang==="en"?"Analyzing reviews...":"রিভিউ বিশ্লেষণ হচ্ছে..."}</div>:<div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{revSummary}</div>}
+        </div>}
         {revLoading&&<div style={{textAlign:"center",padding:24,color:C.muted}}>⏳ {lang==="en"?"Loading reviews...":"লোড হচ্ছে..."}</div>}
         {!revLoading&&(realRevs!==null?realRevs:REVS).map((rv,i)=>(
           <div key={rv.id||i} style={{padding:12,border:`1px solid ${C.bdr}`,borderRadius:12}}>
@@ -1289,8 +1309,25 @@ function SearchFilter({onClose,onBook,onView}) {
   const [maxPrice,setMaxPrice]=useState(1000);
   const [minRating,setMinRating]=useState(0);
   const [sortBy,setSortBy]=useState("rating");
+  const [aiSearching,setAiSearching]=useState(false);
+  const [aiHint,setAiHint]=useState("");
   const { providers: ctxProviders } = useLiveData();
   const provData = ctxProviders.map(toUiProv);
+
+  const doAiSearch=async()=>{
+    if(!query.trim())return;
+    setAiSearching(true);setAiHint("");
+    try{
+      const prompt=lang==="en"
+        ?`IMAP service search: "${query}". Reply ONLY with valid JSON, no extra text: {"category":"electrical|plumbing|cleaning|nursing|cooking|all","sortBy":"rating|price|jobs","maxPrice":500,"hint":"one line"}`
+        :`IMAP সার্ভিস সার্চ: "${query}"। শুধু valid JSON দাও, অতিরিক্ত কিছু না: {"category":"electrical|plumbing|cleaning|nursing|cooking|all","sortBy":"rating|price|jobs","maxPrice":500,"hint":"এক লাইন"}`;
+      const r=await ai.chat([{role:"user",content:prompt}],lang);
+      const m=r.reply.match(/\{[\s\S]*?\}/);
+      if(m){const j=JSON.parse(m[0]);if(j.category)setSelCat(j.category);if(j.sortBy)setSortBy(j.sortBy);if(j.maxPrice)setMaxPrice(Math.min(2000,Math.max(200,j.maxPrice)));if(j.hint)setAiHint(j.hint);}
+    }catch(e){setAiHint(lang==="en"?"Could not parse, showing all results":"ফলাফল দেখানো হচ্ছে");}
+    finally{setAiSearching(false);}
+  };
+
   const cats=[{id:"all",label:tr.allSvcs},...SVCS.map(s=>({id:s.nameEn,label:lang==="en"?s.nameEn:s.name}))];
   const filtered=provData.filter(p=>{
     const priceNum=parseInt(p.price.replace(/[৳,]/g,""))||0;
@@ -1307,10 +1344,14 @@ function SearchFilter({onClose,onBook,onView}) {
         <div style={{fontSize:17,fontWeight:700}}>{tr.searchTitle}</div>
         {onClose&&<button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}>✕</button>}
       </div>
-      <div style={{position:"relative",marginBottom:14}}>
-        <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,color:C.muted}}>🔍</div>
-        <input value={query} onChange={e=>setQuery(e.target.value)} placeholder={tr.searchPh} style={{width:"100%",padding:"11px 14px 11px 38px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,background:C.bg}} onFocus={e=>e.target.style.borderColor=C.p} onBlur={e=>e.target.style.borderColor=C.bdr}/>
+      <div style={{position:"relative",marginBottom:aiHint?6:14,display:"flex",gap:7,alignItems:"center"}}>
+        <div style={{position:"relative",flex:1}}>
+          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,color:C.muted}}>🔍</div>
+          <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAiSearch()} placeholder={tr.searchPh} style={{width:"100%",padding:"11px 14px 11px 38px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,background:C.bg}} onFocus={e=>e.target.style.borderColor=C.p} onBlur={e=>e.target.style.borderColor=C.bdr}/>
+        </div>
+        <button onClick={doAiSearch} disabled={aiSearching||!query.trim()} className="btn btn-g" style={{padding:"10px 13px",borderRadius:11,fontSize:12,fontWeight:700,flexShrink:0,opacity:!query.trim()?0.4:1}}>{aiSearching?"⏳":"🤖 AI"}</button>
       </div>
+      {aiHint&&<div style={{fontSize:11,color:C.p,fontWeight:600,marginBottom:10,padding:"4px 8px",background:C.plt,borderRadius:7}}>🤖 {aiHint}</div>}
       <div className="sx" style={{marginBottom:14}}>
         <div style={{display:"flex",gap:7,width:"max-content"}}>
           {cats.slice(0,9).map(cat=>(
