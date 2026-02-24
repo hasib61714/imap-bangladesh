@@ -4097,6 +4097,7 @@ export default function IMAP() {
   const [modal,setModal]      = useState(null);
   const [notifDrop,setNotifDrop] = useState(false);
   const [profDrop,setProfDrop]   = useState(false);
+  const [navDotMenu,setNavDotMenu] = useState(false);
   const [emg,setEmg]          = useState(false);
   const [emgCnt,setEmgCnt]    = useState(null);
   const [emgSvc,setEmgSvc]    = useState(null);
@@ -4290,7 +4291,7 @@ export default function IMAP() {
   const C  = dark ? C_DARK : C_LIGHT;
 
   const goBook = p=>{ setDetail(null); setModal(null); setBooking(p); };
-  const closeAll = ()=>{ setNotifDrop(false); setProfDrop(false); };
+  const closeAll = ()=>{ setNotifDrop(false); setProfDrop(false); setNavDotMenu(false); };
   const toggleFav = id=>{ const next=favs.includes(id)?favs.filter(x=>x!==id):[...favs,id]; setFavs(next); localStorage.setItem("imap_favs",JSON.stringify(next)); };
 
   /* ── EMERGENCY MODAL ── */
@@ -4350,17 +4351,17 @@ export default function IMAP() {
         </div>
         {/* Right controls */}
         <div className="row" style={{marginLeft:"auto",gap:8}}>
-          {/* Language selector */}
-          <button onClick={()=>setLang(lang==="bn"?"en":"bn")} title={lang==="bn"?"Switch to English":"বাংলায় পরিবর্তন করুন"} style={{height:36,padding:"0 11px",border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",fontSize:12,fontWeight:700,color:C.text,transition:"all .2s"}}>{lang==="bn"?"EN":"বাং"}</button>
-          {/* Dark mode toggle */}
-          <button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>
-          {/* Icon buttons (desktop) */}
-          {[["👴",tr.elderlyMode,()=>setElderly(true)],["🗺️",tr.map,()=>setModal("map")],["🔍",tr.find,()=>setModal("search")]].map(([ic,title,fn])=>(
+          {/* Language selector — desktop only */}
+          {!isMobile&&<button onClick={()=>setLang(lang==="bn"?"en":"bn")} title={lang==="bn"?"Switch to English":"বাংলায় পরিবর্তন করুন"} style={{height:36,padding:"0 11px",border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",fontSize:12,fontWeight:700,color:C.text,transition:"all .2s"}}>{lang==="bn"?"EN":"বাং"}</button>}
+          {/* Dark mode toggle — desktop only */}
+          {!isMobile&&<button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>}
+          {/* Icon buttons (desktop only) */}
+          {!isMobile&&[["👴",tr.elderlyMode,()=>setElderly(true)],["🗺️",tr.map,()=>setModal("map")],["🔍",tr.find,()=>setModal("search")]].map(([ic,title,fn])=>(
             <button key={title} title={title} className="htab" onClick={fn} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{ic}</button>
           ))}
           {/* Notification bell */}
           <div style={{position:"relative"}}>
-            <button onClick={()=>{setNotifDrop(o=>!o);setProfDrop(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,position:"relative",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+            <button onClick={()=>{setNotifDrop(o=>!o);setProfDrop(false);setNavDotMenu(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,position:"relative",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
               🔔
               {unreadCount>0&&<div className="jc" style={{position:"absolute",top:5,right:5,width:12,height:12,background:C.red,borderRadius:"50%",fontSize:8,color:"#fff",fontWeight:700}}>{unreadCount>9?"9+":unreadCount}</div>}
             </button>
@@ -4388,7 +4389,7 @@ export default function IMAP() {
           </div>
           {/* Profile */}
           <div style={{position:"relative"}}>
-            <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}} onClick={()=>{setProfDrop(o=>!o);setNotifDrop(false);}}>{authUser?.name?.[0]||"আ"}</div>
+            <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}} onClick={()=>{setProfDrop(o=>!o);setNotifDrop(false);setNavDotMenu(false);}}>{authUser?.name?.[0]||"আ"}</div>
             {profDrop&&(
               <div style={{position:"absolute",right:0,top:44,width:232,background:C.card,borderRadius:15,boxShadow:"0 10px 40px rgba(0,0,0,.13)",border:`1px solid ${C.bdr}`,zIndex:700,overflow:"hidden",animation:"fadeUp .2s ease",maxHeight:"80vh",overflowY:"auto"}}>
                 {/* প্রোফাইল হেড */}
@@ -4462,7 +4463,56 @@ export default function IMAP() {
               </div>
             )}
           </div>
-          <button className="btn btn-g dbtn" style={{padding:"9px 16px",fontSize:13,whiteSpace:"nowrap"}} onClick={()=>setPage("services")}>{tr.book}</button>
+          {/* Desktop book button */}
+          {!isMobile&&<button className="btn btn-g dbtn" style={{padding:"9px 16px",fontSize:13,whiteSpace:"nowrap"}} onClick={()=>setPage("services")}>{tr.book}</button>}
+          {/* Mobile three-dot menu */}
+          {isMobile&&<div style={{position:"relative"}}>
+            <button onClick={()=>{setNavDotMenu(o=>!o);setProfDrop(false);setNotifDrop(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:C.text,fontWeight:700}}>⋮</button>
+            {navDotMenu&&(<>
+              <div onClick={()=>setNavDotMenu(false)} style={{position:"fixed",inset:0,zIndex:599}}/>
+              <div style={{position:"absolute",right:0,top:42,width:200,background:C.card,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",border:`1px solid ${C.bdr}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s ease"}}>
+                {/* User info */}
+                <div style={{padding:"11px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:9}}>
+                  <div className="jc" style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{authUser?.name?.[0]||"আ"}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:12,color:C.text}}>{authUser?.name||(lang==="en"?"Customer":"গ্রাহক")}</div>
+                    <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"সেবাগ্রহণকারী":"Customer"}</div>
+                  </div>
+                </div>
+                {/* Quick actions */}
+                {[
+                  ["🛠️",tr.services||"সেবা","services"],
+                  ["👴",tr.elderlyMode||"বয়স্ক মোড","_elderly"],
+                  ["🗺️",tr.map||"ম্যাপ","_map"],
+                  ["🔍",tr.find||"খুঁজুন","_search"],
+                ].map(([ic,lbl,act])=>(
+                  <div key={act} onClick={()=>{
+                    setNavDotMenu(false);
+                    if(act==="services")setPage("services");
+                    else if(act==="_elderly")setElderly(true);
+                    else if(act==="_map")setModal("map");
+                    else if(act==="_search")setModal("search");
+                  }} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <span style={{fontSize:15}}>{ic}</span><span>{lbl}</span>
+                  </div>
+                ))}
+                <div style={{height:1,background:C.bdr}}/>
+                {/* Lang toggle */}
+                <div onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setNavDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>🌐</span><span>{lang==="bn"?"English এ যান":"বাংলায় যান"}</span>
+                </div>
+                {/* Dark toggle */}
+                <div onClick={()=>{setDark(d=>!d);setNavDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>{dark?"☀️":"🌙"}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                </div>
+                <div style={{height:1,background:C.bdr}}/>
+                {/* Logout */}
+                <div onClick={()=>{setNavDotMenu(false);doLogout();}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.red,fontWeight:700,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>🚪</span><span>{tr.logout||"লগআউট"}</span>
+                </div>
+              </div>
+            </>)}
+          </div>}
         </div>
       </div>
     </nav>

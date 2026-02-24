@@ -29,6 +29,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   };
   const [profile,setProfile]=useState({name:user.name,service:lang==="bn"?"ইলেকট্রিশিয়ান":"Electrician",area:lang==="bn"?"ঢাকা":"Dhaka",bio:lang==="bn"?"৫+ বছরের অভিজ্ঞতাসম্পন্ন দক্ষ পেশাদার।":"Skilled professional with 5+ years of experience.",rate:600,phone:user.phone});
   const [withdrawAmt,setWithdrawAmt]=useState("");
+  const [dotMenu,setDotMenu]=useState(false);
 
   // Hide splash screen on mount
   useEffect(()=>{ if(typeof window.hideSplash==="function") window.hideSplash(); },[]);
@@ -271,20 +272,54 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:isMobile?5:8}}>
+          {/* Available toggle — always visible */}
           <div onClick={()=>{setAvailable(!available);showToast(available?(lang==="bn"?"ব্যস্ত মোড চালু":"Busy mode on"):(lang==="bn"?"উপলব্ধ":"Available"));}} style={{display:"flex",alignItems:"center",gap:6,background:available?C.plt:"#FEE2E2",borderRadius:20,padding:isMobile?"5px 8px":"5px 12px",cursor:"pointer",border:`1px solid ${available?C.p+"44":"#EF444444"}`}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
-            {!isMobile&&<span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{available?tr.ppAvailable:tr.ppBusy}</span>}
+            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"✓":"✗"):(available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>
-          <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
-          <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"☀️":"🌙"}</button>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👷</div>
-            {!isMobile&&<div style={{display:"flex",flexDirection:"column"}}>
-              <div style={{fontWeight:700,fontSize:12,color:C.text}}>{user.name}</div>
-              <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"প্রদানকারী":"Provider"}</div>
-            </div>}
-          </div>
-          <button onClick={onLogout} style={{background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:8,padding:isMobile?"6px 8px":"6px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{isMobile?"✕":tr.logout}</button>
+          {/* Desktop-only: lang + dark + name */}
+          {!isMobile&&<>
+            <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
+            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"☀️":"🌙"}</button>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👷</div>
+              <div style={{display:"flex",flexDirection:"column"}}>
+                <div style={{fontWeight:700,fontSize:12,color:C.text}}>{user.name}</div>
+                <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"প্রদানকারী":"Provider"}</div>
+              </div>
+            </div>
+            <button onClick={onLogout} style={{background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.logout}</button>
+          </>}
+          {/* Mobile-only: three-dot menu */}
+          {isMobile&&<div style={{position:"relative"}}>
+            <button onClick={()=>setDotMenu(o=>!o)} style={{width:34,height:34,borderRadius:9,border:`1px solid ${C.bdr}`,background:C.card,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:C.text}}>⋮</button>
+            {dotMenu&&(<>
+              <div onClick={()=>setDotMenu(false)} style={{position:"fixed",inset:0,zIndex:599}}/>
+              <div style={{position:"absolute",right:0,top:40,width:190,background:C.card,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.18)",border:`1px solid ${C.bdr}`,zIndex:600,overflow:"hidden",animation:"fadeUp .15s ease"}}>
+                {/* User info */}
+                <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>👷</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:C.text}}>{user.name}</div>
+                    <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"সেবাদানকারী":"Service Provider"}</div>
+                  </div>
+                </div>
+                {/* Lang toggle */}
+                <div onClick={()=>{setLang(lang==="bn"?"en":"bn");setDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>🌐</span><span>{lang==="bn"?"English এ যান":"বাংলায় যান"}</span>
+                </div>
+                {/* Dark toggle */}
+                <div onClick={()=>{setDark(!dark);setDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>{dark?"☀️":"🌙"}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                </div>
+                <div style={{height:1,background:C.bdr}}/>
+                {/* Logout */}
+                <div onClick={()=>{setDotMenu(false);onLogout();}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:"#EF4444",fontWeight:700}} onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <span>🚪</span><span>{tr.logout||"লগআউট"}</span>
+                </div>
+              </div>
+            </>)}
+          </div>}
         </div>
       </div>
 
