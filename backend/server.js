@@ -12,19 +12,6 @@ const requestLogger = require("./middleware/requestLogger");
 
 const isProd = process.env.NODE_ENV === "production";
 
-// ── Trust proxy (Render sits behind a load balancer) ────────
-// Required for correct client IP in rate-limiter and request logger
-app.set("trust proxy", 1);
-
-// ── X-Request-ID (tracing header) ────────────────────────────
-app.use((req, res, next) => {
-  const id = req.headers["x-request-id"] ||
-    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  req.requestId = id;
-  res.setHeader("X-Request-ID", id);
-  next();
-});
-
 // ── Rate limiters ─────────────────────────────────────────
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,   // 15 minutes
@@ -39,6 +26,14 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please wait." },
+});
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,           // 1-minute sliding window
+  max: isProd ? 20 : 200,        // 20 AI calls / minute in prod
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many AI requests, please wait a moment." },
+  keyGenerator: (req) => req.headers["authorization"] || req.ip,
 });
 
 const app    = express();
@@ -115,6 +110,19 @@ io.on("connection", (socket) => {
 // Export io so routes can use it
 app.set("io", io);
 
+// ── Trust proxy (Render sits behind a load balancer) ────────
+// Must be set AFTER app is created but BEFORE rate-limiters are applied
+app.set("trust proxy", 1);
+
+// ── X-Request-ID (tracing header) ────────────────────────────
+app.use((req, res, next) => {
+  const id = req.headers["x-request-id"] ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  req.requestId = id;
+  res.setHeader("X-Request-ID", id);
+  next();
+});
+
 // ── Middleware ────────────────────────────────────────────
 // Security headers
 app.use(helmet({
@@ -154,7 +162,7 @@ app.use("/api/kyc",       require("./routes/kyc"));
 app.use("/api/reviews",   require("./routes/reviews"));
 app.use("/api/services",  require("./routes/services"));
 app.use("/api/admin",     require("./routes/admin"));
-app.use("/api/ai",        require("./routes/ai"));
+app.use("/api/ai",        aiLimiter, require("./routes/ai"));
 app.use("/api/blood",     require("./routes/blood"));
 app.use("/api/disaster",  require("./routes/disaster"));
 app.use("/api/chat",      require("./routes/chat"));

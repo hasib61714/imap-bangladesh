@@ -199,12 +199,29 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       ).catch(() => {});
     }
 
-    // On complete — update provider stats
+    // On complete — update provider stats + credit earnings
     if (status === "completed") {
       await pool.query(
         "UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?",
         [booking.provider_id]
       );
+      // Credit provider wallet (amount minus platform fee)
+      if (prov.length) {
+        const earnings = parseFloat(booking.amount) - parseFloat(booking.platform_fee || 0);
+        if (earnings > 0) {
+          await pool.query(
+            "UPDATE users SET balance = balance + ? WHERE id = ?",
+            [earnings, prov[0].user_id]
+          );
+          await pool.query(
+            "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
+            [prov[0].user_id, "credit", earnings,
+             `সেবা সম্পন্ন - বুকিং #${req.params.id.slice(0,8)}`,
+             `Service completed - Booking #${req.params.id.slice(0,8)}`, "wallet"]
+          );
+        }
+      }
+      cache.del("admin:stats");
       // Notify via socket too
       if (io) {
         io.emit(`user_${booking.customer_id}`, {
@@ -213,6 +230,22 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
           body: "আপনার সেবা সম্পন্ন হয়েছে।",
         });
       }
+    }
+
+    // On cancellation — refund customer if booking not yet active
+    if (status === "cancelled" && ["pending", "confirmed"].includes(booking.status)) {
+      const refundAmt = parseFloat(booking.amount) + parseFloat(booking.platform_fee || 0);
+      await pool.query(
+        "UPDATE users SET balance = balance + ? WHERE id = ?",
+        [refundAmt, booking.customer_id]
+      );
+      await pool.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
+        [booking.customer_id, "credit", refundAmt,
+         `বুকিং বাতিল রিফান্ড #${req.params.id.slice(0,8)}`,
+         `Booking cancellation refund #${req.params.id.slice(0,8)}`, "refund"]
+      );
+      cache.del("admin:stats");
     }
 
     res.json({ success: true, status });
