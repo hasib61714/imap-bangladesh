@@ -1,5 +1,5 @@
-// IMAP Service Worker – v1.6
-const CACHE_NAME = "imap-v7";
+// IMAP Service Worker – v1.7
+const CACHE_NAME = "imap-v8";
 // Derive base path from SW location (works for both "/" and "/imap-bangladesh/")
 const BASE = new URL("./", self.location.href).href;
 const STATIC_ASSETS = [
