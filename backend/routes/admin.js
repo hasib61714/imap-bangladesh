@@ -196,6 +196,7 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
       await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
     }
     cache.del("admin:stats");
+    cache.del("admin:users:default"); // user kyc_status changed
     res.json({ success: true });
   } catch (err) {
     logger.error("admin kyc review:", err);
@@ -232,6 +233,7 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
       "UPDATE complaints SET status = COALESCE(?, status), resolved_note = COALESCE(?, resolved_note), assigned_to = ? WHERE id = ?",
       [status || null, resolved_note || null, req.user.id, req.params.id]
     );
+    cache.del("admin:stats"); // open-complaint count changes
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
@@ -362,7 +364,6 @@ const defaultSettings = [
 
 router.get("/settings", ...auth, async (req, res) => {
   try {
-    await ensureSettingsTable();
     // Seed defaults if table is empty
     const [[{ cnt }]] = await pool.query("SELECT COUNT(*) AS cnt FROM system_settings");
     if (cnt === 0) {

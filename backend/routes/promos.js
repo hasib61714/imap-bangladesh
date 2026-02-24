@@ -1,6 +1,7 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 
 // Seed default promos if table is empty
 const seed = async () => {
@@ -26,23 +27,26 @@ seed().catch(e => logger.warn("promo seed:", e.message));
 // GET /api/promos — list all active promos
 router.get("/", async (_req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT id, code, title_bn AS descBn, title_en AS descEn,
-              title_bn, title_en,
-              discount_pct AS pct,
-              COALESCE(max_discount, discount_amt) AS maxTk,
-              min_order AS minOrder,
-              max_uses AS \`limit\`,
-              used_count AS uses,
-              COALESCE(category, 'all') AS cat,
-              COALESCE(tag, '') AS tag,
-              valid_until AS expiry,
-              is_active
-       FROM promos
-       WHERE is_active=1 AND (valid_until IS NULL OR valid_until >= CURDATE())
-       ORDER BY FIELD(COALESCE(tag,''), 'flash','hot','new','') ASC`
-    );
-    res.json({ coupons: rows });
+    const data = await cache.getOrSet("promos:active", async () => {
+      const [rows] = await pool.query(
+        `SELECT id, code, title_bn AS descBn, title_en AS descEn,
+                title_bn, title_en,
+                discount_pct AS pct,
+                COALESCE(max_discount, discount_amt) AS maxTk,
+                min_order AS minOrder,
+                max_uses AS \`limit\`,
+                used_count AS uses,
+                COALESCE(category, 'all') AS cat,
+                COALESCE(tag, '') AS tag,
+                valid_until AS expiry,
+                is_active
+         FROM promos
+         WHERE is_active=1 AND (valid_until IS NULL OR valid_until >= CURDATE())
+         ORDER BY FIELD(COALESCE(tag,''), 'flash','hot','new','') ASC`
+      );
+      return { coupons: rows };
+    }, 60);
+    res.json(data);
   } catch (e) {
     logger.error("promos list:", e);
     res.status(500).json({ error: "Server error" });

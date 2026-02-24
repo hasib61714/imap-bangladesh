@@ -1,6 +1,7 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
 
 // ── GET /api/users/profile ────────────────────────────────
@@ -218,6 +219,7 @@ router.post("/complaints", authMiddleware, async (req, res) => {
       [req.user.id, booking_id || null, subject || "Service Complaint", description, priority]
     );
     const refId = `DSP-${String(result.insertId).padStart(5, "0")}`;
+    cache.del("admin:stats"); // open-complaint count changes
     res.json({ success: true, id: result.insertId, ref: refId });
   } catch (err) {
     logger.error("submit complaint:", err);
