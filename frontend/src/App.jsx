@@ -2543,6 +2543,7 @@ function LoyaltyPage(){
   const {user:authUser,setUser}=useUser();
   const [tab,setTab]=useState("points");
   const [redeemedCode,setRedeemedCode]=useState(null);
+  const [redeemingCode,setRedeemingCode]=useState(null);
   const [points,setPoints]=useState(authUser?.points||0);
   const [history,setHistory]=useState([]);
 
@@ -2604,15 +2605,17 @@ function LoyaltyPage(){
                     <div style={{fontSize:11,color:canRedeem?"#16A34A":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?("✅ "+lang==="en"?"available":"পাওয়া যাচ্ছে"):("— "+(r.pts-points)+" "+lang==="en"?"more needed":"আরও দরকার")}</div>
                   </div>
                   <button onClick={async()=>{
-                    if(!canRedeem||isRedeemed)return;
+                    if(!canRedeem||isRedeemed||redeemingCode)return;
+                    setRedeemingCode(r.code);
                     try{
                       const res=await usersApi.redeemPoints(r.pts,r.code);
                       if(res?.points!=null){ setPoints(res.points); setUser({...authUser,points:res.points}); }
                     }catch{ setPoints(p=>p-r.pts<0?0:p-r.pts); setUser({...authUser,points:Math.max(0,(authUser?.points||0)-r.pts)}); }
                     setRedeemedCode(r.code);
-                  }} disabled={!canRedeem||isRedeemed}
-                    style={{padding:"8px 14px",borderRadius:9,background:isRedeemed?"#D1FAE5":canRedeem?C.p:C.bdr,border:"none",color:isRedeemed?"#065F46":canRedeem?"#fff":"#9CA3AF",fontSize:12,fontWeight:700,cursor:canRedeem&&!isRedeemed?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-                    {isRedeemed?tr.lyRedeemed.split("!")[0]+"!":tr.lyRedeem}
+                    setRedeemingCode(null);
+                  }} disabled={!canRedeem||isRedeemed||redeemingCode!=null}
+                    style={{padding:"8px 14px",borderRadius:9,background:isRedeemed?"#D1FAE5":redeemingCode===r.code?"#9ca3af":canRedeem?C.p:C.bdr,border:"none",color:isRedeemed?"#065F46":canRedeem?"#fff":"#9CA3AF",fontSize:12,fontWeight:700,cursor:canRedeem&&!isRedeemed&&!redeemingCode?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+                    {isRedeemed?tr.lyRedeemed.split("!")[0]+"!":redeemingCode===r.code?"⏳...":tr.lyRedeem}
                   </button>
                 </div>
               );
@@ -3451,6 +3454,7 @@ function DisasterPage() {
   const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [tab,setTab]=useState("alerts"); // alerts | shelters | tips | report
   const [reported,setReported]=useState(false);
+  const [reporting,setReporting]=useState(false);
   const [shared,setShared]=useState(false);
   const [repType,setRepType]=useState("");
   const [repDesc,setRepDesc]=useState("");
@@ -3480,7 +3484,8 @@ function DisasterPage() {
   },[]);
 
   const sendReport=async()=>{
-    if(!repType) return;
+    if(!repType||reporting) return;
+    setReporting(true);
     const rawType=repType.replace(/^[^\s]+\s/,"").toLowerCase(); // strip emoji
     try{
       await disasterApi.report(rawType, repDesc, "", "high");
@@ -3488,6 +3493,8 @@ function DisasterPage() {
       setTimeout(()=>{setReported(false);setRepType("");setRepDesc("");},3000);
     }catch(e){
       alert(lang==="en"?`Report failed: ${e.data?.error||e.message||"Please try again."}`:`রিপোর্ট ব্যর্থ: ${e.data?.error||e.message||"আবার চেষ্টা করুন।"}`);
+    }finally{
+      setReporting(false);
     }
   };
   const TIPS_BN=[
@@ -3639,9 +3646,9 @@ function DisasterPage() {
                 placeholder={lang==="en"?"Location, severity, people affected...":"স্থান, মাত্রা, কতজন ক্ষতিগ্রস্ত..."}
                 style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"vertical"}}/>
             </div>
-            <button onClick={sendReport} disabled={!repType}
-              style={{width:"100%",padding:"13px",borderRadius:12,background:repType?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:repType?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-              🚨 {tr.dsReportBtn}
+            <button onClick={sendReport} disabled={!repType||reporting}
+              style={{width:"100%",padding:"13px",borderRadius:12,background:repType&&!reporting?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:repType&&!reporting?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+              {reporting?(lang==="en"?"Submitting...":"পাঠানো হচ্ছে..."):`🚨 ${tr.dsReportBtn}`}
             </button>
           </div>
         </div>
@@ -3695,6 +3702,7 @@ function BloodDonationPage() {
   const [reqMsg,setReqMsg]=useState("");
   const [reqName,setReqName]=useState("");
   const [sent,setSent]=useState(false);
+  const [sending,setSending]=useState(false);
   const [contacted,setContacted]=useState(()=>JSON.parse(localStorage.getItem("imap_blood_contacted")||"[]"));
   const [donors,setDonors]=useState(DONORS);
   const [donorsLoading,setDonorsLoading]=useState(false);
@@ -3710,7 +3718,8 @@ function BloodDonationPage() {
   const filtered=donors;
 
   const sendRequest=async()=>{
-    if(!reqBg||!reqName.trim()) return;
+    if(!reqBg||!reqName.trim()||sending) return;
+    setSending(true);
     try{
       await bloodApi.request({blood_group:reqBg, name:reqName, message:reqMsg});
       setSent(true);
@@ -3718,6 +3727,8 @@ function BloodDonationPage() {
       setReqBg(""); setReqMsg(""); setReqName("");
     }catch(e){
       alert(lang==="en"?`Request failed: ${e.data?.error||e.message||"Please try again."}`:`অনুরোধ ব্যর্থ: ${e.data?.error||e.message||"আবার চেষ্টা করুন।"}`);
+    }finally{
+      setSending(false);
     }
   };
 
@@ -3833,9 +3844,9 @@ function BloodDonationPage() {
               <textarea value={reqMsg} onChange={e=>setReqMsg(e.target.value)} rows={3} placeholder={lang==="en"?"Hospital name, urgency, contact...":"হাসপাতাল, জরুরি অবস্থা, যোগাযোগ..."}
                 style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"vertical"}}/>
             </div>
-            <button onClick={sendRequest} disabled={!reqBg||!reqName.trim()}
-              style={{width:"100%",padding:"13px",borderRadius:12,background:reqBg&&reqName.trim()?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:reqBg&&reqName.trim()?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-              🆘 {tr.bdRequest}
+            <button onClick={sendRequest} disabled={!reqBg||!reqName.trim()||sending}
+              style={{width:"100%",padding:"13px",borderRadius:12,background:reqBg&&reqName.trim()&&!sending?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:reqBg&&reqName.trim()&&!sending?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+              {sending?(lang==="en"?"Sending...":"পাঠানো হচ্ছে..."):`🆘 ${tr.bdRequest}`}
             </button>
           </div>
         </div>
@@ -4025,6 +4036,7 @@ function LiveChatPage({provider, onBack}) {
   const [online]=useState(true);
   const [typingName,setTypingName]=useState(null);
   const endRef=useRef(null);
+  const sendingRef=useRef(false); // prevent concurrent sends
   const autoReplies=[tr.lcAuto2,tr.lcAuto3];
   const [autoIdx,setAutoIdx]=useState(0);
   const suggestions=[tr.lcSuggest1,tr.lcSuggest2,tr.lcSuggest3,tr.lcSuggest4];
@@ -4074,7 +4086,8 @@ function LiveChatPage({provider, onBack}) {
   useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs,typing]);
 
   const sendMsg=async(text)=>{
-    if(!text.trim()) return;
+    if(!text.trim()||sendingRef.current) return;
+    sendingRef.current=true;
     const now=new Date();
     const timeStr=now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     const optimistic={id:Date.now(),from:"user",text:text.trim(),time:timeStr};
@@ -4091,6 +4104,8 @@ function LiveChatPage({provider, onBack}) {
         setMsgs(m=>[...m,{id:Date.now()+1,from:"provider",text:reply,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]);
         setAutoIdx(i=>i+1);
       },1400);
+    }finally{
+      sendingRef.current=false;
     }
   };
 
