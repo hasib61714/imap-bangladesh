@@ -3456,9 +3456,11 @@ function DisasterPage() {
     const rawType=repType.replace(/^[^\s]+\s/,"").toLowerCase(); // strip emoji
     try{
       await disasterApi.report(rawType, repDesc, "", "high");
-    }catch(e){}
-    setReported(true);
-    setTimeout(()=>{setReported(false);setRepType("");setRepDesc("");},3000);
+      setReported(true);
+      setTimeout(()=>{setReported(false);setRepType("");setRepDesc("");},3000);
+    }catch(e){
+      alert(lang==="en"?`Report failed: ${e.data?.error||e.message||"Please try again."}`:`রিপোর্ট ব্যর্থ: ${e.data?.error||e.message||"আবার চেষ্টা করুন।"}`);
+    }
   };
   const TIPS_BN=[
 
@@ -3683,10 +3685,12 @@ function BloodDonationPage() {
     if(!reqBg||!reqName.trim()) return;
     try{
       await bloodApi.request({blood_group:reqBg, name:reqName, message:reqMsg});
-    }catch(e){}
-    setSent(true);
-    setTimeout(()=>setSent(false),3000);
-    setReqBg(""); setReqMsg(""); setReqName("");
+      setSent(true);
+      setTimeout(()=>setSent(false),3000);
+      setReqBg(""); setReqMsg(""); setReqName("");
+    }catch(e){
+      alert(lang==="en"?`Request failed: ${e.data?.error||e.message||"Please try again."}`:`অনুরোধ ব্যর্থ: ${e.data?.error||e.message||"আবার চেষ্টা করুন।"}`);
+    }
   };
 
   const GROUP_COMPAT={"A+":["A+","AB+"],"A-":["A+","A-","AB+","AB-"],"B+":["B+","AB+"],"B-":["B+","B-","AB+","AB-"],"AB+":["AB+"],"AB-":["AB+","AB-"],"O+":["A+","B+","AB+","O+"],"O-":["A+","A-","B+","B-","AB+","AB-","O+","O-"]};
