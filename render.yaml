@@ -26,7 +26,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://frontend-beta-sage-62.vercel.app
+        value: https://hasib61714.github.io
       - key: GEMINI_API_KEY
         sync: false
     healthCheckPath: /api/health
