@@ -112,6 +112,52 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// ── GET /api/providers/me/analytics ──────────────────────
+router.get("/me/analytics", authMiddleware, async (req, res) => {
+  try {
+    const [prov] = await pool.query("SELECT * FROM providers WHERE user_id = ?", [req.user.id]);
+    if (!prov.length) return res.status(404).json({ error: "Provider not found" });
+    const pid = prov[0].id;
+
+    // Last 6 months earnings from completed bookings
+    const [monthly] = await pool.query(
+      `SELECT DATE_FORMAT(created_at,'%b') AS month,
+              SUM(total_amount) AS total
+       FROM bookings
+       WHERE provider_id = ? AND status = 'completed'
+         AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+       GROUP BY YEAR(created_at), MONTH(created_at)
+       ORDER BY YEAR(created_at), MONTH(created_at)`,
+      [pid]
+    );
+
+    // Recent reviews
+    const [rvws] = await pool.query(
+      `SELECT r.rating AS stars, r.comment AS text, r.comment AS textEn,
+              u.name, DATE_FORMAT(r.created_at,'%d %b') AS date
+       FROM reviews r JOIN users u ON u.id = r.customer_id
+       WHERE r.provider_id = ?
+       ORDER BY r.created_at DESC LIMIT 5`,
+      [pid]
+    );
+
+    res.json({
+      months:   monthly.map(r => r.month),
+      earnings: monthly.map(r => Number(r.total) || 0),
+      stats: {
+        jobs:      prov[0].total_jobs || 0,
+        rating:    prov[0].rating     || 0,
+        views:     (prov[0].total_jobs || 0) * 4,
+        thisMonth: monthly.length ? (Number(monthly[monthly.length - 1].total) || 0) : 0,
+      },
+      reviews: rvws,
+    });
+  } catch (err) {
+    console.error("provider analytics:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ── PUT /api/providers/me ─────────────────────────────────
 router.put("/me", authMiddleware, async (req, res) => {
   try {

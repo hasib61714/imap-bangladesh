@@ -356,15 +356,41 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     } catch(e) { console.warn("loadCategories:", e.message); }
   };
 
+  const loadTickets = async (status = "") => {
+    try {
+      const list = await adminApi.complaints(status ? { status } : {});
+      if (Array.isArray(list) && list.length) {
+        setTickets(list.map(c => ({
+          id: `DSP-${c.id}`,
+          _rawId: c.id,
+          customer: c.user_name || c.user_id || "—",
+          provider: c.booking_id ? `BK-${c.booking_id}` : "—",
+          issue: c.subject || c.description || "অভিযোগ",
+          status: c.status === "resolved" || c.status === "closed" ? c.status : "open",
+          date: c.created_at ? c.created_at.slice(0, 10) : "—",
+          priority: c.priority || "medium",
+        })));
+      }
+    } catch(e) { console.warn("load tickets:", e.message); }
+  };
+
   useEffect(() => {
-    if (tab === "overview")        loadProviders();
-    else if (tab === "providers")  loadProviders(pSearch);
-    else if (tab === "users")      loadUsers(uSearch);
-    else if (tab === "bookings")   loadBookings(bFilter);
-    else if (tab === "kyc")        loadKyc(kycFilter === "all" ? "pending" : kycFilter);
-    else if (tab === "promos")     loadPromos();
-    else if (tab === "categories")   loadCategories();
+    if (tab === "overview")           loadProviders();
+    else if (tab === "providers")     loadProviders(pSearch);
+    else if (tab === "users")         loadUsers(uSearch);
+    else if (tab === "bookings")      loadBookings(bFilter);
+    else if (tab === "kyc")           loadKyc(kycFilter === "all" ? "pending" : kycFilter);
+    else if (tab === "promos")        loadPromos();
+    else if (tab === "categories")    loadCategories();
     else if (tab === "notifications") loadAnnouncements();
+    else if (tab === "complaints")    loadTickets(ticketFilter === "all" ? "" : ticketFilter);
+    else if (tab === "settings") {
+      adminApi.loadSettings().then(rows => {
+        if (Array.isArray(rows) && rows.length === 6) {
+          setSysToggles(rows.map(r => !!r.val));
+        }
+      }).catch(() => {});
+    }
   }, [tab]);
 
   /* ── AI STATE ─────────────────────────────────────── */
@@ -828,7 +854,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     {v:"open",     l:`${lang==="bn"?"খোলা":"Open"} (${tickets.filter(t=>t.status==="open").length})`},
                     {v:"resolved", l:lang==="bn"?"সমাধান":"Resolved"},
                   ].map(f=>(
-                    <Button key={f.v} type={ticketFilter===f.v?"primary":"default"} size="small" onClick={()=>setTicketFilter(f.v)}>{f.l}</Button>
+                    <Button key={f.v} type={ticketFilter===f.v?"primary":"default"} size="small" onClick={()=>{setTicketFilter(f.v);loadTickets(f.v==="all"?"":f.v);}}>{f.l}</Button>
                   ))}
                 </Space>
                 <Row gutter={[12,12]}>
@@ -1058,19 +1084,23 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         </div>
                       )}
                       {/* Monthly bar chart (CSS-based) */}
-                      {monthlyRev.length > 0 && (
-                        <div style={{marginTop:8}}>
-                          <div style={{fontSize:11,color:"#888",marginBottom:6}}>{lang==="bn"?"গত ৬ মাস":"Last 6 months"}</div>
-                          <div style={{display:"flex",gap:5,alignItems:"flex-end",height:60}}>
-                            {monthlyRev.map((m,i)=>(
-                              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                                <div style={{width:"100%",background:"#059669",borderRadius:"4px 4px 0 0",height:Math.round((m.v/maxRev)*52),minHeight:4,transition:"height .3s"}} />
-                                <div style={{fontSize:9,color:"#888"}}>{m.m}</div>
-                              </div>
-                            ))}
+                      {(()=>{
+                        const chartData = monthlyRev2.length > 0 ? monthlyRev2 : monthlyRev;
+                        const chartMax  = Math.max(...chartData.map(x=>x.v), 1);
+                        return chartData.length > 0 ? (
+                          <div style={{marginTop:8}}>
+                            <div style={{fontSize:11,color:"#888",marginBottom:6}}>{lang==="bn"?"গত ৬ মাস":"Last 6 months"}</div>
+                            <div style={{display:"flex",gap:5,alignItems:"flex-end",height:60}}>
+                              {chartData.map((m,i)=>(
+                                <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                                  <div style={{width:"100%",background:"#059669",borderRadius:"4px 4px 0 0",height:Math.round((m.v/chartMax)*52),minHeight:4,transition:"height .3s"}} />
+                                  <div style={{fontSize:9,color:"#888"}}>{m.m}</div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ) : null;
+                      })()}
                     </Card>
                   </Col>
 
@@ -1318,9 +1348,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           <span style={{fontSize:20}}>{item.icon}</span>
                           <Text style={{fontSize:14}}>{lang==="bn"?item.lbn:item.len}</Text>
                         </Space>
-                        <Switch checked={sysToggles[i]} onChange={()=>{
-                          setSysToggles(t=>{const n=[...t];n[i]=!n[i];return n;});
-                          toast(lang==="bn"?"✅ সেটিংস আপডেট":"✅ Updated");
+                        <Switch checked={sysToggles[i]} onChange={async()=>{
+                          const newVal = !sysToggles[i];
+                          setSysToggles(t=>{const n=[...t];n[i]=newVal;return n;});
+                          const keys=["system_online","maintenance_mode","sms_notifications","ai_matching","payment_gateway","nid_verification"];
+                          await adminApi.saveSettings(keys[i], newVal).catch(()=>{});
+                          toast(lang==="bn"?"✅ সেটিংস সংরক্ষিত":"✅ Setting saved");
                         }} />
                       </div>
                     ))}

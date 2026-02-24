@@ -150,6 +150,33 @@ router.get("/kyc", ...auth, async (req, res) => {
   }
 });
 
+// ── PATCH /api/admin/kyc/:id — approve or reject KYC ────
+router.patch("/kyc/:id", ...auth, async (req, res) => {
+  try {
+    const { status, rejection_reason } = req.body;
+    const valid = ["pending", "verified", "rejected"];
+    if (!status || !valid.includes(status)) {
+      return res.status(400).json({ error: "Valid status required: " + valid.join(", ") });
+    }
+    await pool.query(
+      `UPDATE kyc_docs
+         SET status = ?, rejection_reason = COALESCE(?, rejection_reason),
+             reviewed_at = NOW(), reviewed_by = ?
+       WHERE id = ?`,
+      [status, rejection_reason || null, req.user.id, req.params.id]
+    );
+    // Sync user's kyc_status
+    const [[doc]] = await pool.query("SELECT user_id FROM kyc_docs WHERE id = ?", [req.params.id]);
+    if (doc?.user_id) {
+      await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("admin kyc review:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ── GET /api/admin/complaints ─────────────────────────────
 router.get("/complaints", ...auth, async (req, res) => {
   try {
@@ -280,6 +307,67 @@ router.delete("/promos/:id", ...auth, async (req, res) => {
     await pool.query("DELETE FROM promos WHERE id=?", [req.params.id]);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/admin/settings ─────────────────────────────
+const ensureSettingsTable = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      id        INT AUTO_INCREMENT PRIMARY KEY,
+      key_name  VARCHAR(80) NOT NULL UNIQUE,
+      val       TINYINT(1) NOT NULL DEFAULT 1,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+  `);
+};
+ensureSettingsTable().catch(() => {});
+
+const defaultSettings = [
+  { key_name: "system_online",         val: 1 },
+  { key_name: "maintenance_mode",       val: 0 },
+  { key_name: "sms_notifications",      val: 1 },
+  { key_name: "ai_matching",            val: 1 },
+  { key_name: "payment_gateway",        val: 1 },
+  { key_name: "nid_verification",       val: 0 },
+];
+
+router.get("/settings", ...auth, async (req, res) => {
+  try {
+    await ensureSettingsTable();
+    // Seed defaults if table is empty
+    const [[{ cnt }]] = await pool.query("SELECT COUNT(*) AS cnt FROM system_settings");
+    if (cnt === 0) {
+      for (const s of defaultSettings) {
+        await pool.query("INSERT IGNORE INTO system_settings (key_name, val) VALUES (?, ?)", [s.key_name, s.val]);
+      }
+    }
+    const [rows] = await pool.query("SELECT key_name, val FROM system_settings ORDER BY id");
+    // Return ordered array matching sysSettingsList order
+    const order = defaultSettings.map(d => d.key_name);
+    const map   = Object.fromEntries(rows.map(r => [r.key_name, r.val]));
+    const result = order.map(k => ({ key: k, val: map[k] !== undefined ? !!map[k] : true }));
+    res.json(result);
+  } catch (err) {
+    console.error("admin settings get:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── PATCH /api/admin/settings ────────────────────────────
+router.patch("/settings", ...auth, async (req, res) => {
+  try {
+    const { key, val } = req.body;
+    if (!key) return res.status(400).json({ error: "key required" });
+    await ensureSettingsTable();
+    await pool.query(
+      "INSERT INTO system_settings (key_name, val) VALUES (?, ?) ON DUPLICATE KEY UPDATE val = ?",
+      [key, val ? 1 : 0, val ? 1 : 0]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("admin settings patch:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // ── GET /api/admin/announcements ─────────────────────────

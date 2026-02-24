@@ -2528,13 +2528,32 @@ const PF_PROVIDERS=[{id:1,name:"Md. Rakib",skill:"Electrician",exp:7,rating:4.9,
 
 function PortfolioPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
+  const [pfProviders,setPfProviders]=useState(PF_PROVIDERS);
   const [sel,setSel]=useState(PF_PROVIDERS[0]);
+
+  useEffect(()=>{
+    providersApi.list({limit:6,sort:"rating"}).then(data=>{
+      const list=(data.providers||[]).map(p=>({
+        id:p.id,
+        name:p.name,
+        skill:p.service_type_en||p.service_type_bn||"Service",
+        rating:Number(p.rating)||0,
+        jobs:p.total_jobs||0,
+        exp:p.experience_yrs||1,
+        about:p.bio_bn||p.bio_en||"",
+        aboutEn:p.bio_en||p.bio_bn||"",
+        skills:p.service_type_en?[p.service_type_en,...(p.cat_en&&p.cat_en!==p.service_type_en?[p.cat_en]:[])]:["General Service"],
+        gallery:[p.cat_icon||"⚡","🔧","🛠️","🔌","💡","⚙️"],
+      }));
+      if(list.length){setPfProviders(list);setSel(list[0]);}
+    }).catch(()=>{});
+  },[]);
 
   return(
     <div>
       {/* Provider selector */}
       <div style={{display:"flex",gap:10,marginBottom:20,overflowX:"auto",paddingBottom:4}}>
-        {PF_PROVIDERS.map(p=>(
+        {pfProviders.map(p=>(
           <button key={p.id} onClick={()=>setSel(p)}
             style={{flexShrink:0,padding:"10px 16px",borderRadius:12,border:`2px solid ${sel.id===p.id?C.p:C.bdr}`,background:sel.id===p.id?C.plt:C.card,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
             <div style={{fontSize:13,fontWeight:700,color:sel.id===p.id?C.p:C.text}}>{p.name}</div>
@@ -2670,12 +2689,28 @@ const PA_REVIEWS=[{name:"Rahim U.",stars:5,text:"অসাধারণ সেব
 function ProviderAnalyticsPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [tab,setTab]=useState("overview");
-  const maxEarn=Math.max(...PA_EARNINGS);
+  const [paMonths,setPaMonths]=useState(PA_MONTHS);
+  const [paEarnings,setPaEarnings]=useState(PA_EARNINGS);
+  const [paStats,setPaStats]=useState({jobs:48,rating:4.9,views:1200,thisMonth:PA_EARNINGS[PA_EARNINGS.length-1]});
+  const [paReviews,setPaReviews]=useState(PA_REVIEWS);
+
+  useEffect(()=>{
+    providersApi.analytics().then(data=>{
+      if(data.months&&data.months.length){
+        setPaMonths(data.months);
+        setPaEarnings(data.earnings);
+      }
+      if(data.stats) setPaStats(s=>({...s,...data.stats}));
+      if(data.reviews&&data.reviews.length) setPaReviews(data.reviews);
+    }).catch(()=>{});
+  },[]);
+
+  const maxEarn=Math.max(...paEarnings,1);
 
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-        {[[tr.paEarnings,"💰","৳"+PA_EARNINGS[PA_EARNINGS.length-1].toLocaleString(),C.p],[tr.paJobs,"📋","48","#3B82F6"],[tr.paRating,"⭐","4.9","#F59E0B"],[tr.paViews,"👁️","1.2K","#8B5CF6"]].map(([lbl,ic,val,col])=>(
+        {[[tr.paEarnings,"💰","৳"+paStats.thisMonth.toLocaleString(),C.p],[tr.paJobs,"📋",String(paStats.jobs),"#3B82F6"],[tr.paRating,"⭐",Number(paStats.rating).toFixed(1),"#F59E0B"],[tr.paViews,"👁️",paStats.views>=1000?(paStats.views/1000).toFixed(1)+"K":String(paStats.views),"#8B5CF6"]].map(([lbl,ic,val,col])=>(
           <div key={lbl} style={{background:C.card,borderRadius:16,padding:"14px",border:`1px solid ${C.bdr}`}}>
             <div style={{fontSize:20}}>{ic}</div>
             <div style={{fontSize:22,fontWeight:800,color:col,letterSpacing:-0.5}}>{val}</div>
@@ -2692,11 +2727,11 @@ function ProviderAnalyticsPage(){
         <div style={{background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`,marginBottom:16}}>
           <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>{tr.paMonthly}</div>
           <div style={{display:"flex",alignItems:"flex-end",gap:8,height:100}}>
-            {PA_EARNINGS.map((v,i)=>(
+            {paEarnings.map((v,i)=>(
               <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                 <div style={{fontSize:9,color:C.sub}}>{(v/1000).toFixed(1)}k</div>
-                <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:i===PA_EARNINGS.length-1?C.p:"#D1FAE5",height:`${(v/maxEarn)*80}px`,minHeight:8}}/>
-                <div style={{fontSize:9,color:C.muted}}>{PA_MONTHS[i]}</div>
+                <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:i===paEarnings.length-1?C.p:"#D1FAE5",height:`${(v/maxEarn)*80}px`,minHeight:8}}/>
+                <div style={{fontSize:9,color:C.muted}}>{paMonths[i]}</div>
               </div>
             ))}
           </div>
@@ -2704,13 +2739,13 @@ function ProviderAnalyticsPage(){
       )}
       {tab==="reviews"&&(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {PA_REVIEWS.map((r,i)=>(
+          {paReviews.map((r,i)=>(
             <div key={i} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${C.bdr}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
                 <div style={{fontSize:13,fontWeight:700,color:C.text}}>{r.name}</div>
-                <div style={{display:"flex",gap:2}}>{"⭐".repeat(r.stars)}</div>
+                <div style={{display:"flex",gap:2}}>{"⭐".repeat(Math.min(r.stars||r.rating||5,5))}</div>
               </div>
-              <div style={{fontSize:13,color:C.sub,lineHeight:1.5}}>{lang==="en"?r.textEn:r.text}</div>
+              <div style={{fontSize:13,color:C.sub,lineHeight:1.5}}>{lang==="en"?(r.textEn||r.text||r.comment||""):(r.text||r.comment||"")}</div>
               <div style={{fontSize:11,color:C.muted,marginTop:6}}>{r.date}</div>
             </div>
           ))}

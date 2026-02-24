@@ -100,7 +100,8 @@ export const providers = {
   get: (id)            => get(`/providers/${id}`),
   updateMe: (data)     => put("/providers/me", data),
   apply:    (data)     => post("/providers/apply", data),
-  myJobs: (params = {})=> get(`/providers/me/jobs?${new URLSearchParams(params)}`),
+  myJobs:    (params = {}) => get(`/providers/me/jobs?${new URLSearchParams(params)}`),
+  analytics: ()            => get("/providers/me/analytics"),
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -159,8 +160,10 @@ export const admin = {
   promoCreate: (data)           => post("/admin/promos", data),
   promoToggle: (id, d)          => patch(`/admin/promos/${id}`, d),
   promoDelete: (id)             => del(`/admin/promos/${id}`),
-  kycReview:   (id, status, reason) => patch(`/admin/kyc/${id}`, { status, rejection_reason: reason }),
+  kycReview:    (id, status, reason) => patch(`/admin/kyc/${id}`, { status, rejection_reason: reason }),
   announcements: ()                  => get("/admin/announcements"),
+  loadSettings:  ()                  => get("/admin/settings"),
+  saveSettings:  (key, val)          => patch("/admin/settings", { key, val }),
 };
 
 // ═══════════════════════════════════════════════════════════════
