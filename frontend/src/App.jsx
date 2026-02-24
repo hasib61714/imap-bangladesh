@@ -1118,7 +1118,15 @@ function ProviderDash() {
 function NIDPage({onClose}) {
   const C=useC();
   const tr=useTr();
+  const {user:authUser}=useUser();
+  const [profileStats,setProfileStats]=useState(null);
   const [step,setStep]=useState(0);
+
+  useEffect(()=>{
+    usersApi.getProfile()
+      .then(d=>{ if(d) setProfileStats(d); })
+      .catch(()=>{});
+  },[]);
   const [uploads,setUploads]=useState({front:false,back:false,selfie:false});
   const [files,setFiles]=useState({front:null,back:null,selfie:null});
   const [b64,setB64]=useState({front:"",back:"",selfie:""});
@@ -1190,7 +1198,17 @@ function NIDPage({onClose}) {
   );
   const lang=tr===T.en?"en":"bn";
   const verified_items=lang==="en"?[["Phone Verified",true],["Email Verified",true],["NID Verified",false],["Photo Verified",false],["Background Check",false]]:[["ফোন নম্বর যাচাই",true],["ইমেইল যাচাই",true],["NID কার্ড যাচাই",false],["ছবি যাচাই",false],["ব্যাকগ্রাউন্ড চেক",false]];
-  const profile_stats=[[lang==="en"?"📋":"📋",tr.totalBookings||"Bookings","23"],[lang==="en"?"⭐":"⭐",tr.avgRating||"Avg Rating","4.8"],[lang==="en"?"💰":"💰",tr.totalSpent||"Spent","৳8,450"],[lang==="en"?"📅":"📅",tr.joinedDate||"Joined",lang==="en"?"Jan 2024":"জানু ২০২৪"]];
+  const joinedDate=profileStats?.joined_at
+    ? new Date(profileStats.joined_at).toLocaleDateString(lang==="en"?"en-GB":"bn-BD",{month:"short",year:"numeric"})
+    : authUser?.created_at
+      ? new Date(authUser.created_at).toLocaleDateString(lang==="en"?"en-GB":"bn-BD",{month:"short",year:"numeric"})
+      : (lang==="en"?"Jan 2024":"জানু ২০২৪");
+  const profile_stats=[
+    ["📋", tr.totalBookings||"Bookings",   profileStats?.total_bookings ?? "—"],
+    ["⭐", tr.avgRating   ||"Avg Rating",  "4.8"],
+    ["💰", tr.totalSpent  ||"Spent",       profileStats?.total_spent != null ? `৳${Number(profileStats.total_spent).toLocaleString()}` : "—"],
+    ["📅", tr.joinedDate  ||"Joined",      joinedDate],
+  ];
   return (
     <div style={{padding:24}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:18}}>
