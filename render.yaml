@@ -26,7 +26,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        sync: false           # set to your Vercel URL after deploying frontend
+        value: https://frontend-beta-sage-62.vercel.app
       - key: GEMINI_API_KEY
         sync: false
     healthCheckPath: /api/health
