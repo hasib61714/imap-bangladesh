@@ -2077,8 +2077,8 @@ function CalendarPage({onBook}) {
 
   const handleBook=async()=>{
     if(!selDate||!selSlot) return;
-    setBooked(true);
     try {
+      setBooked(true);
       await bookingsApi.create({
         provider_id:  selProv.id,
         service_type: selProv.svcEn||selProv.svc||"",
@@ -2086,8 +2086,12 @@ function CalendarPage({onBook}) {
         payment_method:"cash",
         total_amount: parseInt(String(selProv.price||"").replace(/[৳,]/g,""))||350,
       });
-    } catch(e){ console.error("Calendar booking error:",e); }
-    setTimeout(()=>{setBooked(false);setSelSlot(null);onBook&&onBook(selProv);},1200);
+      setTimeout(()=>{setBooked(false);setSelSlot(null);onBook&&onBook(selProv);},1200);
+    } catch(e){
+      console.error("Calendar booking error:",e);
+      setBooked(false);
+      alert(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+    }
   };
 
   const pName=p=>lang==="en"?p.nameEn:p.name;

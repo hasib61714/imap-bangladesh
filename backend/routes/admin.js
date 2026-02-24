@@ -45,24 +45,30 @@ router.get("/providers", ...auth, async (req, res) => {
     if (q) { where.push("(u.name LIKE ? OR u.phone LIKE ? OR p.service_type_en LIKE ? OR p.service_type_bn LIKE ?)"); const l = `%${q}%`; params.push(l,l,l,l); }
     if (status) { where.push("u.is_active = ?"); params.push(status === "active" ? 1 : status === "suspended" ? 0 : null); }
 
-    const [rows] = await pool.query(
-      `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
-              u.is_active, p.service_type_en AS service_slug, p.service_type_bn,
-              p.area_en AS area, p.area_bn, p.rating, p.total_jobs,
-              p.bio_en AS bio, p.bio_bn, p.nid_verified,
-              u.joined_at,
-              (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
-               FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
-       FROM providers p LEFT JOIN users u ON u.id = p.user_id
-       WHERE ${where.join(" AND ")} ORDER BY p.rating DESC, p.total_jobs DESC LIMIT ? OFFSET ?`,
-      [...params.filter(x=>x!==null), parseInt(limit), offset]
-    );
-    const [[total]] = await pool.query(
-      `SELECT COUNT(*) AS v FROM providers p LEFT JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")}`,
-
-      params.filter(x=>x!==null)
-    );
-    res.json({ providers: rows, total: total.v });
+    const isDefault = !q && !status && parseInt(page) === 1 && parseInt(limit) === 30;
+    const fetchProviders = async () => {
+      const [rows] = await pool.query(
+        `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
+                u.is_active, p.service_type_en AS service_slug, p.service_type_bn,
+                p.area_en AS area, p.area_bn, p.rating, p.total_jobs,
+                p.bio_en AS bio, p.bio_bn, p.nid_verified,
+                u.joined_at,
+                (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
+                 FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
+         FROM providers p LEFT JOIN users u ON u.id = p.user_id
+         WHERE ${where.join(" AND ")} ORDER BY p.rating DESC, p.total_jobs DESC LIMIT ? OFFSET ?`,
+        [...params.filter(x=>x!==null), parseInt(limit), offset]
+      );
+      const [[total]] = await pool.query(
+        `SELECT COUNT(*) AS v FROM providers p LEFT JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")}`,
+        params.filter(x=>x!==null)
+      );
+      return { providers: rows, total: total.v };
+    };
+    const data = isDefault
+      ? await cache.getOrSet("admin:providers:default", fetchProviders, 15)
+      : await fetchProviders();
+    res.json(data);
   } catch (err) {
     logger.error("admin providers:", err);
     res.status(500).json({ error: "Server error" });
@@ -111,6 +117,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
     );
     cache.del("admin:stats");
     cache.del("admin:users:default");
+    cache.del("admin:providers:default");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin update user:", err);
@@ -159,16 +166,23 @@ router.get("/kyc", ...auth, async (req, res) => {
   try {
     const { status = "pending", page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const [rows] = await pool.query(
-      `SELECT k.*, u.name, u.email, u.phone FROM kyc_docs k
-       LEFT JOIN users u ON u.id = k.user_id
-       WHERE k.status = ? ORDER BY k.submitted_at DESC LIMIT ? OFFSET ?`,
-      [status, parseInt(limit), offset]
-    );
-    const [[total]] = await pool.query(
-      "SELECT COUNT(*) AS v FROM kyc_docs WHERE status = ?", [status]
-    );
-    res.json({ docs: rows, total: total.v });
+    const isDefault = parseInt(page) === 1 && parseInt(limit) === 30;
+    const fetchKyc = async () => {
+      const [rows] = await pool.query(
+        `SELECT k.*, u.name, u.email, u.phone FROM kyc_docs k
+         LEFT JOIN users u ON u.id = k.user_id
+         WHERE k.status = ? ORDER BY k.submitted_at DESC LIMIT ? OFFSET ?`,
+        [status, parseInt(limit), offset]
+      );
+      const [[total]] = await pool.query(
+        "SELECT COUNT(*) AS v FROM kyc_docs WHERE status = ?", [status]
+      );
+      return { docs: rows, total: total.v };
+    };
+    const data = isDefault
+      ? await cache.getOrSet(`admin:kyc:${status}`, fetchKyc, 15)
+      : await fetchKyc();
+    res.json(data);
   } catch (err) {
     logger.error("admin kyc:", err);
     res.status(500).json({ error: "Server error" });
@@ -196,7 +210,8 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
       await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
     }
     cache.del("admin:stats");
-    cache.del("admin:users:default"); // user kyc_status changed
+    cache.del("admin:users:default");
+    cache.del("admin:kyc:pending"); cache.del("admin:kyc:verified"); cache.del("admin:kyc:rejected");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin kyc review:", err);
@@ -212,13 +227,20 @@ router.get("/complaints", ...auth, async (req, res) => {
     let where = ["1=1"], params = [];
     if (status) { where.push("c.status = ?"); params.push(status); }
 
-    const [rows] = await pool.query(
-      `SELECT c.*, u.name AS user_name FROM complaints c
-       LEFT JOIN users u ON u.id = c.user_id
-       WHERE ${where.join(" AND ")} ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    res.json(rows);
+    const isDefault = !status && parseInt(page) === 1 && parseInt(limit) === 30;
+    const fetchComplaints = async () => {
+      const [rows] = await pool.query(
+        `SELECT c.*, u.name AS user_name FROM complaints c
+         LEFT JOIN users u ON u.id = c.user_id
+         WHERE ${where.join(" AND ")} ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      );
+      return rows;
+    };
+    const data = isDefault
+      ? await cache.getOrSet("admin:complaints:default", fetchComplaints, 15)
+      : await fetchComplaints();
+    res.json(data);
   } catch (err) {
     logger.error("admin complaints:", err);
     res.status(500).json({ error: "Server error" });
@@ -233,7 +255,8 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
       "UPDATE complaints SET status = COALESCE(?, status), resolved_note = COALESCE(?, resolved_note), assigned_to = ? WHERE id = ?",
       [status || null, resolved_note || null, req.user.id, req.params.id]
     );
-    cache.del("admin:stats"); // open-complaint count changes
+    cache.del("admin:stats");
+    cache.del("admin:complaints:default");
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
@@ -260,6 +283,7 @@ router.post("/notify", ...auth, async (req, res) => {
         );
       }
     }
+    if (type === "system") cache.del("admin:announcements");
     res.json({ success: true });
   } catch (err) {
     logger.error("admin notify:", err);
@@ -319,6 +343,7 @@ router.post("/promos", ...auth, async (req, res) => {
       [code.toUpperCase(), code, code, discount_pct||0, discount_amt||0, max_uses||999,
        valid_until||null]
     );
+    cache.del("promos:active");
     res.status(201).json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -328,6 +353,7 @@ router.patch("/promos/:id", ...auth, async (req, res) => {
   try {
     const { is_active } = req.body;
     await pool.query("UPDATE promos SET is_active=? WHERE id=?", [is_active ? 1 : 0, req.params.id]);
+    cache.del("promos:active");
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -336,6 +362,7 @@ router.patch("/promos/:id", ...auth, async (req, res) => {
 router.delete("/promos/:id", ...auth, async (req, res) => {
   try {
     await pool.query("DELETE FROM promos WHERE id=?", [req.params.id]);
+    cache.del("promos:active");
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -388,7 +415,6 @@ router.patch("/settings", ...auth, async (req, res) => {
   try {
     const { key, val } = req.body;
     if (!key) return res.status(400).json({ error: "key required" });
-    await ensureSettingsTable();
     await pool.query(
       "INSERT INTO system_settings (key_name, val) VALUES (?, ?) ON DUPLICATE KEY UPDATE val = ?",
       [key, val ? 1 : 0, val ? 1 : 0]
@@ -403,17 +429,21 @@ router.patch("/settings", ...auth, async (req, res) => {
 // ── GET /api/admin/announcements ─────────────────────────
 router.get("/announcements", ...auth, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT MIN(id) AS id, icon, type, title_bn, title_en, body_bn, body_en,
-              MIN(created_at) AS created_at, COUNT(*) AS reach
-       FROM notifications
-       WHERE type = 'system'
-       GROUP BY title_bn, body_bn
-       ORDER BY created_at DESC
-       LIMIT 30`
-    );
+    const rows = await cache.getOrSet("admin:announcements", async () => {
+      const [r] = await pool.query(
+        `SELECT MIN(id) AS id, icon, type, title_bn, title_en, body_bn, body_en,
+                MIN(created_at) AS created_at, COUNT(*) AS reach
+         FROM notifications
+         WHERE type = 'system'
+         GROUP BY title_bn, body_bn
+         ORDER BY created_at DESC
+         LIMIT 30`
+      );
+      return r;
+    }, 30);
     res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
 
 module.exports = router;
