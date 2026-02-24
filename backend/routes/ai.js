@@ -419,8 +419,8 @@ router.post("/fraud-check", async (req, res) => {
 
     // 2. Unusual amount
     const [avgAmount] = await db.query(
-      `SELECT AVG(amount) AS avg FROM bookings WHERE service LIKE ?`,
-      [`%${serviceType}%`]
+      `SELECT AVG(amount) AS avg FROM bookings WHERE service_name_en LIKE ? OR service_name_bn LIKE ?`,
+      [`%${serviceType}%`, `%${serviceType}%`]
     );
     const avg = avgAmount[0]?.avg || 500;
     if (amount > avg * 3) { flags.push("অস্বাভাবিক বেশি পরিমাণ (গড়ের ৩x+)"); score += 30; }
@@ -685,15 +685,15 @@ router.post("/bundle-suggest", async (req, res) => {
 
     // Find customers who booked this service, what else did they book?
     const [coBookings] = await db.query(`
-      SELECT b2.service, COUNT(*) AS cnt
+      SELECT COALESCE(b2.service_name_en, b2.service_name_bn) AS service, COUNT(*) AS cnt
       FROM bookings b1
       JOIN bookings b2 ON b2.customer_id = b1.customer_id AND b2.id != b1.id
-      WHERE b1.service LIKE ?
+      WHERE (b1.service_name_en LIKE ? OR b1.service_name_bn LIKE ?)
         AND b1.created_at > DATE_SUB(NOW(), INTERVAL 90 DAY)
-      GROUP BY b2.service
+      GROUP BY service
       ORDER BY cnt DESC
       LIMIT 5
-    `, [`%${svc}%`]);
+    `, [`%${svc}%`, `%${svc}%`]);
 
     // Static fallback bundles
     const BUNDLES = {
