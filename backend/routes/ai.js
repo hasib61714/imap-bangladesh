@@ -521,7 +521,7 @@ router.get("/forecast", async (req, res) => {
 
     // Service demand
     const [serviceDemand] = await db.query(`
-      SELECT service, COUNT(*) AS count
+      SELECT COALESCE(service_name_en, service_name_bn, 'Unknown') AS service, COUNT(*) AS count
       FROM bookings
       WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
       GROUP BY service
