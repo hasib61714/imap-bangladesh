@@ -118,6 +118,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
     cache.del("admin:stats");
     cache.del("admin:users:default");
     cache.del("admin:providers:default");
+    cache.del(`user:profile:${req.params.id}`);
     res.json({ success: true });
   } catch (err) {
     logger.error("admin update user:", err);
@@ -208,6 +209,8 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
     const [[doc]] = await pool.query("SELECT user_id FROM kyc_docs WHERE id = ?", [req.params.id]);
     if (doc?.user_id) {
       await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
+      cache.del(`user:profile:${doc.user_id}`);
+      cache.del(`kyc:user:${doc.user_id}`);
     }
     cache.del("admin:stats");
     cache.del("admin:users:default");
