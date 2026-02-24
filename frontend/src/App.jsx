@@ -82,8 +82,31 @@ function LiveMap({tracking,setTracking}) {
 
     const map=L.map(mapDiv.current,{center:[23.8103,90.4125],zoom:15,zoomControl:false,attributionControl:false});
 
-    // CartoDB Light — Google Maps-like style, no API key needed
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20}).addTo(map);
+    // Google Maps tiles — requires no API key, looks identical to real Google Maps
+    L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",{
+      subdomains:["0","1","2","3"],maxZoom:20,
+      attribution:"© Google Maps"
+    }).addTo(map);
+
+    // Satellite toggle button
+    let satMode=false;
+    let satLayer=L.tileLayer("https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",{subdomains:["0","1","2","3"],maxZoom:20});
+    let roadLayer=L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",{subdomains:["0","1","2","3"],maxZoom:20});
+    const satBtn=L.control({position:"topleft"});
+    satBtn.onAdd=()=>{
+      const d=L.DomUtil.create("button");
+      d.innerHTML="🛰️";
+      d.title="Toggle satellite";
+      Object.assign(d.style,{background:"#fff",border:"2px solid #ccc",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",boxShadow:"0 2px 8px rgba(0,0,0,.15)"});
+      L.DomEvent.on(d,"click",L.DomEvent.stopPropagation);
+      L.DomEvent.on(d,"click",()=>{
+        satMode=!satMode;
+        if(satMode){map.removeLayer(roadLayer);satLayer.addTo(map);d.style.background="#1DBF73";d.style.color="#fff";}
+        else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="#fff";d.style.color="#000";}
+      });
+      return d;
+    };
+    satBtn.addTo(map);
 
     // Custom zoom
     L.control.zoom({position:"topright"}).addTo(map);
@@ -4323,10 +4346,8 @@ export default function IMAP() {
         </div>
         {/* Right controls */}
         <div className="row" style={{marginLeft:"auto",gap:8}}>
-          {/* Language toggle */}
-          <button onClick={()=>setLang(l=>l==="bn"?"en":"bn")} style={{background:C.bg,border:`1.5px solid ${C.bdr}`,borderRadius:8,padding:"5px 11px",fontSize:12,fontWeight:700,cursor:"pointer",color:C.p,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.borderColor=C.p;}} onMouseLeave={e=>{e.currentTarget.style.background=C.bg;e.currentTarget.style.borderColor=C.bdr;}}>
-            {lang==="bn"?"EN 🌐":"বাং 🌐"}
-          </button>
+          {/* Language selector */}
+          <LangSelector lang={lang} setLang={setLang} C={C}/>
           {/* Dark mode toggle */}
           <button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>
           {/* Icon buttons (desktop) */}
@@ -5045,7 +5066,7 @@ export default function IMAP() {
         {!showSos && (
           <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}
             title={lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alert"}
-            style={{position:"fixed",bottom:isMobile?148:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
+            style={{position:"fixed",bottom:isMobile?196:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
             🆘
           </button>
         )}

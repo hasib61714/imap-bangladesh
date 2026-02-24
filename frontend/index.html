@@ -18,6 +18,18 @@
     <title>IMAP – AI Powered Service Platform Bangladesh</title>
     <!-- Google Identity Services for real OAuth -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Google Translate — enables any language support -->
+    <script>
+      function googleTranslateElementInit(){
+        new google.translate.TranslateElement(
+          {pageLanguage:"bn",includedLanguages:"bn,en,hi,ur,ar,fr,zh-CN,ko,es,ja",autoDisplay:false},
+          "google_translate_element"
+        );
+      }
+    </script>
+    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
+    <!-- Hide Google Translate toolbar (we use custom dropdown) -->
+    <style>.goog-te-banner-frame{display:none!important}.goog-te-menu-value span{display:none}.VIpgJd-ZVi9od-l4eHX-hSRGPd,body>.skiptranslate{display:none!important}body{top:0!important}</style>
     <style>
       body{background:#F4F9F6;margin:0;}
       #splash{position:fixed;inset:0;background:#F4F9F6;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:'Segoe UI',sans-serif;}
@@ -55,6 +67,8 @@
       </div>
     </div>
     <div id="root"></div>
+    <!-- Google Translate target element (hidden — controlled via JS) -->
+    <div id="google_translate_element" style="display:none;position:fixed;bottom:0;right:0;z-index:99999"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       window.hideSplash = function(){
