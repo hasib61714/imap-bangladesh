@@ -723,9 +723,7 @@ function RatingModal({p,onClose,onSuccess}) {
             }
           }catch(e){ console.warn("review-check:",e.message); }
           const bk=ctxBookings.find(b=>(b.provider_id||b.pid)===p?.id&&(b.status==="completed"||b.status==="সম্পন্ন"));
-          try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});}catch(e){console.error("review:",e);}
-          setDone(true);
-          onSuccess?.();
+          try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});setDone(true);onSuccess?.();}catch(e){console.error("review:",e);alert(lang==="en"?"Failed to submit review. Please try again.":"রিভিউ জমা ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
         }}>{tr.submitRating}</button>
       </div>
     </div>
@@ -2414,7 +2412,7 @@ function ServiceRequestPage(){
   const [urgent,setUrgent]=useState(false);
   const [submitted,setSubmitted]=useState(false);
 
-  const doSubmit=async()=>{try{await bookingsApi.create({service_name_en:svcType,address,scheduled_time:date&&time?`${date} ${time}`:date,amount:parseInt(budget)||300,payment_method:"cash",is_urgent:urgent?1:0,note:desc});}catch(e){console.error("svcReq:",e);}setSubmitted(true);};
+  const doSubmit=async()=>{try{await bookingsApi.create({service_name_en:svcType,address,scheduled_time:date&&time?`${date} ${time}`:date,amount:parseInt(budget)||300,payment_method:"cash",is_urgent:urgent?1:0,note:desc});setSubmitted(true);}catch(e){console.error("svcReq:",e);alert(lang==="en"?"Failed to submit request. Please try again.":"অনুরোধ পাঠানো ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}};
   const canNext1=svcType&&address;
   const canNext2=date&&time;
 
@@ -2856,7 +2854,7 @@ function ProviderRegPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>←</button>
-            <button onClick={async()=>{try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});}catch(e){console.error("provReg:",e);}setDone(true);}} style={{flex:2,padding:"12px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.prRegSubmit}</button>
+            <button onClick={async()=>{try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});setDone(true);}catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}}} style={{flex:2,padding:"12px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.prRegSubmit}</button>
           </div>
         </>}
       </div>

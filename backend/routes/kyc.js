@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const { validate, body } = require("../middleware/validate");
+const cache = require('../utils/cache');
 
 const kycRules = validate([
   body("doc_type")
@@ -22,10 +23,13 @@ const kycRules = validate([
 // ── GET /api/kyc ──────────────────────────────────────────
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT id, doc_type, doc_number, status, rejection_reason, submitted_at, reviewed_at FROM kyc_docs WHERE user_id = ? ORDER BY submitted_at DESC",
-      [req.user.id]
-    );
+    const rows = await cache.getOrSet(`kyc:user:${req.user.id}`, async () => {
+      const [r] = await pool.query(
+        "SELECT id, doc_type, doc_number, status, rejection_reason, submitted_at, reviewed_at FROM kyc_docs WHERE user_id = ? ORDER BY submitted_at DESC",
+        [req.user.id]
+      );
+      return r;
+    }, 30);
     res.json(rows);
   } catch (err) {
     logger.error("kyc get:", err);
@@ -64,6 +68,7 @@ router.post("/", authMiddleware, kycRules, async (req, res) => {
       );
     }
 
+    cache.del(`kyc:user:${req.user.id}`);
     res.status(201).json({ id, status: "pending" });
   } catch (err) {
     logger.error("kyc submit:", err);
@@ -109,6 +114,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
        status === "verified" ? "Your identity has been verified!" : `Rejection reason: ${rejection_reason || "N/A"}`]
     );
 
+    cache.del(`kyc:user:${doc.user_id}`);
     res.json({ success: true, status: overallStatus });
   } catch (err) {
     logger.error("kyc review:", err);
