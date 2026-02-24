@@ -3998,6 +3998,8 @@ export default function IMAP() {
   const [anim,setAnim]        = useState(false);
   const [showKyc,setShowKyc]  = useState(false);
   const [isMobile,setIsMobile]= useState(false);
+  const [svcCat,setSvcCat]    = useState(null); // selected service category filter
+  const [svcSearch,setSvcSearch] = useState(""); // service page search query
 
   // ── AUTH STATE ──
   const [authUser,setAuthUser] = useState(()=>{
@@ -4621,38 +4623,138 @@ export default function IMAP() {
   );
 
   /* ── SERVICES PAGE ── */
-  const Services = ()=>(
+  const Services = ()=>{
+    const provData = liveProviders.map(toUiProv);
+
+    // Filter SVCS by category and search
+    const searchLow = svcSearch.toLowerCase();
+    const filteredSvcs = SVCS.filter(s=>{
+      const matchCat = !svcCat || s.id===svcCat;
+      const matchSearch = !svcSearch ||
+        s.nameEn.toLowerCase().includes(searchLow) ||
+        s.name.includes(svcSearch) ||
+        s.subsEn.some(sub=>sub.toLowerCase().includes(searchLow)) ||
+        s.subs.some(sub=>sub.includes(svcSearch));
+      return matchCat && matchSearch;
+    });
+
+    // Smart booking: find best matching provider for a service type
+    const bookService = (s, subEn) => {
+      const terms = subEn
+        ? [subEn.toLowerCase()]
+        : [...s.subsEn.map(x=>x.toLowerCase()), s.nameEn.toLowerCase()];
+      const matched = provData.filter(p=>{
+        const pSvc = (p.svcEn||p.svc||"").toLowerCase();
+        return terms.some(t => pSvc.includes(t) || t.includes(pSvc.split(" ")[0]));
+      });
+      const best = matched.sort((a,b)=>(b.r||0)-(a.r||0))[0] || provData[0] || toUiProv(PROVIDERS[0]);
+      goBook({...best});
+    };
+
+    return (
     <div style={{padding:"28px 0 80px"}}>
-      <div className="sx" style={{marginBottom:18}}>
+      {/* Header */}
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#0D7F5F"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+        <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{lang==="en"?"All Services":"সব সেবা সমূহ"}</div>
+        <div style={{fontSize:13,opacity:.85,marginBottom:16}}>{SVCS.reduce((a,s)=>a+s.count,0).toLocaleString()}+ {lang==="en"?"service providers available":"সার্ভিস প্রোভাইডার উপলব্ধ"}</div>
+        {/* Search bar */}
+        <div style={{position:"relative"}}>
+          <input
+            value={svcSearch}
+            onChange={e=>setSvcSearch(e.target.value)}
+            placeholder={lang==="en"?"Search services, e.g. plumber, nurse…":"সেবা খুঁজুন, যেমন প্লাম্বার, নার্স…"}
+            style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.92)",color:"#111",fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
+          />
+          <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
+          {svcSearch&&<span onClick={()=>setSvcSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:"#555"}}>✕</span>}
+        </div>
+        <div style={{position:"absolute",right:-18,top:-18,width:90,height:90,borderRadius:"50%",background:"rgba(255,255,255,.08)"}} />
+      </div>
+
+      {/* Category pill filters */}
+      <div className="sx" style={{marginBottom:16}}>
         <div style={{display:"flex",gap:7,width:"max-content"}}>
-          {[tr.allSvcs,...SVCS.map(s=>lang==="en"?s.nameEn:s.name)].map((l,i)=>(
-            <button key={l} className="btn" style={{padding:"7px 15px",borderRadius:99,border:`1.5px solid ${i===0?C.p:C.bdr}`,background:i===0?C.p:"#fff",color:i===0?"#fff":C.sub,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l}</button>
+          <button onClick={()=>{setSvcCat(null);setSvcSearch("");}} style={{flexShrink:0,padding:"7px 16px",borderRadius:99,border:`1.5px solid ${!svcCat?C.p:C.bdr}`,background:!svcCat?C.p:C.card,color:!svcCat?"#fff":C.sub,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'Hind Siliguri',sans-serif"}}>
+            {tr.allSvcs}
+          </button>
+          {SVCS.map(s=>(
+            <button key={s.id} onClick={()=>{setSvcCat(svcCat===s.id?null:s.id);setSvcSearch("");}} style={{flexShrink:0,padding:"7px 14px",borderRadius:99,border:`1.5px solid ${svcCat===s.id?s.col:C.bdr}`,background:svcCat===s.id?s.col:C.card,color:svcCat===s.id?"#fff":C.sub,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'Hind Siliguri',sans-serif",display:"flex",alignItems:"center",gap:5,transition:"all .15s"}}>
+              <span>{s.icon}</span>{lang==="en"?s.nameEn:s.name}
+            </button>
           ))}
         </div>
       </div>
-      <div style={{fontSize:18,fontWeight:700,marginBottom:18}}>{tr.servicesTitle} ({SVCS.length})</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:16}}>
-        {SVCS.map((s,i)=>(
-          <div key={s.id} className="card" style={{padding:22,cursor:"pointer",animation:`fadeUp .4s ease ${i*.04}s both`}} onClick={()=>goBook(toUiProv(liveProviders[0]||PROVIDERS[0]))}>
-            <div className="row" style={{gap:13,marginBottom:12}}>
-              <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,flexShrink:0}}>{s.icon}</div>
-              <div><div style={{fontSize:15,fontWeight:700}}>{lang==="en"?s.nameEn:s.name}</div><div style={{fontSize:11,color:C.muted}}>{s.count} {tr.available}</div></div>
-            </div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12}}>
-              {(lang==="en"?s.subsEn:s.subs)?.map(sub=>(
-                <span key={sub} style={{fontSize:10,background:`${s.col}15`,color:s.col,borderRadius:99,padding:"3px 8px",fontWeight:600,lineHeight:1.4}}>{sub}</span>
-              ))}
-            </div>
-            <div className="row" style={{justifyContent:"space-between",marginBottom:12}}>
-              <div><div style={{fontSize:10,color:C.muted}}>{tr.startFrom}</div><div style={{fontSize:18,fontWeight:700,color:C.p}}>{s.avg}</div></div>
-              <div className="row" style={{gap:3}}><span style={{color:"#F59E0B",fontSize:13}}>★</span><span style={{fontSize:13,fontWeight:600}}>{s.r}</span></div>
-            </div>
-            <button className="btn btn-g" style={{width:"100%",padding:"11px"}}>{tr.bookNow}</button>
-          </div>
-        ))}
+
+      {/* Result count */}
+      <div style={{fontSize:14,fontWeight:700,marginBottom:14,color:C.text}}>
+        {tr.servicesTitle} ({filteredSvcs.length}{filteredSvcs.length<SVCS.length?` / ${SVCS.length}`:""})
+        {(svcSearch||svcCat)&&<button onClick={()=>{setSvcCat(null);setSvcSearch("");}} style={{marginLeft:10,fontSize:11,color:C.p,background:"none",border:`1px solid ${C.p}`,borderRadius:20,padding:"2px 10px",cursor:"pointer",fontWeight:700}}>✕ {lang==="en"?"Clear":"মুছুন"}</button>}
       </div>
+
+      {/* Service cards */}
+      {filteredSvcs.length===0
+        ? <div style={{textAlign:"center",padding:"60px 20px",color:C.muted}}>
+            <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+            <div style={{fontSize:15,fontWeight:700}}>{lang==="en"?"No services found":"কোনো সেবা পাওয়া যায়নি"}</div>
+            <div style={{fontSize:13,marginTop:6}}>{lang==="en"?"Try a different search term":"অন্য শব্দ দিয়ে খুঁজুন"}</div>
+            <button onClick={()=>{setSvcCat(null);setSvcSearch("");}} className="btn btn-g" style={{marginTop:16,padding:"10px 24px"}}>{lang==="en"?"Show all":"সব দেখুন"}</button>
+          </div>
+        : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
+          {filteredSvcs.map((s,i)=>{
+            // Count providers matching this service from live data
+            const liveCount = provData.filter(p=>
+              (p.svcEn||p.svc||"").toLowerCase().includes(s.nameEn.toLowerCase().split(" ")[0].toLowerCase())
+            ).length;
+            return (
+            <div key={s.id} className="card" style={{padding:22,cursor:"pointer",animation:`fadeUp .4s ease ${i*.04}s both`,border:`1.5px solid ${svcCat===s.id?s.col:C.bdr}`,transition:"box-shadow .15s"}}>
+              {/* Card header */}
+              <div className="row" style={{gap:13,marginBottom:10}}>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}18`,fontSize:24,flexShrink:0,border:`1.5px solid ${s.col}30`}}>{s.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>
+                    {liveCount>0
+                      ? <span style={{color:"#16A34A",fontWeight:600}}>✓ {liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
+                      : <span>{s.count} {tr.available}</span>
+                    }
+                  </div>
+                </div>
+                <div className="row" style={{gap:3,flexShrink:0}}><span style={{color:"#F59E0B",fontSize:13}}>★</span><span style={{fontSize:13,fontWeight:700}}>{s.r}</span></div>
+              </div>
+
+              {/* Sub-service pills (clickable) */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12}}>
+                {(lang==="en"?s.subsEn:s.subs)?.slice(0,5).map((sub,si)=>(
+                  <span key={sub} onClick={e=>{e.stopPropagation();bookService(s,s.subsEn[si]);}} style={{fontSize:10,background:`${s.col}15`,color:s.col,borderRadius:99,padding:"3px 9px",fontWeight:600,lineHeight:1.4,cursor:"pointer",border:`1px solid ${s.col}30`,transition:"background .1s"}} title={lang==="en"?"Book this sub-service":"এই সেবা বুক করুন"}>
+                    {sub}
+                  </span>
+                ))}
+                {(s.subs?.length||0)>5&&<span style={{fontSize:10,color:C.muted,padding:"3px 6px",alignSelf:"center"}}>+{(s.subs?.length||0)-5}</span>}
+              </div>
+
+              {/* Price & rating row */}
+              <div className="row" style={{justifyContent:"space-between",marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:10,color:C.muted}}>{tr.startFrom}</div>
+                  <div style={{fontSize:18,fontWeight:800,color:s.col}}>{s.avg}</div>
+                </div>
+                <button onClick={e=>{e.stopPropagation();setSvcCat(s.id);}} style={{fontSize:11,color:s.col,background:`${s.col}12`,border:`1px solid ${s.col}30`,borderRadius:20,padding:"4px 10px",cursor:"pointer",fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif"}}>
+                  {lang==="en"?"Filter":"ফিল্টার"} {s.icon}
+                </button>
+              </div>
+
+              {/* Book Now button */}
+              <button className="btn btn-g" style={{width:"100%",padding:"11px",fontWeight:700}} onClick={()=>bookService(s,null)}>
+                {tr.bookNow}
+              </button>
+            </div>
+          );
+          })}
+        </div>
+      }
     </div>
-  );
+    );
+  };
 
   /* ── PROVIDERS PAGE ── */
   const ProvidersPage = ()=>{
