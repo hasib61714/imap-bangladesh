@@ -7,12 +7,15 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     envVars:
+      # ── Core ──────────────────────────────────────────
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+
+      # ── Database (set in Render dashboard) ────────────
       - key: DB_HOST
-        sync: false        # set manually in Render dashboard
+        sync: false
       - key: DB_PORT
         value: 3306
       - key: DB_USER
@@ -21,13 +24,82 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
+
+      # ── JWT ───────────────────────────────────────────
       - key: JWT_SECRET
-        generateValue: true   # Render auto-generates a strong secret
+        generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
+
+      # ── Frontend URL ──────────────────────────────────
       - key: FRONTEND_URL
         value: https://hasib61714.github.io
+
+      # ── AI Keys ───────────────────────────────────────
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # ── Google OAuth ──────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+      # ── SSLCommerz Payment ────────────────────────────
+      - key: SSL_STORE_ID
+        sync: false
+      - key: SSL_STORE_PASSWORD
+        sync: false
+      - key: SSL_IS_SANDBOX
+        value: "false"
+
+      # ── SMS (mock by default) ─────────────────────────
+      - key: SMS_PROVIDER
+        value: mock
+      - key: SMS_FROM
+        value: "+8801700000000"
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: BD_SMS_API_KEY
+        sync: false
+      - key: BD_SMS_SENDER_ID
+        sync: false
+
+      # ── Web Push (VAPID) ──────────────────────────────
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_MAILTO
+        value: mailto:admin@imap.com.bd
+
+      # ── Cloudflare R2 Storage ─────────────────────────
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        value: imap-uploads
+      - key: R2_PUBLIC_URL
+        sync: false
+
+      # ── AWS S3 (alternative) ──────────────────────────
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: ap-southeast-1
+      - key: AWS_S3_BUCKET
+        sync: false
+
+      # ── Seed / Admin ──────────────────────────────────
+      - key: SEED_SECRET
+        generateValue: true
+
     healthCheckPath: /api/health
     autoDeploy: true
