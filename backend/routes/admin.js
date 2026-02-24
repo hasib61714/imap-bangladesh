@@ -45,7 +45,7 @@ router.get("/providers", ...auth, async (req, res) => {
       `SELECT p.id, u.id AS user_id, u.name, u.phone, u.email, u.kyc_status,
               u.is_active, p.service_type_en AS service_slug, p.service_type_bn,
               p.area_en AS area, p.area_bn, p.rating, p.total_jobs,
-              p.bio_en AS bio, p.bio_bn,
+              p.bio_en AS bio, p.bio_bn, p.nid_verified,
               u.joined_at,
               (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
                FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned

@@ -232,6 +232,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           rating: parseFloat(p.rating || 0).toFixed(1),
           jobs: p.total_jobs || 0,
           earned: parseFloat(p.earned || 0),
+          nid: p.nid_verified ? "✓ Verified" : null,
           phone: p.phone,
           kyc: p.kyc_status,
         })));
@@ -423,7 +424,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { title:lang==="bn"?"এলাকা":"Area",   dataIndex:"area",    key:"area"    },
     { title:lang==="bn"?"রেটিং":"Rating", dataIndex:"rating",  key:"rating",  render:v=><Text style={{color:"#F59E0B"}}>⭐ {v}</Text> },
     { title:lang==="bn"?"কাজ":"Jobs",     dataIndex:"jobs",    key:"jobs"    },
-    { title:"NID", dataIndex:"nid", key:"nid", render:v => v ? <Tag color="success">✅ {v.slice(0,6)}…</Tag> : <Tag color="error">❌ নেই</Tag> },
+    { title:"NID", dataIndex:"nid", key:"nid", render:v => v ? <Tag color="success">✅ {v}</Tag> : <Tag color="error">❌ নেই</Tag> },
     { title:lang==="bn"?"অবস্থা":"Status", dataIndex:"status", key:"status", render:s=><StatusTag status={s} lang={lang}/> },
     { title:lang==="bn"?"অ্যাকশন":"Action", key:"action", render:(_,p)=>(
       <Space>
