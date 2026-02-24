@@ -2327,8 +2327,11 @@ function SettingsPage(){
   const [privacy2fa,setPrivacy2fa]=useState(()=>localStorage.getItem("imap_2fa")==="true");
   const [privacyLoc,setPrivacyLoc]=useState(()=>localStorage.getItem("imap_loc")!=="false");
   const [saved,setSaved]=useState(false);
+  const [saving,setSaving]=useState(false);
 
   const doSave=async()=>{
+    if(saving)return;
+    setSaving(true);
     try{
       const profResult=await usersApi.updateProfile({name,email,phone});
       if(profResult?.user) setUser(profResult.user);
@@ -2339,7 +2342,7 @@ function SettingsPage(){
       localStorage.setItem("imap_notif_sms",String(notifSms));
       localStorage.setItem("imap_2fa",String(privacy2fa));
       localStorage.setItem("imap_loc",String(privacyLoc));
-    }catch(e){console.warn("settings save:",e.message);}
+    }catch(e){console.warn("settings save:",e.message);}finally{setSaving(false);}
     setSaved(true);setTimeout(()=>setSaved(false),2500);
   };
 
@@ -2370,7 +2373,7 @@ function SettingsPage(){
               <input value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}/>
             </div>
           ))}
-          <button onClick={doSave} style={{width:"100%",padding:"12px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.stSave}</button>
+          <button onClick={doSave} disabled={saving} style={{width:"100%",padding:"12px",borderRadius:12,background:saving?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{saving?"⏳ সংরক্ষণ...": tr.stSave}</button>
         </div>
       )}
       {tab==="security"&&(
@@ -3070,6 +3073,7 @@ function PromosPage(){
   const [catFilter,setCatFilter]=useState("all");
   const [copied,setCopied]=useState(null);
   const [coupons,setCoupons]=useState(COUPONS);
+  const [applying,setApplying]=useState(false);
 
   useEffect(()=>{
     promosApi.getAll()
@@ -3080,7 +3084,8 @@ function PromosPage(){
   const visible=coupons.filter(c=>(tab==="flash"?c.tag==="flash":c.tag!=="flash")&&(catFilter==="all"||c.cat===catFilter||c.cat==="all"));
 
   const doApply=async()=>{
-    if(!code.trim()) return;
+    if(!code.trim()||applying) return;
+    setApplying(true);
     try{
       const r=await promosApi.validate(code);
       if(r?.valid&&r.promo){
@@ -3094,7 +3099,7 @@ function PromosPage(){
       const found=coupons.find(c=>c.code===code.trim().toUpperCase());
       if(found){setApplyResult("ok");setAppliedCode(found);}
       else{setApplyResult("err");setTimeout(()=>setApplyResult(null),2000);}
-    }
+    }finally{setApplying(false);}
   };
 
   const copyCode=c=>{
@@ -3124,8 +3129,8 @@ function PromosPage(){
             placeholder={tr.prCode}
             style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${applyResult==="err"?"#DC2626":applyResult==="ok"?C.p:C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",textTransform:"uppercase",letterSpacing:2}}
             onKeyDown={e=>e.key==="Enter"&&doApply()}/>
-          <button onClick={doApply} style={{padding:"10px 20px",borderRadius:10,background:C.p,border:"none",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",whiteSpace:"nowrap"}}>
-            {tr.prApply}
+          <button onClick={doApply} disabled={applying} style={{padding:"10px 20px",borderRadius:10,background:applying?"#9ca3af":C.p,border:"none",color:"#fff",fontWeight:700,fontSize:13,cursor:applying?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif",whiteSpace:"nowrap"}}>
+            {applying?"⏳...": tr.prApply}
           </button>
         </div>
         {applyResult==="err"&&<div style={{fontSize:12,color:"#DC2626",marginTop:6,fontWeight:600}}>{tr.prInvalid}</div>}
