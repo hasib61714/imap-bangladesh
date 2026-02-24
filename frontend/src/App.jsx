@@ -668,7 +668,7 @@ function BookModal({p,onClose,onSuccess}) {
 }
 
 /* ══ RATING MODAL ══ */
-function RatingModal({p,onClose}) {
+function RatingModal({p,onClose,onSuccess}) {
   const C=useC();
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -723,6 +723,7 @@ function RatingModal({p,onClose}) {
           const bk=ctxBookings.find(b=>(b.provider_id||b.pid)===p?.id&&(b.status==="completed"||b.status==="সম্পন্ন"));
           try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});}catch(e){console.error("review:",e);}
           setDone(true);
+          onSuccess?.();
         }}>{tr.submitRating}</button>
       </div>
     </div>
@@ -5110,7 +5111,7 @@ export default function IMAP() {
         {/* Booking modal */}
         {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)}/></div></div>}
         {/* Rating modal */}
-        {rateFor&&<div className="ov" onClick={()=>setRateFor(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}><RatingModal p={rateFor} onClose={()=>setRateFor(null)}/></div></div>}
+        {rateFor&&<div className="ov" onClick={()=>setRateFor(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}><RatingModal p={rateFor} onClose={()=>setRateFor(null)} onSuccess={()=>{refreshBookings();setRateFor(null);}}/></div></div>}
         {/* Search / filter modal */}
         {modal==="search"&&<div className="ov" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:580}}><SearchFilter onClose={()=>setModal(null)} onBook={goBook} onView={p=>{setModal(null);setDetail(p);}}/></div></div>}
         {/* Map modal */}

@@ -126,19 +126,16 @@ router.get("/notifications", authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
-    // Auto-seed welcome notifications for new users
+    // Auto-seed welcome notifications for new users (single round-trip)
     if (rows.length === 0) {
-      const seeds = [
-        ["🎉","promo","IMAP-এ স্বাগতম!","Welcome to IMAP!","আজ যেকোনো সেবায় IMAP20 কোডে ২০% ছাড় পাচ্ছেন।","Use code IMAP20 for 20% off your first booking!"],
-        ["🛡️","info","KYC যাচাই করুন","Complete KYC Verification","আপনার পরিচয় যাচাই করে আরও সুবিধা পান।","Verify your identity to unlock more features."],
-        ["🔔","info","নতুন সেবা যোগ হয়েছে","New Services Available","নার্সিং ও গৃহ পরিচ্ছন্নতা সেবায় নতুন প্রোভাইডার যোগ হয়েছেন।","New providers added for nursing & cleaning services."],
-      ];
-      for (const [icon, type, title_bn, title_en, body_bn, body_en] of seeds) {
-        await pool.query(
-          "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
-          [req.user.id, icon, type, title_bn, title_en, body_bn, body_en]
-        ).catch(()=>{});
-      }
+      await pool.query(
+        "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?),(?,?,?,?,?,?,?),(?,?,?,?,?,?,?)",
+        [
+          req.user.id,"🎉","promo","IMAP-এ স্বাগতম!","Welcome to IMAP!","আজ যেকোনো সেবায় IMAP20 কোডে ২০% ছাড় পাচ্ছেন।","Use code IMAP20 for 20% off your first booking!",
+          req.user.id,"🛡️","info","KYC যাচাই করুন","Complete KYC Verification","আপনার পরিচয় যাচাই করে আরও সুবিধা পান।","Verify your identity to unlock more features.",
+          req.user.id,"🔔","info","নতুন সেবা যোগ হয়েছে","New Services Available","নার্সিং ও গৃহ পরিচ্ছন্নতা সেবায় নতুন প্রোভাইডার যোগ হয়েছেন।","New providers added for nursing & cleaning services.",
+        ]
+      ).catch(()=>{});
       const [seeded] = await pool.query(
         "SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
         [req.user.id]

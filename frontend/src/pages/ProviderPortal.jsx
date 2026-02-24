@@ -587,12 +587,24 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               </div>
               {editMode&&<button onClick={async()=>{
                 setEditMode(false); showToast(tr.ppProfileSaved);
-                try{ await providersApi.updateMe({
-                  bio_bn:profile.bio, bio_en:profile.bio,
-                  service_type_bn:profile.service, service_type_en:profile.service,
-                  area_bn:profile.area, area_en:profile.area,
-                  hourly_rate:parseFloat(profile.rate)||0,
-                }); }catch(e){console.warn("save profile:",e.message);}
+                try{
+                  const result = await providersApi.updateMe({
+                    bio_bn:profile.bio, bio_en:profile.bio,
+                    service_type_bn:profile.service, service_type_en:profile.service,
+                    area_bn:profile.area, area_en:profile.area,
+                    hourly_rate:parseFloat(profile.rate)||0,
+                  });
+                  // Sync profile state from server response (avoids stale UI)
+                  if(result?.provider){
+                    const d=result.provider;
+                    setProfile(p=>({...p,
+                      service:lang==="bn"?(d.service_type_bn||d.service_type_en||p.service):(d.service_type_en||d.service_type_bn||p.service),
+                      area:   lang==="bn"?(d.area_bn||d.area_en||p.area):(d.area_en||d.area_bn||p.area),
+                      bio:    lang==="bn"?(d.bio_bn||d.bio_en||p.bio):(d.bio_en||d.bio_bn||p.bio),
+                      rate:   d.hourly_rate||p.rate,
+                    }));
+                  }
+                }catch(e){console.warn("save profile:",e.message);}
               }} style={{width:"100%",padding:"12px",background:C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(

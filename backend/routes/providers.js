@@ -209,7 +209,15 @@ router.put("/me", authMiddleware, async (req, res) => {
     cache.del(`provider:detail:${rows[0].id}`);
     cache.del(`provider:analytics:${req.user.id}`);
     cache.del(`provider:jobs:${req.user.id}`);
-    res.json({ success: true });
+    // Return fresh profile so clients can sync without a second GET
+    const [[fresh]] = await pool.query(
+      `SELECT p.id, p.service_type_bn, p.service_type_en, p.area_bn, p.area_en,
+              p.bio_bn, p.bio_en, p.hourly_rate, p.is_available, p.rating,
+              u.name, u.phone
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id WHERE p.user_id = ?`,
+      [req.user.id]
+    );
+    res.json({ success: true, provider: fresh || null });
   } catch (err) {
     logger.error("update provider:", err);
     res.status(500).json({ error: "Server error" });
