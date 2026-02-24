@@ -584,7 +584,7 @@ router.get("/churn", async (req, res) => {
   try {
     // Providers at risk: active but no booking in 30 days
     const [providerChurn] = await db.query(`
-      SELECT p.id, u.name, u.phone, p.service_type,
+      SELECT p.id, u.name, u.phone, p.service_type_en AS service_type, p.service_type_bn,
              MAX(b.created_at) AS last_booking,
              COUNT(b.id) AS total_bookings,
              DATEDIFF(NOW(), COALESCE(MAX(b.created_at), p.created_at)) AS days_inactive
