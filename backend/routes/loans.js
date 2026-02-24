@@ -11,6 +11,7 @@ const router = require("express").Router();
 const pool   = require("../db");
 const { v4: uuidv4 } = require("uuid");
 const { authMiddleware, requireRole } = require("../middleware/auth");
+const cache  = require("../utils/cache");
 
 // ── Auto-create table ─────────────────────────────────────
 const initTable = async () => {
@@ -82,12 +83,15 @@ const calcLoanScore = async (userId) => {
 // ── GET /api/loans/score ──────────────────────────────────
 router.get("/score", authMiddleware, async (req, res) => {
   try {
-    const score = await calcLoanScore(req.user.id);
-    const [[{ cnt }]] = await pool.query(
-      "SELECT COUNT(*) AS cnt FROM microloans WHERE user_id=? AND status IN ('pending','approved','disbursed')",
-      [req.user.id]
-    );
-    res.json({ score, has_active_loan: cnt > 0 });
+    const data = await cache.getOrSet(`loans:score:${req.user.id}`, async () => {
+      const score = await calcLoanScore(req.user.id);
+      const [[{ cnt }]] = await pool.query(
+        "SELECT COUNT(*) AS cnt FROM microloans WHERE user_id=? AND status IN ('pending','approved','disbursed')",
+        [req.user.id]
+      );
+      return { score, has_active_loan: cnt > 0 };
+    }, 60);
+    res.json(data);
   } catch (err) {
     logger.error("loan score:", err);
     res.status(500).json({ error: "Server error" });
@@ -151,6 +155,10 @@ router.post("/apply", authMiddleware, async (req, res) => {
       loan_score:   score,
       message:      "আবেদন সফলভাবে জমা হয়েছে।",
     });
+    // Bust user-specific and admin loan caches
+    cache.del(`loans:score:${req.user.id}`);
+    cache.del(`loans:user:${req.user.id}`);
+    ["all","pending"].forEach(s => ["1","2","3"].forEach(p => cache.del(`loans:admin:${s}:p${p}`)));
   } catch (err) {
     logger.error("loan apply:", err);
     res.status(500).json({ error: "Server error" });
@@ -160,11 +168,14 @@ router.post("/apply", authMiddleware, async (req, res) => {
 // ── GET /api/loans — my applications ─────────────────────
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM microloans WHERE user_id=? ORDER BY applied_at DESC",
-      [req.user.id]
-    );
-    res.json({ loans: rows });
+    const data = await cache.getOrSet(`loans:user:${req.user.id}`, async () => {
+      const [rows] = await pool.query(
+        "SELECT * FROM microloans WHERE user_id=? ORDER BY applied_at DESC",
+        [req.user.id]
+      );
+      return { loans: rows };
+    }, 30);
+    res.json(data);
   } catch (err) {
     logger.error("loans list:", err);
     res.status(500).json({ error: "Server error" });
@@ -176,25 +187,28 @@ router.get("/admin", authMiddleware, requireRole("admin"), async (req, res) => {
   try {
     const { status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const baseWhere = status ? "WHERE l.status = ?" : "";
-    const baseParams = status ? [status] : [];
+    const cacheKey = `loans:admin:${status||"all"}:p${page}`;
+    const data = await cache.getOrSet(cacheKey, async () => {
+      const baseWhere = status ? "WHERE l.status = ?" : "";
+      const baseParams = status ? [status] : [];
 
-    const [rows] = await pool.query(
-      `SELECT l.*, u.name AS user_name, u.email AS user_email, u.phone AS user_phone
-       FROM microloans l
-       LEFT JOIN users u ON u.id = l.user_id
-       ${baseWhere}
-       ORDER BY l.applied_at DESC
-       LIMIT ? OFFSET ?`,
-      [...baseParams, parseInt(limit), offset]
-    );
+      const [rows] = await pool.query(
+        `SELECT l.*, u.name AS user_name, u.email AS user_email, u.phone AS user_phone
+         FROM microloans l
+         LEFT JOIN users u ON u.id = l.user_id
+         ${baseWhere}
+         ORDER BY l.applied_at DESC
+         LIMIT ? OFFSET ?`,
+        [...baseParams, parseInt(limit), offset]
+      );
 
-    const [[{ total }]] = await pool.query(
-      `SELECT COUNT(*) AS total FROM microloans ${baseWhere}`,
-      baseParams
-    );
-
-    res.json({ loans: rows, total });
+      const [[{ total }]] = await pool.query(
+        `SELECT COUNT(*) AS total FROM microloans ${baseWhere}`,
+        baseParams
+      );
+      return { loans: rows, total };
+    }, 15);
+    res.json(data);
   } catch (err) {
     logger.error("loans admin list:", err);
     res.status(500).json({ error: "Server error" });
@@ -256,6 +270,12 @@ router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
     }
 
     res.json({ ok: true });
+    // Bust affected caches
+    cache.del(`loans:user:${loan.user_id}`);
+    cache.del(`loans:score:${loan.user_id}`);
+    ["all","pending","approved","disbursed","rejected","repaid"].forEach(s =>
+      ["1","2","3"].forEach(p => cache.del(`loans:admin:${s}:p${p}`))
+    );
   } catch (err) {
     logger.error("loan update:", err);
     res.status(500).json({ error: "Server error" });

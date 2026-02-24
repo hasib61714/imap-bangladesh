@@ -1064,6 +1064,7 @@ function LoanScore() {
   const [loanPurpose,setLoanPurpose]=useState("");
   const [loanDone,setLoanDone]=useState(false);
   const [loanRef,setLoanRef]=useState("");
+  const [loanLoading,setLoanLoading]=useState(false);
   const OFFERS=[
     {amt:"৳৫০,০০০",rate:"৯%",tenure:"12",badge:tr.lo1,best:true},
     {amt:"৳১,০০,০০০",rate:"১১%",tenure:"24",badge:tr.lo2,best:false},
@@ -1091,12 +1092,20 @@ function LoanScore() {
       </div>
       <div style={{display:"flex",gap:10}}>
         <button onClick={()=>setApplyOffer(null)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← ফিরুন"}</button>
-        <button onClick={()=>{
-          if(!loanName.trim()||!loanPhone.trim())return;
-          setLoanRef(`LN-${Math.floor(Math.random()*900000+100000)}`);
-          setLoanDone(true);
-        }} disabled={!loanName.trim()||!loanPhone.trim()} style={{flex:2,padding:"12px",borderRadius:12,background:loanName.trim()&&loanPhone.trim()?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:loanName.trim()&&loanPhone.trim()?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-          {lang==="en"?"Submit Application":"আবেদন জমা দিন"}
+        <button onClick={async()=>{
+          if(!loanName.trim()||!loanPhone.trim()||loanLoading)return;
+          setLoanLoading(true);
+          try{
+            const amtNum=parseInt(String(applyOffer.amt).replace(/[^\d]/g,""))||50000;
+            const r=await loansApi.apply({full_name:loanName.trim(),phone:loanPhone.trim(),purpose:loanPurpose.trim()||undefined,amount:amtNum,tenure_months:parseInt(applyOffer.tenure)||12});
+            setLoanRef(r.reference_no||`LN-${Math.floor(Math.random()*900000+100000)}`);
+            setLoanDone(true);
+          }catch(e){
+            alert(lang==="en"?`Application failed: ${e.data?.error||e.message}`:`আবেদন ব্যর্থ: ${e.data?.error||e.message}`);
+          }
+          setLoanLoading(false);
+        }} disabled={!loanName.trim()||!loanPhone.trim()||loanLoading} style={{flex:2,padding:"12px",borderRadius:12,background:loanName.trim()&&loanPhone.trim()&&!loanLoading?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:loanName.trim()&&loanPhone.trim()&&!loanLoading?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+          {loanLoading?(lang==="en"?"Submitting...":"জমা হচ্ছে..."):(lang==="en"?"Submit Application":"আবেদন জমা দিন")}
         </button>
       </div>
     </div>
