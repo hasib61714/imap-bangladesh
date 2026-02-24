@@ -182,18 +182,18 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
           {/* Desktop nav */}
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            {/* Language toggle */}
+            {/* Language toggle — hidden on mobile */}
             <button onClick={() => setLang && setLang(lang === "bn" ? "en" : "bn")}
-              style={{ background:"none", border:`1px solid ${bdr}`, borderRadius:8, padding:"5px 11px", cursor:"pointer", fontSize:12, fontWeight:600, color:sub }}>
+              style={{ background:"none", border:`1px solid ${bdr}`, borderRadius:8, padding:"5px 11px", cursor:"pointer", fontSize:12, fontWeight:600, color:sub, display: isMob ? "none" : "block" }}>
               {lang === "bn" ? "EN" : "বাং"}
             </button>
-            {/* Dark toggle */}
+            {/* Dark toggle — hidden on mobile */}
             <button onClick={() => setDark && setDark(d => !d)}
-              style={{ background:"none", border:`1px solid ${bdr}`, borderRadius:8, padding:"5px 10px", cursor:"pointer", fontSize:14 }}>
+              style={{ background:"none", border:`1px solid ${bdr}`, borderRadius:8, padding:"5px 10px", cursor:"pointer", fontSize:14, display: isMob ? "none" : "block" }}>
               {dark ? "☀️" : "🌙"}
             </button>
-            <button className="lp-btn lp-btn-o" style={{ fontSize:13, padding:"7px 18px" }} onClick={onGetStarted}>{tr.loginBtn}</button>
-            <button className="lp-btn lp-btn-g" style={{ fontSize:13, padding:"8px 18px" }} onClick={onGetStarted}>{tr.regBtn}</button>
+            <button className="lp-btn lp-btn-o" style={{ fontSize:13, padding:"7px 14px" }} onClick={onGetStarted}>{tr.loginBtn}</button>
+            <button className="lp-btn lp-btn-g" style={{ fontSize:13, padding:"8px 14px" }} onClick={onGetStarted}>{tr.regBtn}</button>
           </div>
         </div>
       </nav>
@@ -541,6 +541,14 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             <button onClick={sendAi}
               style={{ background:G, border:"none", borderRadius:11, width:40, height:40, cursor:"pointer", fontSize:18, color:WH, flexShrink:0 }}>➤</button>
           </div>
+        </div>
+      )}
+
+      {/* ── MOBILE STICKY LOGIN BAR (always visible on phones) ── */}
+      {isMob && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:800, background:card, borderTop:`2px solid ${G}`, padding:"10px 16px", display:"flex", gap:10, boxShadow:"0 -4px 20px rgba(22,163,74,.15)" }}>
+          <button className="lp-btn lp-btn-o" style={{ flex:1, fontSize:14, padding:"11px 0" }} onClick={onGetStarted}>{tr.loginBtn}</button>
+          <button className="lp-btn lp-btn-g" style={{ flex:1, fontSize:14, padding:"12px 0" }} onClick={onGetStarted}>{tr.regBtn}</button>
         </div>
       )}
     </div>
