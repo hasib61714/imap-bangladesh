@@ -101,8 +101,8 @@ router.post("/social-login", async (req, res) => {
     if (!socialId || !provider) return res.status(400).json({ error: "socialId and provider required" });
 
     const [rows] = await pool.query(
-      "SELECT * FROM users WHERE social_id = ? OR email = ?",
-      [socialId, email || ""]
+      "SELECT * FROM users WHERE social_id = ?",
+      [socialId]
     );
 
     if (rows.length) {

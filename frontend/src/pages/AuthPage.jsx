@@ -63,9 +63,15 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
 
   const doSocialLogin = async (provider) => {
     setErr(""); setLoadingKey(provider);
+    // Use a stable per-browser socialId stored in localStorage
+    const sidKey = "imap_sid_" + provider;
+    let sid = localStorage.getItem(sidKey);
+    if (!sid) {
+      sid = provider + "_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
+      localStorage.setItem(sidKey, sid);
+    }
     const mockEmails = { google: "user@gmail.com", facebook: "user@facebook.com" };
     const mockNames  = { google: "Google User", facebook: "Facebook User" };
-    const sid = provider + "_mock_" + Date.now().toString().slice(-6);
     try {
       const res = await authApi.socialLogin(provider, sid, mockEmails[provider], mockNames[provider]);
       setLoadingKey(null);
