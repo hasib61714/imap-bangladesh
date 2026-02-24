@@ -6,12 +6,11 @@ backend/node_modules/
 # Environment files - NEVER commit these!
 .env
 .env.local
-.env.production
 .env.staging
 backend/.env
 frontend/.env
 frontend/.env.local
-frontend/.env.production
+# frontend/.env.production is committed (contains only public VITE_API_URL)
 
 # Build output
 frontend/dist/
