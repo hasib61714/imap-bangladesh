@@ -6,6 +6,8 @@ const { Server }   = require("socket.io");
 const jwt          = require("jsonwebtoken");
 const helmet       = require("helmet");
 const rateLimit    = require("express-rate-limit");
+const compression  = require("compression");
+const logger       = require("./utils/logger");
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -59,12 +61,12 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const uid = socket.user?.id || "guest";
-  console.log(`🔌 Socket connected: ${uid}`);
+  logger.debug(`Socket connected: ${uid}`);
 
   // Join a booking chat room
   socket.on("join_room", (bookingId) => {
     socket.join(`booking_${bookingId}`);
-    console.log(`👥 ${uid} joined room: booking_${bookingId}`);
+    logger.debug(`${uid} joined room: booking_${bookingId}`);
   });
 
   // Leave a booking chat room
@@ -92,7 +94,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log(`🔌 Socket disconnected: ${uid}`);
+    logger.debug(`Socket disconnected: ${uid}`);
   });
 });
 
@@ -123,6 +125,7 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use("/api", generalLimiter);
@@ -313,17 +316,45 @@ app.get("/api/health", (_req, res) => res.json({
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
 
 // ── Global error handler ──────────────────────────────────
-app.use((err, _req, res, _next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ error: "Internal server error" });
+app.use((err, req, res, _next) => {
+  logger.error("Unhandled error", { method: req.method, url: req.originalUrl, err: err.message, stack: err.stack });
+  res.status(err.status || 500).json({ success: false, error: isProd ? "Internal server error" : err.message });
 });
 
 // ── Start ─────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log(`🚀 IMAP Backend   : http://localhost:${PORT}`);
-  console.log(`🔌 Socket.io      : enabled`);
-  console.log(`📡 Health check   : http://localhost:${PORT}/api/health`);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
+  logger.info(`Health check: http://localhost:${PORT}/api/health`);
+});
+
+// ── Graceful shutdown ─────────────────────────────────────
+const shutdown = async (signal) => {
+  logger.info(`${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    logger.info("HTTP server closed");
+    try {
+      const pool = require("./db");
+      await pool.end();
+      logger.info("DB pool closed");
+    } catch (e) {
+      logger.warn("DB pool close error", { err: e.message });
+    }
+    process.exit(0);
+  });
+  // Force exit after 10 s if something hangs
+  setTimeout(() => {
+    logger.error("Forced exit after timeout");
+    process.exit(1);
+  }, 10_000);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught exception", { err: err.message, stack: err.stack });
+  shutdown("uncaughtException");
+});
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled rejection", { reason: String(reason) });
 });

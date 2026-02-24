@@ -1,20 +1,31 @@
-﻿import { useState, useEffect, useRef, useCallback, useContext } from "react";
+﻿import { useState, useEffect, useRef, useCallback, useContext, lazy, Suspense } from "react";
 import L from "leaflet";
 import { C_LIGHT, C_DARK, CSS, CSS_DARK } from "./constants/theme";
 import { T } from "./constants/translations";
 import { SVCS, PROVIDERS, MY_BOOKINGS, NOTIFS_DATA } from "./constants/data";
 import { ThemeCtx, useC, LangCtx, useTr, FavsCtx, LiveDataCtx, useLiveData, UserCtx, useUser } from "./contexts";
 import { Av, Stars, PBar, MiniBar } from "./components/ui";
-import AuthPage from "./pages/AuthPage";
-import KYCPage from "./pages/KYCPage";
-import AdminPanel from "./pages/AdminPanel";
-import ProviderPortal from "./pages/ProviderPortal";
-import LandingPage from "./pages/LandingPage";
+const AuthPage      = lazy(() => import("./pages/AuthPage"));
+const KYCPage       = lazy(() => import("./pages/KYCPage"));
+const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
+const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
+const LandingPage   = lazy(() => import("./pages/LandingPage"));
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
 import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
+
+/* ── Lazy-load fallback ─────────────────────────────────── */
+const PageLoader = () => (
+  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#0f172a" }}>
+    <div style={{ textAlign:"center", color:"#60a5fa" }}>
+      <div style={{ fontSize:36, marginBottom:8 }}>IMAP</div>
+      <div style={{ width:40, height:4, background:"#3b82f6", borderRadius:2, margin:"0 auto", animation:"imap-bar 1s ease-in-out infinite alternate" }}/>
+      <style>{`@keyframes imap-bar{from{opacity:.3;transform:scaleX(.5)}to{opacity:1;transform:scaleX(1)}}`}</style>
+    </div>
+  </div>
+);
 
 /* ── Map a backend provider row → UI provider shape ── */
 const toUiProv = p => ({
@@ -4278,14 +4289,14 @@ export default function IMAP() {
   const refreshBookings = ()=>bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
 
   // ── ROLE-BASED ROUTING ──
-  if(!authUser && showLanding) return <LandingPage dark={dark} setDark={setDark} lang={lang} setLang={setLang}
+  if(!authUser && showLanding) return <Suspense fallback={<PageLoader/>}><LandingPage dark={dark} setDark={setDark} lang={lang} setLang={setLang}
     onGetStarted={()=>setShowLanding(false)}
-    onRegisterProvider={()=>setShowLanding(false)}/>;
-  if(!authUser) return <AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
-    onBack={()=>setShowLanding(true)}/>;
-  if(authUser.role==="admin") return <AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/>;
-  if(authUser.role==="provider") return <ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/>;
-  if(showKyc) return <KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/>;
+    onRegisterProvider={()=>setShowLanding(false)}/></Suspense>;
+  if(!authUser) return <Suspense fallback={<PageLoader/>}><AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
+    onBack={()=>setShowLanding(true)}/></Suspense>;
+  if(authUser.role==="admin") return <Suspense fallback={<PageLoader/>}><AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
+  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
+  if(showKyc) return <Suspense fallback={<PageLoader/>}><KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/></Suspense>;
 
   const tr = T[lang];
   const C  = dark ? C_DARK : C_LIGHT;

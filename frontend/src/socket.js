@@ -23,15 +23,20 @@ export const connectSocket = () => {
   });
 
   socket.on("connect", () => {
-    console.log("🔌 Socket.io connected:", socket.id);
+    if (import.meta.env.DEV) console.log("🔌 Socket.io connected:", socket.id);
   });
 
   socket.on("disconnect", (reason) => {
-    console.log("🔌 Socket.io disconnected:", reason);
+    if (import.meta.env.DEV) console.log("🔌 Socket.io disconnected:", reason);
   });
 
   socket.on("connect_error", (err) => {
-    console.warn("⚠️ Socket.io error:", err.message);
+    if (import.meta.env.DEV) console.warn("⚠️ Socket.io error:", err.message);
+  });
+
+  // Refresh JWT on every reconnect attempt so expiry never blocks reconnection
+  socket.io.on("reconnect_attempt", () => {
+    socket.auth = { token: getToken() };
   });
 
   return socket;
