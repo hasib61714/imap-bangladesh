@@ -167,16 +167,6 @@ router.get("/loyalty", authMiddleware, async (req, res) => {
   try {
     const [[user]] = await pool.query("SELECT points FROM users WHERE id=?", [req.user.id]);
     const points = user?.points || 0;
-    // ensure loyalty_log table exists
-    await pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id VARCHAR(36) NOT NULL,
-      points INT NOT NULL,
-      reason_bn VARCHAR(200),
-      reason_en VARCHAR(200),
-      booking_id VARCHAR(36),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
     const [logs] = await pool.query(
       "SELECT * FROM loyalty_log WHERE user_id=? ORDER BY created_at DESC LIMIT 30",
       [req.user.id]
@@ -191,17 +181,6 @@ router.get("/loyalty", authMiddleware, async (req, res) => {
 // ── GET /api/users/referral — code + friends list ────────
 router.get("/referral", authMiddleware, async (req, res) => {
   try {
-    // ensure referrals table
-    await pool.query(`CREATE TABLE IF NOT EXISTS referrals (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      referrer_id INT NOT NULL,
-      referred_id INT NOT NULL,
-      status ENUM('pending','active') DEFAULT 'pending',
-      bonus_paid DECIMAL(10,2) DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_ref (referrer_id, referred_id)
-    ) ENGINE=InnoDB`);
-
     const [[user]] = await pool.query(
       "SELECT referral_code FROM users WHERE id=?", [req.user.id]
     );

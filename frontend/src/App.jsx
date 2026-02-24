@@ -462,6 +462,7 @@ function BookModal({p,onClose,onSuccess}) {
   const [dynPrice,setDynPrice]=useState(null);
   const [loadingConfirm,setLoadingConfirm]=useState(false);
   const [bookErr,setBookErr]=useState(null);
+  const [bookingRef,setBookingRef]=useState(null);
   const [otpStep,setOtpStep]=useState(false);
   const [otpVal,setOtpVal]=useState("");
   const [otpCode]=useState(()=>String(Math.floor(100000+Math.random()*900000)));
@@ -502,7 +503,7 @@ function BookModal({p,onClose,onSuccess}) {
     }
     setFraudWarn(null);
     try {
-      await bookingsApi.create({
+      const resp = await bookingsApi.create({
         provider_id:    p.id,
         service_type:   p.svcEn||p.svc||p.service_category||"",
         scheduled_at:   time,
@@ -510,6 +511,7 @@ function BookModal({p,onClose,onSuccess}) {
         total_amount:   dynPrice?.dynamicPrice||baseAmount,
         notes:          "",
       });
+      setBookingRef(resp?.id || null);
     } catch(e){ setLoadingConfirm(false); setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")); return; }
     // Refresh wallet balance in context
     usersApi.getWallet().then(d=>{if(d.balance!=null)setBalance(d.balance);}).catch(()=>{});
@@ -575,7 +577,7 @@ function BookModal({p,onClose,onSuccess}) {
       <div style={{fontSize:14,color:C.muted,marginTop:6}}>{name} {eta} {tr.min} {tr.arrives}</div>
       <div style={{background:C.bg,borderRadius:14,padding:18,margin:"14px 0",border:`1px solid ${C.bdr}`}}>
         <div style={{fontSize:11,color:C.muted}}>{tr.bookId}</div>
-        <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#BK-{Math.floor(Math.random()*9000+1000)}</div>
+        <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"BK-"+Math.floor(Math.random()*9000+1000)}</div>
         {dynPrice?.surgeActive&&<div style={{fontSize:10,color:"#F59E0B",marginTop:6}}>⚡ {dynPrice.surgeReason}</div>}
       </div>
       {bundles.length>0&&(
@@ -4280,7 +4282,7 @@ export default function IMAP() {
 
   useEffect(()=>{
     if(!authUser) return;
-    bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
+    bookingsApi.list().then(d=>{if(d.bookings)setLiveBookings(d.bookings);}).catch(()=>{});
     usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});
     // Request browser notification permission
     if("Notification" in window && Notification.permission==="default"){
@@ -4344,7 +4346,7 @@ export default function IMAP() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[page]);
 
-  const refreshBookings = ()=>bookingsApi.list().then(d=>{if(d.bookings?.length)setLiveBookings(d.bookings);}).catch(()=>{});
+  const refreshBookings = ()=>bookingsApi.list().then(d=>{if(d.bookings)setLiveBookings(d.bookings);}).catch(()=>{});
 
   // ── ROLE-BASED ROUTING ──
   if(!authUser && showLanding) return <Suspense fallback={<PageLoader/>}><LandingPage dark={dark} setDark={setDark} lang={lang} setLang={setLang}
@@ -5055,7 +5057,7 @@ export default function IMAP() {
     <LangCtx.Provider value={tr}>
       <div><style>{CSS}{dark?CSS_DARK:""}</style>
         <ElderlyMode onExit={()=>setElderly(false)} onBook={goBook} onEmergency={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}/>
-        {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)}/></div></div>}
+        {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)} onSuccess={()=>{refreshBookings();usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});}}/></div></div>}
         {emg&&<EmgModal/>}
       </div>
     </LangCtx.Provider>
@@ -5109,8 +5111,8 @@ export default function IMAP() {
         {detail&&<div className="ov" onClick={()=>setDetail(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:640}}><PDetail p={detail} onClose={()=>setDetail(null)} onBook={goBook} onChat={p=>{setDetail(null);setChatWith(p);}}/></div></div>}
         {chatWith&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg}}><LiveChatPage provider={chatWith} onBack={()=>setChatWith(null)}/></div>}
         {/* Booking modal */}
-        {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)}/></div></div>}
-        {/* Rating modal */}
+        {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)} onSuccess={()=>{refreshBookings();usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});}}/></div></div>}
+        {/* Rating modal */
         {rateFor&&<div className="ov" onClick={()=>setRateFor(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}><RatingModal p={rateFor} onClose={()=>setRateFor(null)} onSuccess={()=>{refreshBookings();setRateFor(null);}}/></div></div>}
         {/* Search / filter modal */}
         {modal==="search"&&<div className="ov" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:580}}><SearchFilter onClose={()=>setModal(null)} onBook={goBook} onView={p=>{setModal(null);setDetail(p);}}/></div></div>}
