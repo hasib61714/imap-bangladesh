@@ -427,10 +427,10 @@ router.post("/fraud-check", async (req, res) => {
 
     // 3. New user with large amount
     const [userInfo] = await db.query(
-      `SELECT created_at FROM users WHERE id=?`, [userId]
+      `SELECT joined_at FROM users WHERE id=?`, [userId]
     );
     const ageHours = userInfo[0]
-      ? (Date.now() - new Date(userInfo[0].created_at)) / 3600000 : 999;
+      ? (Date.now() - new Date(userInfo[0].joined_at)) / 3600000 : 999;
     if (ageHours < 2 && amount > 1000) { flags.push("নতুন একাউন্ট + বড় পেমেন্ট"); score += 25; }
 
     // 4. Off-hours booking
