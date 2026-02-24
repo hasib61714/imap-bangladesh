@@ -2342,8 +2342,8 @@ function SettingsPage(){
       localStorage.setItem("imap_notif_sms",String(notifSms));
       localStorage.setItem("imap_2fa",String(privacy2fa));
       localStorage.setItem("imap_loc",String(privacyLoc));
+      setSaved(true);setTimeout(()=>setSaved(false),2500);
     }catch(e){console.warn("settings save:",e.message);}finally{setSaving(false);}
-    setSaved(true);setTimeout(()=>setSaved(false),2500);
   };
 
   const Toggle=({val,set})=>(
@@ -2365,7 +2365,7 @@ function SettingsPage(){
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
             <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:10}}>👤</div>
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>{name}</div>
-            <div style={{fontSize:12,color:C.muted}}>ID: IMAP-8821</div>
+            <div style={{fontSize:12,color:C.muted}}>ID: IMAP-{authUser?.id||"User"}</div>
           </div>
           {[[tr.stProfile+" "+lang==="en"?"Name":"নাম",name,setName],[tr.stEmail,email,setEmail],[tr.stPhone,phone,setPhone]].map(([lbl,val,set])=>(
             <div key={lbl} style={{marginBottom:14}}>
@@ -3263,6 +3263,7 @@ function WalletPage() {
       const d=await usersApi.topup(finalAmt,selMethod);
       const newBal=d.balance??balance+finalAmt;
       setBalance(newBal); setCtxBalance(newBal);
+      setSuccess(true); setTimeout(()=>setSuccess(false),3500);
       // Reload transaction history to show new topup entry
       usersApi.getWallet().then(data=>{
         if(Array.isArray(data.transactions)){
