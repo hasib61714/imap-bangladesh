@@ -101,8 +101,8 @@ router.get("/", authMiddleware, async (req, res) => {
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
        FROM bookings b
-       JOIN providers p ON p.id = b.provider_id
-       JOIN users u ON u.id = p.user_id
+       LEFT JOIN providers p ON p.id = b.provider_id
+       LEFT JOIN users u ON u.id = p.user_id
        WHERE ${where.join(" AND ")}
        ORDER BY b.created_at DESC
        LIMIT ? OFFSET ?`,
@@ -121,8 +121,8 @@ router.get("/:id", authMiddleware, async (req, res) => {
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
        FROM bookings b
-       JOIN providers p ON p.id = b.provider_id
-       JOIN users u ON u.id = p.user_id
+       LEFT JOIN providers p ON p.id = b.provider_id
+       LEFT JOIN users u ON u.id = p.user_id
        WHERE b.id = ? AND b.customer_id = ?`,
       [req.params.id, req.user.id]
     );
