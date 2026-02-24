@@ -241,6 +241,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:revenue");
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
+      if (prov.length) cache.del(`user:wallet:${prov[0].user_id}`); // bust provider wallet after earnings credit
       cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Notify via socket too
       if (io) {
@@ -269,6 +270,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       cache.del("admin:revenue");
       cache.del("admin:bookings:default");
       if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
+      cache.del(`user:wallet:${booking.customer_id}`); // bust customer wallet after cancellation refund
       cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
       // Socket-notify provider so their jobs view updates immediately
       if (io && prov.length) {
