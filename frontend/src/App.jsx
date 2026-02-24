@@ -2601,7 +2601,7 @@ function LoyaltyPage(){
                   <div style={{fontSize:28}}>{r.icon}</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.text}}>{lang==="en"?r.titleEn:r.titleBn}</div>
-                    <div style={{fontSize:11,color:canRedeem?"#16A34A":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?("✅ "+lang==="en"?"available":"পাওয়া যাচ্ছে"):("— "+(r.pts-points)+" "+lang==="en"?"more needed":"আরও দরকার")}</div>
+                    <div style={{fontSize:11,color:canRedeem?"#16A34A":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`✅ ${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
                   </div>
                   <button onClick={async()=>{
                     if(!canRedeem||isRedeemed||redeemingCode)return;
