@@ -4351,7 +4351,7 @@ export default function IMAP() {
         {/* Right controls */}
         <div className="row" style={{marginLeft:"auto",gap:8}}>
           {/* Language selector */}
-          <LangSelector lang={lang} setLang={setLang} C={C}/>
+          <button onClick={()=>setLang(lang==="bn"?"en":"bn")} title={lang==="bn"?"Switch to English":"বাংলায় পরিবর্তন করুন"} style={{height:36,padding:"0 11px",border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",fontSize:12,fontWeight:700,color:C.text,transition:"all .2s"}}>{lang==="bn"?"EN":"বাং"}</button>
           {/* Dark mode toggle */}
           <button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>
           {/* Icon buttons (desktop) */}
