@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const cache  = require('../utils/cache');
 
 // Seed default slots for a provider if they have none
 const seedDefaultSlots = async (providerId) => {
@@ -76,6 +77,7 @@ router.patch("/:slotId", authMiddleware, async (req, res) => {
       "UPDATE provider_schedule SET is_available=? WHERE id=? AND provider_id=?",
       [avail ? 1 : 0, slotId, prov.id]
     );
+    cache.del(`schedule:provider:${prov.id}`);
     res.json({ success: true });
   } catch (e) {
     logger.error("schedule patch:", e);
@@ -87,16 +89,19 @@ router.patch("/:slotId", authMiddleware, async (req, res) => {
 router.get("/provider/:providerId", async (req, res) => {
   try {
     const { providerId } = req.params;
-    const [rows] = await pool.query(
-      "SELECT id,day_name_bn,day_name_en,slot_time,is_available FROM provider_schedule WHERE provider_id=? ORDER BY id",
-      [providerId]
-    );
-    const slots = {};
-    rows.forEach(r => {
-      const day = r.day_name_bn || r.day_name_en;
-      if (!slots[day]) slots[day] = [];
-      slots[day].push({ id: r.id, t: r.slot_time, avail: !!r.is_available });
-    });
+    const slots = await cache.getOrSet(`schedule:provider:${providerId}`, async () => {
+      const [rows] = await pool.query(
+        "SELECT id,day_name_bn,day_name_en,slot_time,is_available FROM provider_schedule WHERE provider_id=? ORDER BY id",
+        [providerId]
+      );
+      const s = {};
+      rows.forEach(r => {
+        const day = r.day_name_bn || r.day_name_en;
+        if (!s[day]) s[day] = [];
+        s[day].push({ id: r.id, t: r.slot_time, avail: !!r.is_available });
+      });
+      return s;
+    }, 60);
     res.json({ slots });
   } catch (e) {
     res.status(500).json({ error: "Server error" });

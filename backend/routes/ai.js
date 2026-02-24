@@ -14,6 +14,7 @@
 const express = require("express");
 const router  = express.Router();
 const db      = require("../db");
+const cache   = require('../utils/cache');
 
 /* ── Google Gemini helper (free tier — try first) ─────────── */
 async function callGemini(messages, lang = "bn") {
@@ -508,6 +509,7 @@ router.post("/review-check", async (req, res) => {
 ═══════════════════════════════════════════════════════════ */
 router.get("/forecast", async (req, res) => {
   try {
+    const data = await cache.getOrSet('ai:forecast', async () => {
     // Monthly revenue last 6 months
     const [monthlyRevenue] = await db.query(`
       SELECT DATE_FORMAT(created_at,'%Y-%m') AS month,
@@ -571,7 +573,9 @@ router.get("/forecast", async (req, res) => {
       })),
       peakHours,
       generatedAt: new Date().toISOString(),
-    });
+    };
+    }, 300);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -583,6 +587,7 @@ router.get("/forecast", async (req, res) => {
 ═══════════════════════════════════════════════════════════ */
 router.get("/churn", async (req, res) => {
   try {
+    const data = await cache.getOrSet('ai:churn', async () => {
     // Providers at risk: active but no booking in 30 days
     const [providerChurn] = await db.query(`
       SELECT p.id, u.name, u.phone, p.service_type_en AS service_type, p.service_type_bn,
@@ -621,11 +626,13 @@ router.get("/churn", async (req, res) => {
       churnScore: Math.min(Math.round(r[daysField] / 90 * 100), 100),
     }));
 
-    res.json({
+    return {
       providerChurn: addRisk(providerChurn, "days_inactive"),
       customerChurn: addRisk(customerChurn, "days_since_last"),
       total: providerChurn.length + customerChurn.length,
-    });
+    };
+    }, 300);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -637,6 +644,7 @@ router.get("/churn", async (req, res) => {
 ═══════════════════════════════════════════════════════════ */
 router.get("/heatmap", async (req, res) => {
   try {
+    const data = await cache.getOrSet('ai:heatmap', async () => {
     const [rows] = await db.query(`
       SELECT 
         COALESCE(b.address, 'অজানা') AS area,
@@ -668,7 +676,9 @@ router.get("/heatmap", async (req, res) => {
       status:         (supplyMap[r.area] || 0) < r.total_bookings / 10 ? "undersupplied" : "balanced",
     }));
 
-    res.json({ heatmap, generatedAt: new Date().toISOString() });
+    return { heatmap, generatedAt: new Date().toISOString() };
+    }, 300);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

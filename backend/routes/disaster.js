@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const cache = require('../utils/cache');
 
 // Ensure disaster_reports table exists
 const initTable = async () => {
@@ -34,10 +35,13 @@ initTable().catch(e => logger.warn("disaster table init:", e.message));
 // GET /api/disaster/alerts  — public
 router.get("/alerts", async (_req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM disaster_reports ORDER BY created_at DESC LIMIT 20"
-    );
-    res.json({ alerts: rows });
+    const alerts = await cache.getOrSet('disaster:alerts', async () => {
+      const [rows] = await pool.query(
+        "SELECT * FROM disaster_reports ORDER BY created_at DESC LIMIT 20"
+      );
+      return rows;
+    }, 30);
+    res.json({ alerts });
   } catch (e) {
     logger.error("disaster alerts:", e);
     res.status(500).json({ error: "Server error" });
@@ -54,6 +58,7 @@ router.post("/report", async (req, res) => {
       "INSERT INTO disaster_reports (user_id,reporter_name,type,description,area,severity) VALUES (?,?,?,?,?,?)",
       [user_id||null, reporter_name||null, type, description||"", area||"", sev]
     );
+    cache.del('disaster:alerts');
     res.json({ success: true, id: result.insertId });
   } catch (e) {
     logger.error("disaster report:", e);

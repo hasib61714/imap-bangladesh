@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const cache = require('../utils/cache');
 
 // Ensure table exists with seed data
 const initTable = async () => {
@@ -48,6 +49,8 @@ initTable().catch(e => logger.warn("blood table init:", e.message));
 router.get("/", async (req, res) => {
   try {
     const { group } = req.query;
+    const cacheKey = `blood:donors:${group || 'all'}`;
+    const donors = await cache.getOrSet(cacheKey, async () => {
     let sql = "SELECT * FROM blood_donors WHERE 1=1";
     const params = [];
     if (group && group !== "all") { sql += " AND blood_group = ?"; params.push(group); }
@@ -61,7 +64,7 @@ router.get("/", async (req, res) => {
       const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
       return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 10) / 10;
     };
-    const donors = rows.map(r => {
+    return rows.map(r => {
       let lastDonMonths = 3;
       if (r.last_donated) {
         const diff = Date.now() - new Date(r.last_donated).getTime();
@@ -85,6 +88,7 @@ router.get("/", async (req, res) => {
         lastDon: lastDonMonths,
       };
     });
+    }, 120);
     res.json({ donors });
   } catch (e) {
     logger.error("blood list:", e);
@@ -107,6 +111,9 @@ router.post("/register", authMiddleware, async (req, res) => {
       await pool.query("INSERT INTO blood_donors (user_id,name,blood_group,phone,area_bn,area_en,is_available) VALUES (?,?,?,?,?,?,1)",
         [user.id, user.name || "Donor", blood_group, phone, area_bn||"", area_en||""]);
     }
+    // Bust donor list cache for the registered group and 'all'
+    cache.del(`blood:donors:${blood_group}`);
+    cache.del('blood:donors:all');
     res.json({ success: true });
   } catch (e) {
     logger.error("blood register:", e);
