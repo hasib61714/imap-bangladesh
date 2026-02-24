@@ -26,7 +26,8 @@ seed().catch(e => console.warn("promo seed:", e.message));
 router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, code, title_bn, title_en,
+      `SELECT id, code, title_bn AS descBn, title_en AS descEn,
+              title_bn, title_en,
               discount_pct AS pct,
               COALESCE(max_discount, discount_amt) AS maxTk,
               min_order AS minOrder,
