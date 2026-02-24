@@ -127,6 +127,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const [notifTitle, setNotifTitle] = useState("");
   const [notifMsg,   setNotifMsg]   = useState("");
   const [notifTarget,setNotifTarget]= useState("all");
+  const [notifSending, setNotifSending] = useState(false);
+  const [promoSaving,  setPromoSaving]  = useState(false);
   const [promos, setPromos] = useState([]);
   const [promoForm, setPromoForm] = useState({ code:"", discount:"", type:"percent", limit:"" });
   const [categories, setCategories] = useState([]);
@@ -1000,10 +1002,11 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         <Input.TextArea rows={3} value={notifMsg} onChange={e=>setNotifMsg(e.target.value)}
                           placeholder={lang==="bn"?"বিবরণ লিখুন...":"Write message..."} />
                       </Form.Item>
-                      <Button type="primary" icon={<SendOutlined/>} block onClick={async()=>{
+                      <Button type="primary" icon={<SendOutlined/>} block loading={notifSending} onClick={async()=>{
                         if(!notifTitle.trim()||!notifMsg.trim()){toast(lang==="bn"?"শিরোনাম ও বার্তা দিন":"Enter title and message","warning");return;}
                         const titleVal=notifTitle; const msgVal=notifMsg;
-                        try{await adminApi.notify({title_bn:titleVal,title_en:titleVal,body_bn:msgVal,body_en:msgVal,type:"system"});}catch(e){console.warn(e.message);}
+                        setNotifSending(true);
+                        try{await adminApi.notify({title_bn:titleVal,title_en:titleVal,body_bn:msgVal,body_en:msgVal,type:"system"});}catch(e){console.warn(e.message);}finally{setNotifSending(false);}
                         setNotifTitle("");setNotifMsg("");
                         loadAnnouncements();
                         toast(lang==="bn"?"📢 বিজ্ঞপ্তি পাঠানো হয়েছে":"📢 Sent!");
@@ -1054,12 +1057,23 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         placeholder="500" type="number" addonBefore={lang==="bn"?"লিমিট":"Limit"} />
                     </Col>
                     <Col xs={24} sm={4}>
-                      <Button type="primary" icon={<PlusOutlined/>} block onClick={()=>{
+                      <Button type="primary" icon={<PlusOutlined/>} block loading={promoSaving} onClick={async()=>{
                         if(!promoForm.code||!promoForm.discount){toast(lang==="bn"?"কোড ও ছাড় দিন":"Enter code and discount","warning");return;}
-                        setPromos(p=>[...p,{id:"PR"+Date.now().toString().slice(-4),code:promoForm.code,discount:Number(promoForm.discount),
-                          type:promoForm.type,uses:0,limit:Number(promoForm.limit)||999,expires:"2025-12-31",active:true}]);
-                        setPromoForm({code:"",discount:"",type:"percent",limit:""});
-                        toast(lang==="bn"?"✅ প্রোমো যোগ":"✅ Created");
+                        setPromoSaving(true);
+                        try{
+                          await adminApi.promoCreate({
+                            code: promoForm.code,
+                            discount_pct: promoForm.type==="percent"?Number(promoForm.discount):0,
+                            discount_amt: promoForm.type==="flat"?Number(promoForm.discount):0,
+                            max_uses: Number(promoForm.limit)||999,
+                            valid_until: "2025-12-31",
+                          });
+                          setPromoForm({code:"",discount:"",type:"percent",limit:""});
+                          loadPromos();
+                          toast(lang==="bn"?"✅ প্রোমো তৈরি হয়েছে":"✅ Promo created!");
+                        }catch(e){
+                          toast(lang==="bn"?"❌ ব্যর্থ হয়েছে":"❌ Failed","error");
+                        }finally{setPromoSaving(false);}
                       }}>{lang==="bn"?"যোগ":"Add"}</Button>
                     </Col>
                   </Row>

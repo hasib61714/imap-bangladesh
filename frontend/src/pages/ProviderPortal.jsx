@@ -29,6 +29,8 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   };
   const [profile,setProfile]=useState({name:user.name,service:lang==="bn"?"ইলেকট্রিশিয়ান":"Electrician",area:lang==="bn"?"ঢাকা":"Dhaka",bio:lang==="bn"?"৫+ বছরের অভিজ্ঞতাসম্পন্ন দক্ষ পেশাদার।":"Skilled professional with 5+ years of experience.",rate:600,phone:user.phone});
   const [withdrawAmt,setWithdrawAmt]=useState("");
+  const [withdrawing,setWithdrawing]=useState(false);
+  const [savingProfile,setSavingProfile]=useState(false);
   const [dotMenu,setDotMenu]=useState(false);
   // ── All data state — must be declared BEFORE useEffects that reference them ──
   const [jobs,setJobs]=useState([]);
@@ -491,7 +493,8 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                 <input value={withdrawAmt} onChange={e=>setWithdrawAmt(e.target.value)} placeholder={lang==="bn"?"পরিমাণ ৳":"Amount ৳"}
                   style={{flex:1,padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:10,fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={async()=>{
-                  if(!withdrawAmt) return;
+                  if(!withdrawAmt||withdrawing) return;
+                  setWithdrawing(true);
                   try{
                     await usersApi.withdraw(parseFloat(withdrawAmt),"bKash/Nagad");
                     showToast(tr.ppWithdrawDone);
@@ -509,7 +512,8 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                     }).catch(()=>{});
                   }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
-                }} style={{padding:"11px 20px",background:C.p,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>bKash/Nagad</button>
+                  finally{ setWithdrawing(false); }
+                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:"#fff",border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"⏳...":"bKash/Nagad"}</button>
               </div>
               <div style={{fontSize:12,color:C.muted,marginTop:8}}>{lang==="bn"?"bKash / Nagad / Rocket এ সরাসরি পাঠানো হবে":"Sent directly to your bKash / Nagad / Rocket"}</div>
             </div>
@@ -586,7 +590,8 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                 )}
               </div>
               {editMode&&<button onClick={async()=>{
-                setEditMode(false); showToast(tr.ppProfileSaved);
+                if(savingProfile) return;
+                setSavingProfile(true);
                 try{
                   const result = await providersApi.updateMe({
                     bio_bn:profile.bio, bio_en:profile.bio,
@@ -604,8 +609,11 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                       rate:   d.hourly_rate||p.rate,
                     }));
                   }
-                }catch(e){console.warn("save profile:",e.message);}
-              }} style={{width:"100%",padding:"12px",background:C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppSaveProfile}</button>}
+                  setEditMode(false); showToast(tr.ppProfileSaved);
+                }catch(e){
+                  showToast(lang==="bn"?"সংরক্ষণ ব্যর্থ হয়েছে":"Save failed");
+                }finally{ setSavingProfile(false); }
+              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
               <div style={{background:"#FFFBEB",borderRadius:14,padding:16,border:"1px solid #FCD34D",marginBottom:16}}>
