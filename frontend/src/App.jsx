@@ -1332,9 +1332,8 @@ function NIDPage({onClose}) {
         img_back:b64.back||null,
         img_selfie:b64.selfie||null,
       });
-    }catch(e){console.warn("KYC submit:",e?.data?.error||e.message);}
-    setSubmitting(false);
-    setStep(2);
+      setStep(2);
+    }catch(e){console.warn("KYC submit:",e?.data?.error||e.message);alert(lang==="en"?"Submission failed — please try again.":"জমা ব্যর্থ হয়েছে — আবার চেষ্টা করুন।");}finally{setSubmitting(false);}
   };
 
   if(step===2) return (
@@ -1700,7 +1699,7 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
                 <div style={{fontWeight:700,fontSize:13}}>{b.service}</div>
                 <div style={{fontSize:11,color:C.muted}}>{b.provider} · {b.date}</div>
               </div>
-              <span style={{background:statusBg[b.status][0],color:statusBg[b.status][1],borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,flexShrink:0}}>{statusLabel[b.status]}</span>
+              <span style={{background:(statusBg[b.status]||statusBg.pending)[0],color:(statusBg[b.status]||statusBg.pending)[1],borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,flexShrink:0}}>{statusLabel[b.status]||statusLabel.pending}</span>
             </div>
           ))}
         </div>
