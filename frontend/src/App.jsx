@@ -3242,6 +3242,7 @@ function WalletPage() {
           })));
         }
       }).catch(()=>{});
+    } catch(e){ console.error("topup:",e); alert(lang==="en"?"Top-up failed. Please try again.":"টপ-আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"); }
   };
 
   const txColor=t=>t.amount>0?"#16A34A":"#DC2626";
@@ -5114,7 +5115,7 @@ export default function IMAP() {
         {chatWith&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg}}><LiveChatPage provider={chatWith} onBack={()=>setChatWith(null)}/></div>}
         {/* Booking modal */}
         {booking&&<div className="ov" onClick={()=>setBooking(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}><BookModal p={booking} onClose={()=>setBooking(null)} onSuccess={()=>{refreshBookings();usersApi.getWallet().then(d=>{if(d.balance!=null)setWalletBalance(d.balance);}).catch(()=>{});}}/></div></div>}
-        {/* Rating modal */
+        {/* Rating modal */}
         {rateFor&&<div className="ov" onClick={()=>setRateFor(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}><RatingModal p={rateFor} onClose={()=>setRateFor(null)} onSuccess={()=>{refreshBookings();setRateFor(null);}}/></div></div>}
         {/* Search / filter modal */}
         {modal==="search"&&<div className="ov" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:580}}><SearchFilter onClose={()=>setModal(null)} onBook={goBook} onView={p=>{setModal(null);setDetail(p);}}/></div></div>}
