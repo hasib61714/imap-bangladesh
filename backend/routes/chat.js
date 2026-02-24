@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const { sendPush } = require("../utils/push");
 
 // Ensure chat_messages table exists
 const initTable = async () => {
@@ -58,6 +59,27 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
         sender_avatar: user.avatar || null,
       });
     }
+
+    // Push notification to the other party
+    try {
+      const [bRows] = await pool.query(
+        `SELECT b.customer_id, p.user_id AS provider_user_id
+         FROM bookings b JOIN providers p ON p.id = b.provider_id
+         WHERE b.id = ? LIMIT 1`,
+        [bookingId]
+      );
+      if (bRows.length) {
+        const { customer_id, provider_user_id } = bRows[0];
+        const otherId = String(user.id) === String(provider_user_id) ? customer_id : provider_user_id;
+        if (otherId) {
+          sendPush(otherId, {
+            title: `💬 ${user.name || "বার্তা"}`,
+            body:  message.trim().slice(0, 80),
+            url:   "/",
+          }).catch(() => {});
+        }
+      }
+    } catch {}
 
     res.json({ success: true, message: msg });
   } catch (e) {

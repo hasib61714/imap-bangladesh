@@ -297,4 +297,87 @@ router.put("/settings", authMiddleware, async (req, res) => {
   }
 });
 
+// ── Push Notifications ────────────────────────────────────
+const webpush = require("web-push");
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    "mailto:admin@imap-bangladesh.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+// Ensure push_subscriptions table exists (called once on first use)
+let pushTableReady = false;
+async function ensurePushTable() {
+  if (pushTableReady) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      endpoint VARCHAR(600) NOT NULL,
+      keys JSON,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_ep (endpoint(255))
+    )
+  `);
+  pushTableReady = true;
+}
+
+// POST /api/users/push-subscribe — save browser push subscription
+router.post("/push-subscribe", authMiddleware, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (!subscription?.endpoint) return res.status(400).json({ error: "Invalid subscription" });
+    await ensurePushTable();
+    await pool.query(
+      `INSERT INTO push_subscriptions (user_id, endpoint, keys)
+       VALUES (?,?,?)
+       ON DUPLICATE KEY UPDATE user_id=?, keys=?`,
+      [req.user.id, subscription.endpoint, JSON.stringify(subscription.keys),
+       req.user.id, JSON.stringify(subscription.keys)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("push-subscribe:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// POST /api/users/test-push — send test push notification to self
+router.post("/test-push", authMiddleware, async (req, res) => {
+  try {
+    if (!process.env.VAPID_PUBLIC_KEY) return res.status(501).json({ error: "Push not configured on server" });
+    await ensurePushTable();
+    const [subs] = await pool.query(
+      "SELECT * FROM push_subscriptions WHERE user_id=? LIMIT 5",
+      [req.user.id]
+    );
+    if (!subs.length) return res.status(404).json({ error: "No subscription found. Please enable push first." });
+
+    const payload = JSON.stringify({
+      title: "🔔 IMAP Bangladesh",
+      body: "পুশ নোটিফিকেশন সফলভাবে চালু হয়েছে! ✅",
+      url: "/"
+    });
+    const results = await Promise.allSettled(
+      subs.map(s => webpush.sendNotification(
+        { endpoint: s.endpoint, keys: typeof s.keys === "string" ? JSON.parse(s.keys) : s.keys },
+        payload
+      ))
+    );
+    const sent = results.filter(r => r.status === "fulfilled").length;
+    res.json({ success: true, sent });
+  } catch (err) {
+    console.error("test-push:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/users/vapid-public-key — serve VAPID public key to frontend
+router.get("/vapid-public-key", (req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY || "";
+  res.json({ key });
+});
+
 module.exports = router;

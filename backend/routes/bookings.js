@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const { sendPush } = require("../utils/push");
 
 // ── POST /api/bookings ────────────────────────────────────
 router.post("/", authMiddleware, async (req, res) => {
@@ -152,17 +153,30 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       });
     }
 
-    // On complete — update provider stats, notify customer
+    // Status-based notifications
+    const pushMessages = {
+      confirmed:  { title: "✅ বুকিং নিশ্চিত",   body: "আপনার বুকিং নিশ্চিত হয়েছে।" },
+      active:     { title: "🔄 সেবা শুরু হয়েছে",  body: "সেবা প্রদানকারী কাজ শুরু করেছেন।" },
+      completed:  { title: "🎉 সেবা সম্পন্ন",   body: "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন!" },
+      cancelled:  { title: "❌ বুকিং বাতিল",   body: "আপনার বুকিং বাতিল করা হয়েছে।" },
+    };
+    const pushMsg = pushMessages[status];
+    if (pushMsg) {
+      // Push to customer
+      sendPush(booking.customer_id, { ...pushMsg, url: "/" }).catch(() => {});
+      // Insert DB notification
+      await pool.query(
+        "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
+        [booking.customer_id, pushMsg.title.slice(0,2), "booking",
+         pushMsg.title, pushMsg.title, pushMsg.body, pushMsg.body]
+      ).catch(() => {});
+    }
+
+    // On complete — update provider stats
     if (status === "completed") {
       await pool.query(
         "UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?",
         [booking.provider_id]
-      );
-      // Notify customer
-      await pool.query(
-        "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
-        [booking.customer_id, "✅", "booking", "সেবা সম্পন্ন", "Service Completed",
-         "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন।", "Your service is complete. Please rate."]
       );
       // Notify via socket too
       if (io) {

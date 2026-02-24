@@ -1538,6 +1538,27 @@ function NotifPage() {
   const lang=tr===T.en?"en":"bn";
   const [notifs,setNotifs]=useState(NOTIFS_DATA);
   const [filter,setFilter]=useState("all");
+  const [pushPerm,setPushPerm]=useState(()=>typeof Notification!=="undefined"?Notification.permission:"unsupported");
+  const [pushLoading,setPushLoading]=useState(false);
+
+  const VAPID_PUB=import.meta.env.VITE_VAPID_PUBLIC_KEY||"BF_hmW0seM25G-gFZagh8h-Sq_nDKhc_XKjTa2aU2uebfWUwhR7omk6S_0BGryEVslOqgb4gWnwttUmfVraKTw4";
+  const urlB64ToU8=b64=>{const p=b64.replace(/-/g,"+").replace(/_/g,"/");const raw=atob(p);const a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return a;};
+
+  const subscribePush=async()=>{
+    if(!("serviceWorker" in navigator&&"PushManager" in window)){
+      alert(lang==="en"?"Push not supported in this browser.":"এই ব্রাউজারে পুশ নোটিফিকেশন সমর্থিত নয়।");return;
+    }
+    setPushLoading(true);
+    try{
+      const perm=await Notification.requestPermission();
+      setPushPerm(perm);
+      if(perm!=="granted"){setPushLoading(false);return;}
+      const reg=await navigator.serviceWorker.ready;
+      const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(VAPID_PUB)});
+      await usersApi.pushSubscribe(sub.toJSON());
+    }catch(e){console.warn("push subscribe error:",e);}
+    setPushLoading(false);
+  };
 
   // Load live notifications from backend (fallback to static NOTIFS_DATA)
   useEffect(()=>{
@@ -1565,7 +1586,20 @@ function NotifPage() {
     <div>
       <div className="row" style={{justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <div style={{fontSize:18,fontWeight:700}}>{tr.notifsTitle}</div>
-        <button className="btn btn-gh" style={{fontSize:12,border:`1px solid ${C.bdr}`}} onClick={()=>{setNotifs(n=>n.map(x=>({...x,unread:false})));usersApi.markNotifRead().catch(()=>{});}}>{tr.markRead}</button>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          {pushPerm!=="granted"&&pushPerm!=="unsupported"&&(
+            <button className="btn" disabled={pushLoading} onClick={subscribePush}
+              style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
+              {pushLoading?"⏳":(lang==="en"?"🔔 Enable Push":"🔔 পুশ চালু করুন")}
+            </button>
+          )}
+          {pushPerm==="granted"&&(
+            <span style={{fontSize:11,color:C.p,padding:"5px 11px",background:C.plt,borderRadius:20,border:`1px solid ${C.p}30`,fontWeight:600}}>
+              🔔 {lang==="en"?"Push: On":"পুশ: চালু"}
+            </span>
+          )}
+          <button className="btn btn-gh" style={{fontSize:12,border:`1px solid ${C.bdr}`}} onClick={()=>{setNotifs(n=>n.map(x=>({...x,unread:false})));usersApi.markNotifRead().catch(()=>{});}}>{tr.markRead}</button>
+        </div>
       </div>
       <div className="sx" style={{marginBottom:14}}>
         <div style={{display:"flex",gap:7,width:"max-content"}}>

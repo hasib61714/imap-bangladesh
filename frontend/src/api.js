@@ -83,6 +83,9 @@ export const users = {
   getReferral:      ()    => get("/users/referral"),
   submitComplaint:  (data)=> post("/users/complaints", data),
   saveSettings:     (data)=> put("/users/settings", data),
+  pushSubscribe:    (subscription) => post("/users/push-subscribe", { subscription }),
+  testPush:         ()             => post("/users/test-push", {}),
+  vapidPublicKey:   ()             => get("/users/vapid-public-key"),
 };
 
 // ═══════════════════════════════════════════════════════════════
