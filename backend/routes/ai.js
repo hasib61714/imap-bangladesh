@@ -46,12 +46,13 @@ async function callGemini(messages, lang = "bn") {
       }
     );
     if (!res.ok) {
-      if (res.status === 429) console.warn("⚠️  Gemini quota exceeded — using fallback");
+      const errBody = await res.text().catch(() => "");
+      console.warn(`⚠️  Gemini error ${res.status}: ${errBody.slice(0, 200)}`);
       return null;
     }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch { return null; }
+  } catch (e) { console.warn("Gemini exception:", e.message); return null; }
 }
 
 /* ── OpenAI helper (optional — works without key via fallback) ── */
@@ -150,6 +151,22 @@ function smartFallback(text, lang) {
    POST /api/ai/chat
    body: { messages: [{role, content}], lang: "bn"|"en" }
 ═══════════════════════════════════════════════════════════ */
+/* GET /api/ai/debug — check if Gemini key is configured */
+router.get("/debug", async (req, res) => {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return res.json({ gemini: false, reason: "GEMINI_API_KEY not set" });
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) }
+    );
+    const body = await r.json();
+    if (r.ok) return res.json({ gemini: true, status: r.status });
+    return res.json({ gemini: false, status: r.status, error: body?.error?.message });
+  } catch (e) { return res.json({ gemini: false, reason: e.message }); }
+});
+
 router.post("/chat", async (req, res) => {
   try {
     const { messages = [], lang = "bn" } = req.body;
