@@ -273,6 +273,10 @@ router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
     // Bust affected caches
     cache.del(`loans:user:${loan.user_id}`);
     cache.del(`loans:score:${loan.user_id}`);
+    if (status === "disbursed") {
+      cache.del(`user:wallet:${loan.user_id}`);
+      cache.del(`user:profile:${loan.user_id}`);
+    }
     ["all","pending","approved","disbursed","rejected","repaid"].forEach(s =>
       ["1","2","3"].forEach(p => cache.del(`loans:admin:${s}:p${p}`))
     );

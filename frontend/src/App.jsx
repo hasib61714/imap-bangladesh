@@ -2514,7 +2514,7 @@ function ServiceRequestPage(){
             placeholder={lang==="en"?"Describe your issue in detail...":"সমস্যার বিস্তারিত বিবরণ দিন..."}
             style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
           <label style={{fontSize:12,color:C.sub,fontWeight:600,display:"block",marginBottom:6}}>{tr.srBudget} (BDT)</label>
-          <input value={budget} onChange={e=>setBudget(e.target.value.replace(/[^d]/g,""))}
+          <input value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d]/g,""))}
             placeholder={lang==="en"?"Your budget (optional)":"বাজেট (ঐচ্ছিক)"}
             style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",marginBottom:16,boxSizing:"border-box"}}/>
           <div style={{background:C.plt,borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:12,color:C.sub}}>
