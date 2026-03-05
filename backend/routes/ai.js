@@ -306,6 +306,9 @@ router.post("/chat/stream", async (req, res) => {
 router.post("/match", async (req, res) => {
   try {
     const { serviceType, area, userId, limit = 10 } = req.body;
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 50); // cap at 50
+    const safeType  = String(serviceType || "").slice(0, 80);
+    const safeArea  = String(area        || "").slice(0, 100);
 
     // Base query: get providers with ratings
     let query = `
@@ -321,11 +324,11 @@ router.post("/match", async (req, res) => {
     `;
     const params = [];
 
-    if (serviceType) { query += ` AND (p.service_type_en LIKE ? OR p.service_type_bn LIKE ?)`; params.push(`%${serviceType}%`, `%${serviceType}%`); }
-    if (area)        { query += ` AND (p.area_en LIKE ? OR p.area_bn LIKE ?)`; params.push(`%${area}%`, `%${area}%`); }
+    if (safeType) { query += ` AND (p.service_type_en LIKE ? OR p.service_type_bn LIKE ?)`; params.push(`%${safeType}%`, `%${safeType}%`); }
+    if (safeArea) { query += ` AND (p.area_en LIKE ? OR p.area_bn LIKE ?)`; params.push(`%${safeArea}%`, `%${safeArea}%`); }
 
     query += ` GROUP BY p.id ORDER BY avg_rating DESC, total_bookings DESC LIMIT ?`;
-    params.push(Number(limit) * 3); // fetch more to re-rank
+    params.push(safeLimit * 3); // fetch more to re-rank
 
     const [rows] = await db.query(query, params);
 
@@ -349,7 +352,7 @@ router.post("/match", async (req, res) => {
     });
 
     scored.sort((a, b) => b.ai_score - a.ai_score);
-    res.json({ providers: scored.slice(0, Number(limit)), scored: true });
+    res.json({ providers: scored.slice(0, safeLimit), scored: true });
   } catch (err) {
     logger.error("AI match error:", err.message);
     res.status(500).json({ error: "Match failed" });
@@ -364,20 +367,22 @@ router.post("/match", async (req, res) => {
 router.post("/dynamic-price", async (req, res) => {
   try {
     const { serviceType = "general", area = "", scheduledTime } = req.body;
+    const safeType = String(serviceType).slice(0, 80);
+    const safeArea = String(area).slice(0, 100);
 
     // Base prices per service type
     const BASE = {
       electrical: 500, plumbing: 450, cleaning: 350, nursing: 800,
       cooking: 600, driving: 400, repair: 550, tutoring: 400, default: 400,
     };
-    const key = Object.keys(BASE).find(k => serviceType.toLowerCase().includes(k)) || "default";
+    const key = Object.keys(BASE).find(k => safeType.toLowerCase().includes(k)) || "default";
     const basePrice = BASE[key];
 
     // Demand multiplier from recent bookings
     const [demandRows] = await db.query(
       `SELECT COUNT(*) AS cnt FROM bookings 
        WHERE (service_name_en LIKE ? OR service_name_bn LIKE ?) AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
-      [`%${serviceType}%`, `%${serviceType}%`]
+      [`%${safeType}%`, `%${safeType}%`]
     );
     const demandCount = demandRows[0]?.cnt || 0;
 
@@ -395,7 +400,7 @@ router.post("/dynamic-price", async (req, res) => {
 
     // Area-based adjustment
     const premiumAreas = ["gulshan", "banani", "baridhara", "uttara", "dhanmondi"];
-    if (premiumAreas.some(a => area.toLowerCase().includes(a))) {
+    if (premiumAreas.some(a => safeArea.toLowerCase().includes(a))) {
       multiplier += 0.15;
       surgeReasons.push("প্রিমিয়াম এলাকা | Premium area");
     }
@@ -423,6 +428,7 @@ router.post("/dynamic-price", async (req, res) => {
 router.post("/fraud-check", async (req, res) => {
   try {
     const { userId, providerId, amount, serviceType, scheduledTime } = req.body;
+    const safeType = String(serviceType || "").slice(0, 80);
     const flags = [];
     let score = 0;
 
@@ -436,7 +442,7 @@ router.post("/fraud-check", async (req, res) => {
     // 2. Unusual amount
     const [avgAmount] = await db.query(
       `SELECT AVG(amount) AS avg FROM bookings WHERE service_name_en LIKE ? OR service_name_bn LIKE ?`,
-      [`%${serviceType}%`, `%${serviceType}%`]
+      [`%${safeType}%`, `%${safeType}%`]
     );
     const avg = avgAmount[0]?.avg || 500;
     if (amount > avg * 3) { flags.push("অস্বাভাবিক বেশি পরিমাণ (গড়ের ৩x+)"); score += 30; }
@@ -468,13 +474,14 @@ router.post("/fraud-check", async (req, res) => {
 router.post("/review-check", async (req, res) => {
   try {
     const { providerId, rating, comment = "", userId } = req.body;
+    const safeComment = String(comment).slice(0, 1000);
     const reasons = [];
     let suspicionScore = 0;
 
     // 1. Duplicate comment check
     const [dupComment] = await db.query(
       `SELECT COUNT(*) AS cnt FROM reviews WHERE provider_id=? AND comment=? AND comment != ''`,
-      [providerId, comment]
+      [providerId, safeComment]
     );
     if (dupComment[0]?.cnt > 0) { reasons.push("একই মন্তব্য আগে দেওয়া হয়েছে"); suspicionScore += 60; }
 
@@ -493,7 +500,7 @@ router.post("/review-check", async (req, res) => {
     if (ratingCluster[0]?.cnt > 5) { reasons.push("১ ঘণ্টায় একই রেটিং ৫+ বার"); suspicionScore += 50; }
 
     // 4. Very short comment with perfect/terrible rating
-    if (comment.length < 5 && (rating === 5 || rating === 1)) {
+    if (safeComment.length < 5 && (rating === 5 || rating === 1)) {
       reasons.push("অতি সংক্ষিপ্ত মন্তব্য সাথে চরম রেটিং");
       suspicionScore += 20;
     }

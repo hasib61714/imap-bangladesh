@@ -30,6 +30,10 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
   try {
     const { slug, name_bn, name_en, icon, color, base_price, sort_order } = req.body;
     if (!slug || !name_bn || !name_en) return res.status(400).json({ error: "slug, name_bn, name_en required" });
+    if (slug.length > 80 || name_bn.length > 120 || name_en.length > 120)
+      return res.status(400).json({ error: "slug max 80, names max 120 chars" });
+    if (icon  && icon.length  > 20) return res.status(400).json({ error: "icon too long (max 20)" });
+    if (color && color.length > 30) return res.status(400).json({ error: "color too long (max 30)" });
 
     await pool.query(
       "INSERT INTO categories (slug, name_bn, name_en, icon, color, base_price, sort_order) VALUES (?,?,?,?,?,?,?)",

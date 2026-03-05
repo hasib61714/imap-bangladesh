@@ -111,6 +111,9 @@ router.get("/users", ...auth, async (req, res) => {
 router.patch("/users/:id", ...auth, async (req, res) => {
   try {
     const { is_active, role } = req.body;
+    const validRoles = ["customer", "provider", "admin"];
+    if (role && !validRoles.includes(role))
+      return res.status(400).json({ error: "Invalid role" });
     await pool.query(
       "UPDATE users SET is_active = COALESCE(?, is_active), role = COALESCE(?, role) WHERE id = ?",
       [is_active !== undefined ? is_active : null, role || null, req.params.id]
@@ -254,6 +257,11 @@ router.get("/complaints", ...auth, async (req, res) => {
 router.patch("/complaints/:id", ...auth, async (req, res) => {
   try {
     const { status, resolved_note } = req.body;
+    const validStatuses = ["open", "in_progress", "resolved", "closed"];
+    if (status && !validStatuses.includes(status))
+      return res.status(400).json({ error: "Invalid status" });
+    if (resolved_note && resolved_note.length > 2000)
+      return res.status(400).json({ error: "resolved_note too long (max 2000)" });
     await pool.query(
       "UPDATE complaints SET status = COALESCE(?, status), resolved_note = COALESCE(?, resolved_note), assigned_to = ? WHERE id = ?",
       [status || null, resolved_note || null, req.user.id, req.params.id]
@@ -271,6 +279,13 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
 router.post("/notify", ...auth, async (req, res) => {
   try {
     const { user_id, title_bn, title_en, body_bn, body_en, type = "system", icon = "📣" } = req.body;
+    const validTypes = ["system", "booking", "payment", "kyc", "promo", "sos", "alert"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: "Invalid notification type" });
+    if (title_bn && title_bn.length > 200) return res.status(400).json({ error: "title_bn too long (max 200)" });
+    if (title_en && title_en.length > 200) return res.status(400).json({ error: "title_en too long (max 200)" });
+    if (body_bn  && body_bn.length  > 1000) return res.status(400).json({ error: "body_bn too long (max 1000)" });
+    if (body_en  && body_en.length  > 1000) return res.status(400).json({ error: "body_en too long (max 1000)" });
+    if (icon.length > 20) return res.status(400).json({ error: "icon too long" });
     if (user_id) {
       await pool.query(
         "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
@@ -341,6 +356,7 @@ router.post("/promos", ...auth, async (req, res) => {
   try {
     const { code, discount_pct, discount_amt, max_uses, valid_until } = req.body;
     if (!code) return res.status(400).json({ error: "code required" });
+    if (code.length > 30) return res.status(400).json({ error: "code too long (max 30)" });
     await pool.query(
       `INSERT INTO promos (code, title_bn, title_en, discount_pct, discount_amt, max_uses, valid_until, is_active)
        VALUES (?,?,?,?,?,?,?,1)`,
