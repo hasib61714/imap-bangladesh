@@ -48,15 +48,15 @@ router.get("/alerts", async (_req, res) => {
   }
 });
 
-// POST /api/disaster/report  — anyone can report
+// POST /api/disaster/report  — anyone can report (anonymous; user_id never trusted from body)
 router.post("/report", async (req, res) => {
   try {
-    const { type, description, area, severity, reporter_name, user_id } = req.body;
+    const { type, description, area, severity, reporter_name } = req.body;
     if (!type) return res.status(400).json({ error: "Missing disaster type" });
     const sev = ['low','medium','high','critical'].includes(severity) ? severity : 'medium';
     const [result] = await pool.query(
       "INSERT INTO disaster_reports (user_id,reporter_name,type,description,area,severity) VALUES (?,?,?,?,?,?)",
-      [user_id||null, reporter_name||null, type, description||"", area||"", sev]
+      [null, reporter_name||null, type, description||"", area||"", sev]
     );
     cache.del('disaster:alerts');
     res.json({ success: true, id: result.insertId });

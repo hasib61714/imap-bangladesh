@@ -24,6 +24,20 @@ initTable().catch(e => logger.warn("chat table init:", e.message));
 router.get("/:bookingId", authMiddleware, async (req, res) => {
   try {
     const { bookingId } = req.params;
+
+    // Verify requester is a participant of this booking
+    const [bCheck] = await pool.query(
+      `SELECT b.customer_id, p.user_id AS provider_user_id
+       FROM bookings b LEFT JOIN providers p ON p.id = b.provider_id
+       WHERE b.id = ? LIMIT 1`,
+      [bookingId]
+    );
+    if (!bCheck.length) return res.status(404).json({ error: "Booking not found" });
+    const { customer_id, provider_user_id } = bCheck[0];
+    const isAdmin = req.user.role === "admin";
+    const isParticipant = String(req.user.id) === String(customer_id) || String(req.user.id) === String(provider_user_id);
+    if (!isParticipant && !isAdmin) return res.status(403).json({ error: "Access denied" });
+
     const { after } = req.query; // optional: return only messages after given id
     let sql = "SELECT * FROM chat_messages WHERE booking_id = ?";
     const params = [bookingId];

@@ -2,8 +2,9 @@
  * SMS Utility — IMAP Bangladesh
  * Set SMS_PROVIDER in .env: mock | bulksmsbd | sslwireless | twilio
  */
-const https = require("https");
-const http  = require("http");
+const https  = require("https");
+const http   = require("http");
+const logger = require("./logger");
 
 function httpGet(url) {
   return new Promise((resolve, reject) => {
@@ -41,14 +42,14 @@ async function sendSMS(phone, message) {
   if (provider === "bulksmsbd") {
     const url = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(process.env.BULKSMS_API_KEY)}&type=text&number=${encodeURIComponent(phone)}&senderid=${encodeURIComponent(process.env.BULKSMS_SENDER_ID||"IMAP")}&message=${encodeURIComponent(message)}`;
     const result = await httpGet(url);
-    console.log("[SMS][bulksmsbd]", phone, "→", result);
+    logger.info(`[SMS][bulksmsbd] ${phone} → ${result}`);
     return { provider: "bulksmsbd", result };
   }
 
   if (provider === "sslwireless") {
     const result = await httpPost("https://sslwireless.com/pushapi/plain/send",
       { api_token: process.env.SSLWIRELESS_TOKEN, sid: process.env.SSLWIRELESS_SID||"IMAP", msisdn: phone, sms: message, csmsid: Date.now() });
-    console.log("[SMS][sslwireless]", phone, "→", result);
+    logger.info(`[SMS][sslwireless] ${phone} → ${result}`);
     return { provider: "sslwireless", result };
   }
 
@@ -58,13 +59,12 @@ async function sendSMS(phone, message) {
     const body   = `To=+88${phone}&From=${encodeURIComponent(from)}&Body=${encodeURIComponent(message)}`;
     const result = await httpPost(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, body,
       { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" });
-    console.log("[SMS][twilio]", phone, "→", result);
+    logger.info(`[SMS][twilio] ${phone} → ${result}`);
     return { provider: "twilio", result };
   }
 
   // Mock (default)
-  console.log(`[SMS][MOCK] ☎️  To: ${phone}`);
-  console.log(`[SMS][MOCK] 📨  Message: ${message}`);
+  logger.info(`[SMS][MOCK] To: ${phone} | ${message}`);
   return { provider: "mock", success: true };
 }
 
