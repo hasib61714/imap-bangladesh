@@ -106,27 +106,32 @@ router.post("/ipn", async (req, res) => {
     if (status !== "VALID" && status !== "VALIDATED") return res.json({ status: "ignored" });
     const validated = await payment.validatePayment(val_id);
     if (validated.status !== "VALID" && validated.status !== "VALIDATED") return res.json({ status: "invalid" });
-    const [payRows] = await pool.query("SELECT * FROM payments WHERE id = ?", [tran_id]);
-    if (!payRows.length || payRows[0].status === "success") return res.json({ status: "already_processed" });
-    await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=?", [val_id, tran_id]);
-    if (payRows[0].booking_id) {
+    // Atomic compare-and-swap: transition 'pending'→'success'; affectedRows=0 means already processed
+    const [upd] = await pool.query(
+      "UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=? AND status!='success'",
+      [val_id, tran_id]
+    );
+    if (!upd.affectedRows) return res.json({ status: "already_processed" });
+    const [[pay]] = await pool.query("SELECT * FROM payments WHERE id = ?", [tran_id]);
+    if (!pay) return res.json({ status: "not_found" });
+    if (pay.booking_id) {
       // Booking payment
-      await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [payRows[0].booking_id]);
+      await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [pay.booking_id]);
     } else {
       // Wallet top-up — credit user balance
-      await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [payRows[0].amount, payRows[0].user_id]);
-      const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [payRows[0].user_id]);
+      await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [pay.amount, pay.user_id]);
+      const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [pay.user_id]);
       await pool.query(
         "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-        [payRows[0].user_id, "topup", payRows[0].amount, "ওয়ালেট টপআপ", "Wallet Top-up", payRows[0].method, u.balance]
+        [pay.user_id, "topup", pay.amount, "ওয়ালেট টপআপ", "Wallet Top-up", pay.method, u.balance]
       );
-      cache.del(`user:wallet:${payRows[0].user_id}`);
-      cache.del(`user:profile:${payRows[0].user_id}`);
+      cache.del(`user:wallet:${pay.user_id}`);
+      cache.del(`user:profile:${pay.user_id}`);
     }
     await pool.query("INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
-      [payRows[0].user_id, "✅", "payment", "পেমেন্ট সফল", "Payment Successful",
+      [pay.user_id, "✅", "payment", "পেমেন্ট সফল", "Payment Successful",
        `৳${parseFloat(amount).toFixed(0)} পেমেন্ট গ্রহণ করা হয়েছে।`, `Payment of ৳${parseFloat(amount).toFixed(0)} received.`]);
-    cache.delPattern(new RegExp(`^payments:user:${payRows[0].user_id}:`));
+    cache.delPattern(new RegExp(`^payments:user:${pay.user_id}:`));
     cache.delPattern(/^payments:admin:all:/);
     res.json({ status: "processed" });
   } catch (err) {
@@ -141,29 +146,32 @@ router.post("/success", async (req, res) => {
   if (status === "VALID" || status === "VALIDATED") {
     try {
       await payment.validatePayment(val_id);
-      await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=? AND status!='success'", [val_id, tran_id]);
-      const [p] = await pool.query("SELECT * FROM payments WHERE id=?", [tran_id]);
-      if (p.length) {
-        if (p[0].booking_id) {
-          await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [p[0].booking_id]);
-        } else {
-          // Wallet top-up
-          await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [p[0].amount, p[0].user_id]);
-          const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [p[0].user_id]);
-          await pool.query(
-            "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-            [p[0].user_id, "topup", p[0].amount, "ওয়ালেট টপআপ", "Wallet Top-up", p[0].method, u.balance]
-          );
-          cache.del(`user:wallet:${p[0].user_id}`);
-          cache.del(`user:profile:${p[0].user_id}`);
+      // Atomic guard: only credit wallet/booking if this is the first request to set status='success'
+      const [upd] = await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=? AND status!='success'", [val_id, tran_id]);
+      if (upd.affectedRows) {
+        const [[p]] = await pool.query("SELECT * FROM payments WHERE id=?", [tran_id]);
+        if (p) {
+          if (p.booking_id) {
+            await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [p.booking_id]);
+          } else {
+            // Wallet top-up
+            await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [p.amount, p.user_id]);
+            const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [p.user_id]);
+            await pool.query(
+              "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+              [p.user_id, "topup", p.amount, "ওয়ালেট টপআপ", "Wallet Top-up", p.method, u.balance]
+            );
+            cache.del(`user:wallet:${p.user_id}`);
+            cache.del(`user:profile:${p.user_id}`);
+          }
         }
       }
     } catch(e) { logger.error("success-redirect:", e); }
   }
-  res.redirect(`${FE()}?payment=success&tran_id=${tran_id}`);
+  res.redirect(`${FE()}?payment=success&tran_id=${encodeURIComponent(tran_id||"")}`);
 });
-router.post("/fail",   (req, res) => res.redirect(`${FE()}?payment=failed&tran_id=${req.body.tran_id||""}`));
-router.post("/cancel", (req, res) => res.redirect(`${FE()}?payment=cancelled&tran_id=${req.body.tran_id||""}`));
+router.post("/fail",   (req, res) => res.redirect(`${FE()}?payment=failed&tran_id=${encodeURIComponent(req.body.tran_id||"")}`));
+router.post("/cancel", (req, res) => res.redirect(`${FE()}?payment=cancelled&tran_id=${encodeURIComponent(req.body.tran_id||"")}`))
 
 /* ── GET /api/payments (my history) ── */
 router.get("/", authMiddleware, async (req, res) => {
