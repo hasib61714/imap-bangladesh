@@ -58,6 +58,7 @@ router.post("/validate", async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ valid: false, error: "No code provided" });
+    if (code.length > 30) return res.status(400).json({ valid: false, error: "Invalid code" });
     const [[promo]] = await pool.query(
       `SELECT * FROM promos WHERE code=? AND is_active=1
        AND (valid_until IS NULL OR valid_until >= CURDATE())

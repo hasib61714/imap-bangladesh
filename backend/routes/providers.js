@@ -186,6 +186,12 @@ router.get("/me/analytics", authMiddleware, async (req, res) => {
 router.put("/me", authMiddleware, async (req, res) => {
   try {
     const { service_type_bn, service_type_en, area_bn, area_en, bio_bn, bio_en, hourly_rate, is_available, experience_yrs } = req.body;
+    if (bio_bn && bio_bn.length > 1000)         return res.status(400).json({ error: "bio_bn max 1000 chars" });
+    if (bio_en && bio_en.length > 1000)         return res.status(400).json({ error: "bio_en max 1000 chars" });
+    if (area_bn && area_bn.length > 200)        return res.status(400).json({ error: "area_bn max 200 chars" });
+    if (area_en && area_en.length > 200)        return res.status(400).json({ error: "area_en max 200 chars" });
+    if (service_type_bn && service_type_bn.length > 100) return res.status(400).json({ error: "service_type_bn max 100 chars" });
+    if (service_type_en && service_type_en.length > 100) return res.status(400).json({ error: "service_type_en max 100 chars" });
     const [rows] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
     if (!rows.length) return res.status(404).json({ error: "Provider profile not found" });
 

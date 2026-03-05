@@ -9,7 +9,7 @@ const reviewRules = validate([
   body("booking_id").notEmpty().withMessage("booking_id is required"),
   body("rating").isInt({ min: 1, max: 5 }).withMessage("Rating must be an integer 1–5"),
   body("comment").optional().isLength({ max: 1000 }).withMessage("Comment max 1000 chars"),
-  body("tags").optional().isString(),
+  body("tags").optional().isString().isLength({ max: 200 }).withMessage("tags max 200 chars"),
 ]);
 
 // ── POST /api/reviews ─────────────────────────────────────

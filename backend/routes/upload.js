@@ -77,8 +77,9 @@ router.post("/kyc", authMiddleware, upload.fields([
 
     if (!Object.keys(results).length) return res.status(400).json({ error: "কোনো ফাইল পাওয়া যায়নি।" });
 
-    const doc_type   = req.body?.doc_type   || "nid";
-    const doc_number = req.body?.doc_number  || "";
+    const VALID_DOC_TYPES = ["nid","passport","birth_cert","driving_license"];
+    const doc_type   = VALID_DOC_TYPES.includes(req.body?.doc_type) ? req.body.doc_type : "nid";
+    const doc_number = (req.body?.doc_number || "").slice(0, 30);
 
     const [existing] = await pool.query("SELECT id FROM kyc_docs WHERE user_id=?", [req.user.id]);
     if (existing.length) {
