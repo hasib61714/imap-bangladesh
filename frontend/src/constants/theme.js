@@ -1,23 +1,24 @@
-export const C_LIGHT = { p:"#1DBF73",pdk:"#15A360",plt:"#E8FBF2",acc:"#F5A623",dark:"#0C1C14",text:"#142018",sub:"#4A6358",muted:"#8BA89A",bdr:"#D6ECE3",bg:"#F0F7F3",card:"#FFFFFF",red:"#E03131" };
-export const C_DARK  = { p:"#22D47F",pdk:"#18B868",plt:"#0D2E22",acc:"#FBBF24",dark:"#E8F5F0",text:"#D4EDE4",sub:"#7AB89E",muted:"#4A7A63",bdr:"#1E4535",bg:"#080F0B",card:"#0E1F18",red:"#F87171" };
+/* Bangladesh flag colours — green #006A4E · red #E8192C */
+export const C_LIGHT = { p:"#006A4E",pdk:"#004D38",plt:"#E6F4EF",acc:"#E8192C",dark:"#0F1E18",text:"#1A2A24",sub:"#4A6A60",muted:"#8FAAA0",bdr:"#D4E8E0",bg:"#F4FBF7",card:"#FFFFFF",red:"#E8192C" };
+export const C_DARK  = { p:"#00C170",pdk:"#009954",plt:"#0A2018",acc:"#FF4D5E",dark:"#E0EDE8",text:"#D8ECE4",sub:"#8FAAA0",muted:"#6A8880",bdr:"#1E3828",bg:"#0A100E",card:"#1A2820",red:"#FF4D5E" };
 
 export const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:#F0F7F3;color:#142018;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:#F4FBF7;color:#142018;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
 /* ─── Premium Scrollbar ─── */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#1DBF73,#15A360);border-radius:99px;}
-::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#22D47F,#1DBF73);}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#006A4E,#004D38);border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#00C170,#006A4E);}
 
 /* ─── Keyframe Animations ─── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
-@keyframes glow{0%,100%{box-shadow:0 0 20px #1DBF7333,0 0 40px #1DBF7311;}50%{box-shadow:0 0 30px #1DBF7366,0 0 60px #1DBF7333;}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px #006A4E33,0 0 40px #006A4E11;}50%{box-shadow:0 0 30px #006A4E66,0 0 60px #006A4E33;}}
 @keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 @keyframes dot{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
 @keyframes bounce{0%,80%,100%{transform:scale(0);opacity:.4;}40%{transform:scale(1);opacity:1;}}
@@ -25,7 +26,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 @keyframes float{0%,100%{transform:translateY(0px);}50%{transform:translateY(-6px);}}
 @keyframes gradShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
 @keyframes pressDown{0%,100%{transform:scale(1);}50%{transform:scale(.97);}}
-@keyframes borderGlow{0%,100%{border-color:#1DBF7322;}50%{border-color:#1DBF7388;}}
+@keyframes borderGlow{0%,100%{border-color:#006A4E22;}50%{border-color:#006A4E88;}}
 @keyframes ripple{0%{transform:scale(0);opacity:.5;}100%{transform:scale(4);opacity:0;}}
 
 .fu{animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both;}
@@ -65,7 +66,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 .pcard{position:relative;}
 .pcard::before{
   content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#1DBF73,#6EE7B7,#1DBF73);
+  background:linear-gradient(90deg,#006A4E,#5DD4A0,#006A4E);
   background-size:200%;
   opacity:0;transition:opacity .3s;border-radius:20px 20px 0 0;
 }
@@ -86,12 +87,12 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 
 /* Primary Gradient Button */
 .btn-g{
-  background:linear-gradient(135deg,#22D47F 0%,#1DBF73 40%,#15A360 100%);
+  background:linear-gradient(135deg,#00C170 0%,#006A4E 40%,#004D38 100%);
   color:#fff;border-radius:12px;padding:12px 20px;font-size:14px;
   box-shadow:0 4px 15px rgba(29,191,115,.4),0 2px 4px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.25);
 }
 .btn-g:hover{
-  background:linear-gradient(135deg,#2AE88A 0%,#22D47F 40%,#1DBF73 100%);
+  background:linear-gradient(135deg,#00D480 0%,#00C170 40%,#006A4E 100%);
   transform:translateY(-2px) scale(1.02);
   box-shadow:0 8px 25px rgba(29,191,115,.5),0 4px 10px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.3);
 }
@@ -100,13 +101,13 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 
 /* Outline Button */
 .btn-o{
-  background:rgba(255,255,255,.8);color:#1DBF73;
-  border:1.5px solid #1DBF73!important;border-radius:12px;padding:11px 18px;font-size:13px;
+  background:rgba(255,255,255,.8);color:#006A4E;
+  border:1.5px solid #006A4E!important;border-radius:12px;padding:11px 18px;font-size:13px;
   box-shadow:0 2px 8px rgba(29,191,115,.12),inset 0 1px 0 rgba(255,255,255,.9);
   backdrop-filter:blur(2px);
 }
 .btn-o:hover{
-  background:linear-gradient(135deg,#E8FBF2,#F0FDF4);
+  background:linear-gradient(135deg,#E6F4EF,#F0FDF4);
   box-shadow:0 4px 16px rgba(29,191,115,.2),inset 0 1px 0 rgba(255,255,255,1);
   transform:translateY(-1px);
 }
@@ -117,7 +118,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
   backdrop-filter:blur(2px);border:1px solid rgba(214,236,227,.5)!important;
 }
 .btn-gh:hover{
-  background:rgba(232,251,242,.8);color:#1DBF73;
+  background:rgba(232,251,242,.8);color:#006A4E;
   box-shadow:0 2px 8px rgba(29,191,115,.12);transform:translateY(-1px);
 }
 
@@ -127,9 +128,9 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
   cursor:pointer;transition:all .18s;background:none;border:none;
   font-family:'Hind Siliguri',sans-serif;white-space:nowrap;position:relative;
 }
-.nv:hover{color:#1DBF73;background:rgba(232,251,242,.8);}
+.nv:hover{color:#006A4E;background:rgba(232,251,242,.8);}
 .nv.act{
-  color:#1DBF73;
+  color:#006A4E;
   background:linear-gradient(135deg,rgba(232,251,242,.9),rgba(240,253,244,.9));
   box-shadow:0 2px 8px rgba(29,191,115,.12),inset 0 1px 0 rgba(255,255,255,.8);
 }
@@ -152,7 +153,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 .star-off{color:#E5E7EB;}
 
 /* ─── Loading Dots ─── */
-.dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#1DBF73,#15A360);display:inline-block;animation:dot 1.2s ease-in-out infinite;box-shadow:0 0 6px rgba(29,191,115,.4);}
+.dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#006A4E,#004D38);display:inline-block;animation:dot 1.2s ease-in-out infinite;box-shadow:0 0 6px rgba(29,191,115,.4);}
 .dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
 
 /* ─── Form Elements ─── */
@@ -161,7 +162,7 @@ input,textarea,select{
   transition:border-color .2s,box-shadow .2s;
 }
 input:focus,textarea:focus,select:focus{
-  border-color:#1DBF73!important;
+  border-color:#006A4E!important;
   box-shadow:0 0 0 3px rgba(29,191,115,.15),0 2px 8px rgba(29,191,115,.1)!important;
 }
 
@@ -169,7 +170,7 @@ input:focus,textarea:focus,select:focus{
 .sec-h{
   font-family:'Plus Jakarta Sans',sans-serif;
   font-size:clamp(20px,3vw,28px);font-weight:800;
-  background:linear-gradient(135deg,#0C1C14 0%,#1A3D2E 60%,#1DBF73 100%);
+  background:linear-gradient(135deg,#0C1C14 0%,#1A3D2E 60%,#006A4E 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 .sec-s{font-size:15px;color:#8BA89A;margin-top:6px;line-height:1.6;}
@@ -193,7 +194,7 @@ input:focus,textarea:focus,select:focus{
 
 /* ─── Gradient Text Utility ─── */
 .grad-text{
-  background:linear-gradient(135deg,#1DBF73,#6EE7B7);
+  background:linear-gradient(135deg,#006A4E,#5DD4A0);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 
@@ -234,7 +235,7 @@ input:focus,textarea:focus,select:focus{
 }`;
 
 export const CSS_DARK = `
-  html,body{background:#080F0B;color:#D4EDE4;}
+  html,body{background:#0A100E;color:#D4EDE4;}
 
   /* Dark Glass Cards */
   .card{
@@ -252,7 +253,7 @@ export const CSS_DARK = `
   /* Dark Buttons */
   .btn-o{
     background:rgba(14,31,24,.8)!important;
-    border-color:#22D47F!important;
+    border-color:#00C170!important;
     box-shadow:0 2px 12px rgba(34,212,127,.15),inset 0 1px 0 rgba(255,255,255,.05)!important;
     backdrop-filter:blur(2px)!important;
   }
@@ -262,14 +263,14 @@ export const CSS_DARK = `
     background:rgba(14,31,24,.6)!important;
     border-color:rgba(30,69,53,.6)!important;
   }
-  .btn-gh:hover{background:rgba(30,69,53,.8)!important;color:#22D47F!important;}
+  .btn-gh:hover{background:rgba(30,69,53,.8)!important;color:#00C170!important;}
   
   /* Dark Nav */
   .nv{color:#7AB89E!important;}
-  .nv:hover{background:rgba(13,46,34,.8)!important;color:#22D47F!important;}
+  .nv:hover{background:rgba(13,46,34,.8)!important;color:#00C170!important;}
   .nv.act{
     background:linear-gradient(135deg,rgba(13,46,34,.9),rgba(13,46,34,.7))!important;
-    color:#22D47F!important;
+    color:#00C170!important;
     border:1px solid rgba(34,212,127,.2)!important;
     box-shadow:0 0 0 1px rgba(34,212,127,.1),inset 0 1px 0 rgba(34,212,127,.06)!important;
   }
@@ -277,7 +278,7 @@ export const CSS_DARK = `
   /* Dark Tags & Badges */
   .tag{
     background:linear-gradient(135deg,rgba(13,46,34,.9),rgba(13,46,34,.7))!important;
-    color:#34EE97!important;
+    color:#00D480!important;
     border-color:rgba(34,212,127,.2)!important;
   }
   .badge{filter:brightness(.95);}
@@ -289,7 +290,7 @@ export const CSS_DARK = `
     backdrop-filter:blur(2px)!important;
   }
   input:focus,textarea:focus,select:focus{
-    border-color:#22D47F!important;
+    border-color:#00C170!important;
     box-shadow:0 0 0 3px rgba(34,212,127,.12),0 2px 8px rgba(34,212,127,.08)!important;
   }
   
@@ -311,11 +312,11 @@ export const CSS_DARK = `
   .ov{background:rgba(4,10,7,.75)!important;}
   
   /* Dark Scrollbar */
-  ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#22D47F,#18B868)!important;}
+  ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#00C170,#009954)!important;}
   
   /* Dark Section Header */
   .sec-h{
-    background:linear-gradient(135deg,#D4EDE4 0%,#7AB89E 60%,#22D47F 100%)!important;
+    background:linear-gradient(135deg,#D4EDE4 0%,#7AB89E 60%,#00C170 100%)!important;
     -webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;background-clip:text!important;
   }
 `;
