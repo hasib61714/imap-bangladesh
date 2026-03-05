@@ -54,8 +54,8 @@ export function useSocket(token) {
     socketRef.current?.emit("location_update", { bookingId, lat, lng });
   }, []);
 
-  const emitTyping = useCallback((bookingId, name) => {
-    socketRef.current?.emit("typing", { bookingId, name });
+  const emitTyping = useCallback((bookingId) => {
+    socketRef.current?.emit("typing", { bookingId });
   }, []);
 
   const emitStopTyping = useCallback((bookingId) => {

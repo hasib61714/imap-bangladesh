@@ -12,6 +12,11 @@ const createBookingRules = validate([
   body("amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("amount must be a positive number"),
   body("total_amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("total_amount must be a positive number"),
   body("payment_method").optional().isIn(["bKash","Nagad","Rocket","card","cash"]).withMessage("Invalid payment method"),
+  body("service_name_en").optional().isString().isLength({ max: 120 }).withMessage("service_name_en too long"),
+  body("service_name_bn").optional().isString().isLength({ max: 120 }).withMessage("service_name_bn too long"),
+  body("service_type").optional().isString().isLength({ max: 120 }).withMessage("service_type too long"),
+  body("address").optional().isString().isLength({ max: 300 }).withMessage("address too long"),
+  body("note").optional().isString().isLength({ max: 1000 }).withMessage("note too long"),
 ]);
 
 // ── POST /api/bookings ────────────────────────────────────

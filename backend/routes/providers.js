@@ -15,17 +15,20 @@ router.get("/", async (req, res) => {
     const { q, category, min_rating, max_price, sort = "rating", page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    const safeQ        = q        ? String(q).slice(0, 100)        : null;
+    const safeCategory = category ? String(category).slice(0, 80)  : null;
+
     let where = ["p.is_available = 1", "u.is_active = 1"];
     let params = [];
 
-    if (q) {
+    if (safeQ) {
       where.push("(u.name LIKE ? OR p.service_type_bn LIKE ? OR p.service_type_en LIKE ? OR p.area_bn LIKE ? OR p.area_en LIKE ?)");
-      const like = `%${q}%`;
+      const like = `%${safeQ}%`;
       params.push(like, like, like, like, like);
     }
-    if (category) {
+    if (safeCategory) {
       where.push("c.slug = ?");
-      params.push(category);
+      params.push(safeCategory);
     }
     if (min_rating) {
       where.push("p.rating >= ?");
@@ -40,7 +43,7 @@ router.get("/", async (req, res) => {
     const orderSql = orderMap[sort] || "p.rating DESC";
 
     // Cache the default first page (no filters applied) for 45 s
-    const isHotPath = !q && !category && !min_rating && !max_price && parseInt(page) === 1;
+    const isHotPath = !safeQ && !safeCategory && !min_rating && !max_price && parseInt(page) === 1;
     if (isHotPath) {
       const cacheKey = `providers:list:${sort}`;
       const cached = await cache.getOrSet(cacheKey, async () => {
@@ -261,6 +264,14 @@ router.post("/apply", authMiddleware, async (req, res) => {
   try {
     const { service_type_bn, service_type_en, area_bn, area_en, bio_bn, bio_en,
             hourly_rate, experience_yrs, nid_number } = req.body;
+
+    if (service_type_bn && service_type_bn.length > 100) return res.status(400).json({ error: "service_type_bn max 100 chars" });
+    if (service_type_en && service_type_en.length > 100) return res.status(400).json({ error: "service_type_en max 100 chars" });
+    if (area_bn && area_bn.length > 200)                 return res.status(400).json({ error: "area_bn max 200 chars" });
+    if (area_en && area_en.length > 200)                 return res.status(400).json({ error: "area_en max 200 chars" });
+    if (bio_bn && bio_bn.length > 1000)                  return res.status(400).json({ error: "bio_bn max 1000 chars" });
+    if (bio_en && bio_en.length > 1000)                  return res.status(400).json({ error: "bio_en max 1000 chars" });
+    if (nid_number && nid_number.length > 30)            return res.status(400).json({ error: "nid_number max 30 chars" });
 
     // Check if provider row already exists
     const [existing] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
