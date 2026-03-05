@@ -1,13 +1,13 @@
 {
   "name": "IMAP AI Powered Service Platform Bangladesh",
   "short_name": "IMAP",
-  "description": "IMAP AI Powered Service Platform Bangladesh – Smarter home services with AI",
+  "description": "Bangladesh's #1 AI-powered home service platform. KYC-verified providers, SOS safety, 500+ services.",
   "start_url": ".",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#1DBF73",
+  "theme_color": "#006A4E",
   "lang": "bn",
   "categories": ["utilities", "lifestyle"],
   "icons": [
