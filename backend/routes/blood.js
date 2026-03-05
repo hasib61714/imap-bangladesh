@@ -128,7 +128,10 @@ router.post("/register", authMiddleware, async (req, res) => {
 router.post("/request", async (req, res) => {
   try {
     const { blood_group, name, message, phone } = req.body;
-    if (!blood_group || !name) return res.status(400).json({ error: "Missing fields" });
+    const validGroups = ["A+","A-","B+","B-","AB+","AB-","O+","O-"];
+    if (!blood_group || !validGroups.includes(blood_group)) return res.status(400).json({ error: "Valid blood group required" });
+    if (!name || typeof name !== "string" || name.trim().length > 100) return res.status(400).json({ error: "Name required (max 100 chars)" });
+    if (message && message.length > 500) return res.status(400).json({ error: "Message max 500 chars" });
     // Just log it — in production this would notify matching donors
     logger.info(`[BLOOD REQUEST] ${name} needs ${blood_group} — ${message}`);
     // Could add to complaints table or a dedicated requests table

@@ -93,13 +93,15 @@ io.on("connection", (socket) => {
     socket.to(`booking_${bookingId}`).emit("user_stop_typing");
   });
 
-  // Provider location update (live tracking)
+  // Provider location update (live tracking) — authenticated users only
   socket.on("location_update", ({ bookingId, lat, lng }) => {
+    if (!socket.user) return; // reject unauthenticated location spoofing
     io.to(`booking_${bookingId}`).emit("provider_location", { lat, lng });
   });
 
-  // Booking status update broadcast
+  // Booking status update broadcast — authenticated users only
   socket.on("booking_status", ({ bookingId, status }) => {
+    if (!socket.user) return; // reject unauthenticated spoofing
     io.to(`booking_${bookingId}`).emit("booking_updated", { bookingId, status });
   });
 

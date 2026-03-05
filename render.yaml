@@ -35,9 +35,9 @@ services:
 
       # ── Frontend URL ──────────────────────────────────
       - key: FRONTEND_URL
-        value: https://hasib61714.github.io      # Full app URL (includes sub-path) — used for payment redirects
+        value: https://hasib61714.github.io      # bare origin for CORS
       - key: FRONTEND_APP_URL
-        value: https://hasib61714.github.io/imap-bangladesh
+        value: https://hasib61714.github.io/imap-bangladesh  # full URL with sub-path for payment redirects
 
       # ── Backend URL (for payment callbacks) ──────────────
       - key: BACKEND_URL
