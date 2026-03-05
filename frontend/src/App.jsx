@@ -222,7 +222,7 @@ function LiveMap({tracking,setTracking}) {
               র
             </div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:800,fontSize:14,color:"#1a1a1a",display:"flex",alignItems:"center",gap:6}}>
+              <div style={{fontWeight:800,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:6}}>
                 {lang==="bn"?"রাকিব হোসেন":"Rakib Hossain"}
                 <span style={{background:"rgba(16,185,129,.15)",color:C.p,fontSize:9,fontWeight:700,borderRadius:6,padding:"2px 7px"}}>★ 4.9</span>
               </div>
@@ -818,13 +818,13 @@ function DisputeModal({booking,onClose}){
               <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}>✕</button>
             </div>
             <div style={{background:"rgba(245,158,11,.1)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#92400E",border:"1px solid rgba(245,158,11,.25)"}}>📋 {svc} · {lang==="en"?booking.dateEn||booking.date:booking.date} · {booking.price}</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:10}}>{lang==="en"?"Issue Type":"সমস্যার ধরন"}</div>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:10}}>{lang==="en"?"Issue Type":"সমস্যার ধরন"}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
               {TYPES.map(t=>(
                 <button key={t} onClick={()=>setType(t)} style={{padding:"9px 10px",borderRadius:10,border:`1.5px solid ${type===t?"rgba(245,158,11,.6)":C.bdr}`,background:type===t?"rgba(245,158,11,.12)":C.bg,color:type===t?"#92400E":C.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{t}</button>
               ))}
             </div>
-            <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:8}}>{lang==="en"?"Description":"বিবরণ"}</div>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:8}}>{lang==="en"?"Description":"বিবরণ"}</div>
             <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3}
               placeholder={lang==="en"?"Describe the issue in detail...":"সমস্যার বিস্তারিত লিখুন..."}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.bdr}`,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"vertical",boxSizing:"border-box",color:C.text,background:C.bg,marginBottom:16}}/>
@@ -892,9 +892,9 @@ function GuaranteeModal({booking,onClose}){
           <div style={{fontSize:12,color:"#047857"}}>{lang==="en"?"Not satisfied? We'll fix it or refund — no questions asked.":"সন্তুষ্ট না হলে বিনামূল্যে সমাধান বা সম্পূর্ণ রিফান্ড।"}</div>
         </div>
         {[[lang==="en"?"Service":"সেবা",svc],[lang==="en"?"Provider":"প্রদানকারী",provider||"IMAP Provider"],[lang==="en"?"Date":"তারিখ",date],[lang==="en"?"Booking ID":"বুকিং আইডি",booking.id||"-"],[lang==="en"?"Amount":"পরিমাণ",booking.price]].map(([k,v])=>(
-          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #F3F4F6"}}>
-            <span style={{fontSize:13,color:"#6B7280"}}>{k}</span>
-            <span style={{fontSize:13,fontWeight:700,color:"#111"}}>{v}</span>
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid ${C.bdr}`}}>
+            <span style={{fontSize:13,color:C.muted}}>{k}</span>
+            <span style={{fontSize:13,fontWeight:700,color:C.text}}>{v}</span>
           </div>
         ))}
         <div style={{display:"flex",gap:10,marginTop:16}}>
@@ -3799,7 +3799,7 @@ function BloodDonorMap({donors,lang}){
     return()=>{m.remove();mapObjRef.current=null;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[donors]);
-  return <div ref={mapElRef} style={{height:420,borderRadius:14,overflow:"hidden",border:"1px solid #e5e7eb"}}/>;
+  return <div ref={mapElRef} style={{height:420,borderRadius:14,overflow:"hidden",border:`1px solid ${C.bdr}`}}/>;
 }
 
 function BloodDonationPage() {
@@ -5156,7 +5156,7 @@ export default function IMAP() {
             value={svcSearch}
             onChange={e=>setSvcSearch(e.target.value)}
             placeholder={lang==="en"?"Search services, e.g. plumber, nurse…":"সেবা খুঁজুন, যেমন প্লাম্বার, নার্স…"}
-            style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.92)",color:"#111",fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
+            style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.92)",color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
           />
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
           {svcSearch&&<span onClick={()=>setSvcSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:"#555"}}>✕</span>}
