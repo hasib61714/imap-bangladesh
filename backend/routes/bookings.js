@@ -37,11 +37,14 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
 
     if (!finalAmount) return res.status(400).json({ error: "amount required" });
 
-    // Balance check for wallet-based payments (skip Cash — paid on delivery)
+    // Atomic balance deduction before booking insert — prevents concurrent double-spend race
+    const total = parseFloat(finalAmount) + parseFloat(platform_fee);
     if (payment_method !== "cash" && payment_method !== "Cash") {
-      const total_to_check = parseFloat(finalAmount) + parseFloat(platform_fee || 0);
-      const [[{ balance }]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-      if (balance < total_to_check) {
+      const [deductResult] = await pool.query(
+        "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+        [total, req.user.id, total]
+      );
+      if (deductResult.affectedRows === 0) {
         return res.status(400).json({ error: "Insufficient wallet balance. Please top up first." });
       }
     }
@@ -60,10 +63,6 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
        finalAmount, platform_fee, payment_method,
        is_urgent ? 1 : 0, otp, note]
     );
-
-    // Deduct from balance
-    const total = parseFloat(finalAmount) + parseFloat(platform_fee);
-    await pool.query("UPDATE users SET balance = balance - ? WHERE id = ?", [total, req.user.id]);
 
     // Add wallet transaction
     await pool.query(

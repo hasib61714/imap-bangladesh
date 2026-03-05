@@ -419,6 +419,8 @@ router.patch("/settings", ...auth, async (req, res) => {
   try {
     const { key, val } = req.body;
     if (!key) return res.status(400).json({ error: "key required" });
+    const allowedKeys = defaultSettings.map(s => s.key_name);
+    if (!allowedKeys.includes(key)) return res.status(400).json({ error: "Unknown setting key" });
     await pool.query(
       "INSERT INTO system_settings (key_name, val) VALUES (?, ?) ON DUPLICATE KEY UPDATE val = ?",
       [key, val ? 1 : 0, val ? 1 : 0]
