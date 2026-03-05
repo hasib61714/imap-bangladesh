@@ -284,8 +284,8 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
       <div className="auth-page">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #22D47F88)` }} onClick={tapLogo}>🌿</div>
-          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#1DBF73,#22D47F)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
+          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #00C17088)` }} onClick={tapLogo}>🌿</div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#006A4E,#00C170)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>🇧🇩 {lang === "bn" ? "বাংলাদেশের এআই-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম" : "Bangladesh"}</div>
           {logoTaps >= 3 && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 5, fontWeight: 700 }}>🔓 {lang === "bn" ? "গোপন মোড সক্রিয়" : "Secret mode active"}</div>}
         </div>

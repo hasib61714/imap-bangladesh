@@ -113,7 +113,7 @@ function LiveMap({tracking,setTracking}) {
       L.DomEvent.on(d,"click",L.DomEvent.stopPropagation);
       L.DomEvent.on(d,"click",()=>{
         satMode=!satMode;
-        if(satMode){map.removeLayer(roadLayer);satLayer.addTo(map);d.style.background="#1DBF73";d.style.color="#fff";}
+        if(satMode){map.removeLayer(roadLayer);satLayer.addTo(map);d.style.background="#006A4E";d.style.color="#fff";}
         else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="rgba(255,255,255,.98)";d.style.color="#000";}
       });
       return d;
@@ -2462,7 +2462,7 @@ function SettingsPage(){
       {tab==="profile"&&(
         <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.bdr}`}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:10}}>👤</div>
+            <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:10}}>👤</div>
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>{name}</div>
             <div style={{fontSize:12,color:C.muted}}>ID: IMAP-{authUser?.id||"User"}</div>
           </div>
@@ -2778,7 +2778,7 @@ function ReferralPage(){
   return(
     <div>
       {/* Ref code card */}
-      <div style={{background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",borderRadius:18,padding:"22px 20px",marginBottom:20,color:"#fff",textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#006A4E,#004D38)",borderRadius:18,padding:"22px 20px",marginBottom:20,color:"#fff",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:13,opacity:.85,marginBottom:8}}>{tr.rfCode}</div>
         <div style={{fontSize:26,fontWeight:900,letterSpacing:4,fontFamily:"monospace",background:"rgba(255,255,255,.15)",padding:"10px 20px",borderRadius:12,marginBottom:16,display:"inline-block"}}>{refCode}</div>
         <div style={{display:"flex",gap:10,justifyContent:"center"}}>
@@ -2825,7 +2825,7 @@ function ReferralPage(){
         <div style={{fontSize:13,fontWeight:700,color:C.text,padding:"12px 16px 8px"}}>{tr.rfFriends}</div>
         {friends.map((f,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:`1px solid ${C.bdr}`}}>
-            <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",flexShrink:0}}>{f.name[0]}</div>
+            <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",flexShrink:0}}>{f.name[0]}</div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:600,color:C.text}}>{f.nameEn||f.name}</div>
               <div style={{fontSize:11,color:C.muted}}>{f.date}</div>
@@ -2882,7 +2882,7 @@ function PortfolioPage(){
       {/* Profile card */}
       <div style={{background:C.card,borderRadius:16,padding:"18px",border:`1px solid ${C.bdr}`,marginBottom:16}}>
         <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-          <div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
+          <div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
             {sel.skill==="Electrician"?"⚡":"🧹"}
           </div>
           <div style={{flex:1}}>
@@ -3400,7 +3400,7 @@ function WalletPage() {
     <style>body{font-family:'Segoe UI',sans-serif;background:#f8fafc;margin:0;padding:20px}
     .card{background:#fff;border-radius:14px;padding:28px;max-width:400px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08)}
     .header{text-align:center;border-bottom:2px dashed #E5E7EB;padding-bottom:18px;margin-bottom:18px}
-    .logo{font-size:32px;margin-bottom:6px}.title{font-size:18px;font-weight:800;color:#1DBF73}
+    .logo{font-size:32px;margin-bottom:6px}.title{font-size:18px;font-weight:800;color:#006A4E}
     .sub{font-size:12px;color:#9CA3AF;margin-top:3px}.badge{display:inline-block;background:#D1FAE5;color:#065F46;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-top:8px}
     .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F3F4F6}
     .row label{font-size:12px;color:#6B7280}.row span{font-size:13px;font-weight:700;color:#111}
@@ -3424,7 +3424,7 @@ function WalletPage() {
   return (
     <div>
       {/* Balance card */}
-      <div style={{background:"linear-gradient(135deg,#1DBF73,#0D7F5F)",borderRadius:18,padding:"22px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#006A4E,#004D38)",borderRadius:18,padding:"22px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:13,opacity:.85,marginBottom:4}}>{tr.wlBalance}</div>
         <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,marginBottom:16}}>৳{balance.toLocaleString()}</div>
         <div style={{display:"flex",gap:24,marginBottom:18}}>
@@ -3438,7 +3438,7 @@ function WalletPage() {
         <div style={{display:"flex",gap:10}}>
           {[[tr.wlTopUp,"topup"],[tr.wlWithdraw,"history"]].map(([lbl,t])=>(
             <button key={lbl} onClick={()=>setTab(t)}
-              style={{padding:"8px 18px",borderRadius:10,background:tab===t?"#fff":"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",color:tab===t?"#0D7F5F":"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>
+              style={{padding:"8px 18px",borderRadius:10,background:tab===t?"#fff":"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",color:tab===t?"#004D38":"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>
               {lbl}
             </button>
           ))}
@@ -5153,7 +5153,7 @@ export default function IMAP() {
     return (
     <div style={{padding:"28px 0 80px"}}>
       {/* Header */}
-      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#0D7F5F"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#004D38"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{lang==="en"?"All Services":"সব সেবা সমূহ"}</div>
         <div style={{fontSize:13,opacity:.85,marginBottom:16}}>{SVCS.reduce((a,s)=>a+s.count,0).toLocaleString()}+ {lang==="en"?"service providers available":"সার্ভিস প্রোভাইডার উপলব্ধ"}</div>
         {/* Search bar */}
