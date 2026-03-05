@@ -1,4 +1,6 @@
-# 🚀 IMAP – Intelligent Multi-Service Assistance Platform
+# IMAP Bangladesh – Intelligent Multi-Service Assistance Platform
+
+> **Live:** https://hasib61714.github.io/imap-bangladesh/  |  **API:** https://imap-backend-mghb.onrender.com
 
 IMAP is an AI-powered multi-service marketplace designed to simplify daily life in Bangladesh by connecting users with verified service providers through a secure and intelligent platform.
 
@@ -206,5 +208,18 @@ sudo certbot --nginx -d yourdomain.com -d api.yourdomain.com
 - [x] CORS restricted to `FRONTEND_URL` in production
 - [x] Input validation with express-validator
 - [x] SQL injection protection via parameterized queries
-- [ ] Enable HTTPS in production
-- [ ] Use strong random JWT_SECRET (64+ chars)
+- [x] HTTPS in production (Render TLS on backend, GitHub Pages TLS on frontend)
+- [x] Strong random JWT_SECRET configured in Render environment
+- [x] Admin-only auth on AI analytics endpoints (`/forecast`, `/churn`, `/heatmap`, `/debug`)
+
+---
+
+## 🌐 Deployed Infrastructure
+
+| Layer | Platform | URL |
+|-------|----------|-----|
+| Frontend | GitHub Pages | https://hasib61714.github.io/imap-bangladesh/ |
+| Backend API | Render (Node.js) | https://imap-backend-mghb.onrender.com |
+| Database | TiDB Serverless (MySQL-compatible) | Render env vars |
+
+> **Note:** The Render free tier spins down after inactivity. The frontend automatically wakes the backend on first load (`wakeBackend()` in `main.jsx`).

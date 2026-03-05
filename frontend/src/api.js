@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 //  IMAP Bangladesh – Frontend API client
-//  All calls go to http://localhost:5000/api
+//  Production: https://imap-backend-mghb.onrender.com/api
+//  Dev fallback: http://localhost:5000/api (via VITE_API_URL)
 // ─────────────────────────────────────────────────────────────
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
