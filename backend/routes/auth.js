@@ -149,8 +149,8 @@ router.post("/send-otp", otpRules, async (req, res) => {
     }
     const message = `আপনার IMAP OTP কোড: ${otp}। এই কোড ৫ মিনিট বৈধ। কাউকে শেয়ার করবেন না।`;
     await sms.sendSMS(phone, message);
-    const isMock = (process.env.SMS_PROVIDER || "mock") === "mock";
-    res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Remove mockOtp before production" }) });
+    const isMock = process.env.NODE_ENV !== "production" && (process.env.SMS_PROVIDER || "mock") === "mock";
+    res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Dev only — never sent in production" }) });
   } catch (err) {
     logger.error("send-otp:", err);
     res.status(500).json({ error: "SMS পাঠাতে সমস্যা হয়েছে। পরে চেষ্টা করুন।" });
