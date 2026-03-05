@@ -6,6 +6,7 @@ const { Server }   = require("socket.io");
 const jwt          = require("jsonwebtoken");
 const helmet       = require("helmet");
 const rateLimit    = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
 const requestLogger = require("./middleware/requestLogger");
@@ -33,7 +34,7 @@ const aiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests, please wait a moment." },
-  keyGenerator: (req) => req.headers["authorization"] || req.ip,
+  keyGenerator: (req) => req.headers["authorization"] || ipKeyGenerator(req),
 });
 
 const app    = express();

@@ -17,8 +17,8 @@ const isSandbox = process.env.NODE_ENV !== "production";
 async function initiatePayment({ orderId, amount, currency = "BDT", customer, product, successUrl, failUrl, cancelUrl }) {
   if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");
   const sslcz      = new SSLCommerz(storeId, storePass, isSandbox);
-  const backendUrl = process.env.BACKEND_URL  || "http://localhost:5000";
-  const frontendUrl= process.env.FRONTEND_URL || "http://localhost:5173";
+  const backendUrl  = process.env.BACKEND_URL  || "http://localhost:5000";
+  const frontendUrl = process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || "http://localhost:5173";
   const data = {
     total_amount: parseFloat(amount).toFixed(2), currency, tran_id: orderId,
     success_url:  successUrl || `${backendUrl}/api/payments/success`,

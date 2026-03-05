@@ -17,7 +17,7 @@ const pool            = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
 const payment         = require("../utils/payment");
 
-const FE = () => process.env.FRONTEND_URL || "https://hasib61714.github.io/imap-bangladesh";
+const FE = () => process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || "https://hasib61714.github.io/imap-bangladesh";
 
 /* ── POST /api/payments/initiate ── */
 router.post("/initiate", authMiddleware, async (req, res) => {

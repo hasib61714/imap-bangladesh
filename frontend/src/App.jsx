@@ -67,6 +67,7 @@ const toUiProv = p => ({
 /* ══ LIVE MAP ══ */
 function LiveMap({tracking,setTracking}) {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
 
@@ -334,6 +335,7 @@ function PCard({p,delay=0,onBook,onView}) {
 /* ══ PROVIDER DETAIL ══ */
 function PDetail({p,onClose,onBook,onChat}) {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
   const name=lang==="en"?p.nameEn:p.name;
@@ -478,6 +480,7 @@ function PDetail({p,onClose,onBook,onChat}) {
 /* ══ BOOKING MODAL ══ */
 function BookModal({p,onClose,onSuccess}) {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
   const {setBalance}=useLiveData();
@@ -1915,6 +1918,7 @@ function NotifPage() {
 /* ══ AI CHAT (Real API + Voice Input) ══ */
 function Chat({isMobile}) {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
   const [open,setOpen]=useState(false);

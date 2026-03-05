@@ -35,8 +35,13 @@ services:
 
       # ── Frontend URL ──────────────────────────────────
       - key: FRONTEND_URL
-        value: https://hasib61714.github.io
+        value: https://hasib61714.github.io      # Full app URL (includes sub-path) — used for payment redirects
+      - key: FRONTEND_APP_URL
+        value: https://hasib61714.github.io/imap-bangladesh
 
+      # ── Backend URL (for payment callbacks) ──────────────
+      - key: BACKEND_URL
+        value: https://imap-backend-mghb.onrender.com
       # ── AI Keys ───────────────────────────────────────
       - key: GEMINI_API_KEY
         sync: false
@@ -48,9 +53,9 @@ services:
         sync: false
 
       # ── SSLCommerz Payment ────────────────────────────
-      - key: SSL_STORE_ID
+      - key: SSLCOMMERZ_STORE_ID
         sync: false
-      - key: SSL_STORE_PASSWORD
+      - key: SSLCOMMERZ_STORE_PASSWORD
         sync: false
       - key: SSL_IS_SANDBOX
         value: "false"
