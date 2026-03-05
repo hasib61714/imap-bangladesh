@@ -195,7 +195,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
         onMouseEnter={()=>setShowTip(true)}
         onMouseLeave={()=>setShowTip(false)}
         onClick={()=>setShowTip(t=>!t)}
-        style={{width:48,height:48,borderRadius:14,background:"#E5E7EB",border:"none",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.10)",opacity:.75}}
+        style={{width:48,height:48,borderRadius:14,background:"rgba(0,0,0,.1)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,.15)",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.10)",opacity:.75}}
         title={lang==="en"?"Voice not available in this browser":"এই ব্রাউজারে ভয়েস নেই"}
       >🎙️</button>
     </div>

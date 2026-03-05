@@ -224,7 +224,7 @@ function LiveMap({tracking,setTracking}) {
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:800,fontSize:14,color:"#1a1a1a",display:"flex",alignItems:"center",gap:6}}>
                 {lang==="bn"?"রাকিব হোসেন":"Rakib Hossain"}
-                <span style={{background:"#D1FAE5",color:C.p,fontSize:9,fontWeight:700,borderRadius:6,padding:"2px 7px"}}>★ 4.9</span>
+                <span style={{background:"rgba(16,185,129,.15)",color:C.p,fontSize:9,fontWeight:700,borderRadius:6,padding:"2px 7px"}}>★ 4.9</span>
               </div>
               <div style={{fontSize:11,color:"#888",marginTop:2}}>
                 🛵 {lang==="bn"?"মিরপুর রোড দিয়ে আসছেন":"via Mirpur Road"} · <span style={{color:C.p,fontWeight:700}}>{speed} km/h</span>
@@ -304,10 +304,10 @@ function PCard({p,delay=0,onBook,onView}) {
         <div style={{flex:1,minWidth:0}}>
           <div className="row" style={{gap:5,flexWrap:"wrap"}}>
             <span style={{fontSize:15,fontWeight:700,color:C.text,lineHeight:1.2}}>{name}</span>
-            {p.ok&&<span className="badge" style={{background:"#D1FAE5",color:"#065F46",fontSize:10}}>✓</span>}
+            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46",fontSize:10}}>✓</span>}
             {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03",fontSize:10}}>⭐ {p.badge}</span>}
-            {p.ai_score>=80&&<span className="badge" style={{background:"#EDE9FE",color:"#5B21B6",fontSize:10}}>🏆 AI Pick</span>}
-            {p.ai_score>=60&&p.ai_score<80&&<span className="badge" style={{background:"#DBEAFE",color:"#1E40AF",fontSize:10}}>⭐ Recommended</span>}
+            {p.ai_score>=80&&<span className="badge" style={{background:"rgba(139,92,246,.12)",color:"#5B21B6",fontSize:10}}>🏆 AI Pick</span>}
+            {p.ai_score>=60&&p.ai_score<80&&<span className="badge" style={{background:"rgba(59,130,246,.12)",color:"#1E40AF",fontSize:10}}>⭐ Recommended</span>}
           </div>
           <div style={{fontSize:12,color:C.muted,marginTop:2}}>{svc} · 📍 {loc}</div>
           <div className="row" style={{gap:5,marginTop:4}}><Stars r={p.r} size={11}/><span style={{fontSize:12,fontWeight:700}}>{p.r}</span><span style={{fontSize:11,color:C.muted}}>({p.rev}) · {p.jobs} {tr.jobs}</span></div>
@@ -383,7 +383,7 @@ function PDetail({p,onClose,onBook,onChat}) {
         <div style={{flex:1}}>
           <div className="row" style={{gap:7,flexWrap:"wrap"}}>
             <span style={{fontSize:19,fontWeight:700}}>{name}</span>
-            {p.ok&&<span className="badge" style={{background:"#D1FAE5",color:"#065F46"}}>✅</span>}
+            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46"}}>✅</span>}
             {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03"}}>⭐ {p.badge}</span>}
           </div>
           <div style={{fontSize:13,color:C.muted,marginTop:3}}>{svc} · 📍 {loc}</div>
@@ -3708,7 +3708,7 @@ function DisasterPage() {
               <button style={{padding:"7px 13px",borderRadius:9,background:C.p,border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Navigate":"যান"}</button>
             </div>
           ))}
-          <div style={{background:"#ECFDF5",borderRadius:14,padding:"14px 16px",border:"1px solid #A7F3D0",fontSize:13,color:"#065F46",display:"flex",alignItems:"flex-start",gap:10,marginTop:4}}>
+          <div style={{background:"rgba(16,185,129,.1)",borderRadius:14,padding:"14px 16px",border:"1px solid rgba(16,185,129,.3)",fontSize:13,color:"#065F46",display:"flex",alignItems:"flex-start",gap:10,marginTop:4}}>
             <span style={{fontSize:20}}>ℹ️</span>
             <div style={{lineHeight:1.6}}>{lang==="en"?"All shelters are government-approved and stocked with food, water and medical supplies.":"সকল আশ্রয়কেন্দ্র সরকারি অনুমোদিত এবং খাদ্য, পানি ও চিকিৎসা সরবরাহদে সজ্জিত।"}</div>
           </div>
