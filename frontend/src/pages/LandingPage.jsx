@@ -152,31 +152,177 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        .lp-btn{border:none;cursor:pointer;font-family:inherit;transition:all .18s;border-radius:12px;font-weight:700}
-        .lp-btn-g{background:${G};color:#fff;padding:12px 28px}
-        .lp-btn-g:hover{background:${GD};transform:translateY(-1px)}
-        .lp-btn-o{background:transparent;color:${G};border:2px solid ${G};padding:11px 26px}
-        .lp-btn-o:hover{background:${GBG}}
-        .lp-btn-sm{background:${G};color:#fff;padding:8px 18px;font-size:13px;border-radius:9px;border:none;cursor:pointer;font-weight:600}
-        .svc-card{padding:18px;border-radius:16px;border:1.5px solid ${bdr};background:${card};cursor:pointer;transition:all .2s;text-align:center}
-        .svc-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(22,163,74,.15)}
-        .trust-card{padding:20px;border-radius:14px;background:${card};border:1px solid ${bdr}}
-        .ai-bubble-bot{background:${dark?"#1E3A2F":"#DCFCE7"};border-radius:16px 16px 16px 4px;padding:12px 16px;max-width:88%;word-break:break-word;color:${txt}}
-        .ai-bubble-user{background:${G};color:#fff;border-radius:16px 16px 4px 16px;padding:12px 16px;max-width:88%;word-break:break-word;margin-left:auto}
-        .contact-btn{display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:14px;border:1.5px solid ${bdr};background:${card};cursor:pointer;transition:all .18s;text-decoration:none;color:${txt}}
-        .contact-btn:hover{border-color:${G};box-shadow:0 4px 16px rgba(22,163,74,.12)}
-        @media(max-width:640px){.lp-grid{grid-template-columns:repeat(3,1fr)!important}.lp-how{grid-template-columns:repeat(2,1fr)!important}.lp-trust{grid-template-columns:repeat(2,1fr)!important}.lp-contact{grid-template-columns:1fr!important}.lp-hero-btns{flex-direction:column!important}}
+
+        /* ── Premium Animations ── */
+        @keyframes lp-shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+        @keyframes lp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        @keyframes lp-glow{0%,100%{box-shadow:0 0 20px ${G}33}50%{box-shadow:0 0 40px ${G}66}}
+        @keyframes lp-fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes lp-pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+        @keyframes lp-spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes lp-gradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+        /* ── Base Button ── */
+        .lp-btn{
+          border:none;cursor:pointer;font-family:inherit;
+          transition:all .22s cubic-bezier(.16,1,.3,1);
+          border-radius:14px;font-weight:700;position:relative;overflow:hidden;
+        }
+        .lp-btn::after{
+          content:'';position:absolute;inset:0;
+          background:linear-gradient(135deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%);
+          pointer-events:none;border-radius:14px;
+        }
+
+        /* ── Primary Button ── */
+        .lp-btn-g{
+          background:linear-gradient(135deg,#22D47F 0%,${G} 50%,${GD} 100%);
+          background-size:200%;
+          color:#fff;padding:13px 30px;
+          box-shadow:0 6px 20px ${G}55,0 2px 6px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.25);
+        }
+        .lp-btn-g:hover{
+          background-position:right center;
+          transform:translateY(-3px) scale(1.02);
+          box-shadow:0 12px 32px ${G}66,0 4px 12px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3);
+        }
+        .lp-btn-g:active{transform:scale(.97);box-shadow:0 4px 12px ${G}44;}
+
+        /* ── Outline Button ── */
+        .lp-btn-o{
+          background:${dark?"rgba(14,31,24,.7)":"rgba(255,255,255,.8)"};
+          color:${G};border:2px solid ${G};padding:12px 28px;
+          backdrop-filter:blur(8px);
+          box-shadow:0 2px 10px ${G}22,inset 0 1px 0 rgba(255,255,255,.6);
+        }
+        .lp-btn-o:hover{
+          background:${dark?`rgba(34,212,127,.15)`:GBG};
+          box-shadow:0 6px 20px ${G}33,inset 0 1px 0 rgba(255,255,255,.8);
+          transform:translateY(-2px);
+        }
+
+        /* ── Small Button ── */
+        .lp-btn-sm{
+          background:linear-gradient(135deg,${G},${GD});color:#fff;
+          padding:8px 18px;font-size:13px;border-radius:10px;border:none;cursor:pointer;font-weight:700;
+          box-shadow:0 3px 10px ${G}44,inset 0 1px 0 rgba(255,255,255,.2);
+          transition:all .2s;position:relative;overflow:hidden;
+        }
+        .lp-btn-sm:hover{transform:translateY(-1px);box-shadow:0 6px 16px ${G}55;}
+
+        /* ── Glass Service Card ── */
+        .svc-card{
+          padding:20px 16px;border-radius:20px;
+          border:1px solid ${dark?"rgba(30,69,53,.7)":"rgba(255,255,255,.8)"};
+          background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
+          backdrop-filter:blur(16px) saturate(180%);
+          -webkit-backdrop-filter:blur(16px) saturate(180%);
+          cursor:pointer;transition:all .28s cubic-bezier(.16,1,.3,1);text-align:center;
+          box-shadow:0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.7);
+        }
+        .svc-card:hover{
+          transform:translateY(-6px) scale(1.03);
+          box-shadow:0 20px 48px rgba(22,163,74,.18),0 0 0 1px ${G}33,inset 0 1px 0 rgba(255,255,255,.9);
+          border-color:${G}55;
+        }
+
+        /* ── Trust Cards ── */
+        .trust-card{
+          padding:22px;border-radius:18px;
+          background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
+          border:1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"};
+          backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+          box-shadow:0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.6);
+          transition:all .25s cubic-bezier(.16,1,.3,1);
+        }
+        .trust-card:hover{
+          transform:translateY(-4px);
+          box-shadow:0 16px 40px rgba(22,163,74,.14),0 0 0 1px ${G}22;
+          border-color:${G}44;
+        }
+
+        /* ── AI Chat Bubbles ── */
+        .ai-bubble-bot{
+          background:${dark?"linear-gradient(135deg,rgba(30,58,47,.9),rgba(20,50,36,.9))":"linear-gradient(135deg,#DCFCE7,#BBF7D0)"};
+          border-radius:18px 18px 18px 4px;padding:13px 17px;max-width:88%;
+          word-break:break-word;color:${txt};
+          box-shadow:0 2px 10px rgba(22,163,74,.12),inset 0 1px 0 rgba(255,255,255,.3);
+          border:1px solid ${dark?"rgba(34,212,127,.15)":"rgba(22,163,74,.15)"};
+        }
+        .ai-bubble-user{
+          background:linear-gradient(135deg,${G},${GD});
+          color:#fff;border-radius:18px 18px 4px 18px;padding:13px 17px;max-width:88%;
+          word-break:break-word;margin-left:auto;
+          box-shadow:0 4px 14px ${G}44,inset 0 1px 0 rgba(255,255,255,.2);
+        }
+
+        /* ── Contact Buttons ── */
+        .contact-btn{
+          display:flex;align-items:center;gap:14px;padding:17px 22px;
+          border-radius:16px;
+          border:1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"};
+          background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
+          backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+          cursor:pointer;transition:all .22s cubic-bezier(.16,1,.3,1);
+          text-decoration:none;color:${txt};
+          box-shadow:0 2px 10px rgba(0,0,0,.05),inset 0 1px 0 rgba(255,255,255,.6);
+        }
+        .contact-btn:hover{
+          border-color:${G}55;
+          box-shadow:0 8px 28px rgba(22,163,74,.16),0 0 0 1px ${G}22;
+          transform:translateY(-3px);
+          background:${dark?"rgba(34,212,127,.08)":"rgba(240,253,244,.95)"};
+        }
+
+        /* ── FAQ ── */
+        .lp-faq-item{
+          border-radius:16px;border:1px solid ${dark?"rgba(30,69,53,.5)":"rgba(214,236,227,.8)"};
+          background:${dark?"rgba(14,31,24,.7)":"rgba(255,255,255,.8)"};
+          backdrop-filter:blur(12px);overflow:hidden;
+          transition:all .2s;
+          box-shadow:0 2px 8px rgba(0,0,0,.04);
+        }
+        .lp-faq-item:hover{border-color:${G}44;box-shadow:0 6px 20px rgba(22,163,74,.1);}
+
+        /* ── Responsive ── */
+        @media(max-width:640px){
+          .lp-grid{grid-template-columns:repeat(3,1fr)!important}
+          .lp-how{grid-template-columns:repeat(2,1fr)!important}
+          .lp-trust{grid-template-columns:repeat(2,1fr)!important}
+          .lp-contact{grid-template-columns:1fr!important}
+          .lp-hero-btns{flex-direction:column!important}
+          .svc-card:hover{transform:none}
+          .trust-card:hover{transform:none}
+        }
       `}</style>
 
       {/* ── TOP NAV ── */}
-      <nav style={{ background:card, borderBottom:`1px solid ${bdr}`, position:"sticky", top:0, zIndex:900, boxShadow:"0 1px 12px rgba(0,0,0,.06)" }}>
-        <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 20px", height:62, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+      <nav style={{
+        background: dark ? "rgba(8,15,11,.88)" : "rgba(255,255,255,.88)",
+        backdropFilter:"blur(20px) saturate(200%)",
+        WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        borderBottom:`1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.7)"}`,
+        position:"sticky", top:0, zIndex:900,
+        boxShadow: dark
+          ? "0 2px 20px rgba(0,0,0,.3),inset 0 -1px 0 rgba(34,212,127,.08)"
+          : "0 2px 20px rgba(0,0,0,.06),inset 0 -1px 0 rgba(255,255,255,.8)"
+      }}>
+        <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 20px", height:64, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
           {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer" }}>
-            <div style={{ width:36, height:36, borderRadius:11, background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🌿</div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}>
+            <div style={{
+              width:38, height:38, borderRadius:12,
+              background:`linear-gradient(135deg,${G},${GD})`,
+              display:"flex", alignItems:"center", justifyContent:"center", fontSize:19,
+              boxShadow:`0 4px 14px ${G}55,inset 0 1px 0 rgba(255,255,255,.25)`
+            }}>🌿</div>
             <div>
-              <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:18, fontWeight:800, color:G, lineHeight:1 }}>IMAP</div>
-              <div style={{ fontSize:9, color:sub, letterSpacing:1.3, textTransform:"uppercase" }}>AI Powered Service</div>
+              <div style={{
+                fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:19, fontWeight:800, lineHeight:1,
+                background:`linear-gradient(135deg,${G},${GD})`,
+                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+              }}>IMAP</div>
+              <div style={{ fontSize:9, color:sub, letterSpacing:1.4, textTransform:"uppercase", opacity:.8 }}>AI Powered Service</div>
             </div>
           </div>
 
@@ -199,72 +345,130 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </nav>
 
       {/* ── HERO ── */}
-      <section style={{ background:`linear-gradient(155deg,${dark?"#0A1F12":GD} 0%,${dark?"#0F3326":"#145232"} 55%,${dark?"#0F2A1C":"#1A6040"} 100%)`, padding:"80px 20px 90px", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", right:-100, top:-100, width:500, height:500, borderRadius:"50%", background:"rgba(255,255,255,.04)", pointerEvents:"none" }}/>
-        <div style={{ position:"absolute", left:-60, bottom:-60, width:300, height:300, borderRadius:"50%", background:"rgba(255,255,255,.03)", pointerEvents:"none" }}/>
-        <div style={{ maxWidth:780, margin:"0 auto", textAlign:"center", position:"relative", zIndex:1 }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,.12)", borderRadius:30, padding:"6px 18px", fontSize:12, color:"#86efac", marginBottom:22, border:"1px solid rgba(255,255,255,.15)" }}>
+      <section style={{
+        background: dark
+          ? "linear-gradient(155deg,#061008 0%,#0A1F12 40%,#0D2E22 70%,#061810 100%)"
+          : "linear-gradient(155deg,#0B3A1F 0%,#145232 40%,#1A6040 70%,#0D4228 100%)",
+        padding:"88px 20px 100px", position:"relative", overflow:"hidden"
+      }}>
+        {/* Decorative orbs */}
+        <div style={{ position:"absolute", right:-120, top:-120, width:520, height:520, borderRadius:"50%", background:`radial-gradient(circle,${G}18 0%,transparent 70%)`, pointerEvents:"none", animation:"lp-float 6s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", left:-80, bottom:-80, width:360, height:360, borderRadius:"50%", background:`radial-gradient(circle,${G}12 0%,transparent 70%)`, pointerEvents:"none", animation:"lp-float 8s ease-in-out infinite reverse" }}/>
+        <div style={{ position:"absolute", left:"50%", top:"30%", width:200, height:200, borderRadius:"50%", background:`radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)`, pointerEvents:"none", transform:"translateX(-50%)" }}/>
+        {/* Mesh grid overlay */}
+        <div style={{ position:"absolute", inset:0, backgroundImage:`linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px)`, backgroundSize:"40px 40px", pointerEvents:"none" }}/>
+
+        <div style={{ maxWidth:800, margin:"0 auto", textAlign:"center", position:"relative", zIndex:1 }}>
+          {/* Badge */}
+          <div style={{
+            display:"inline-flex", alignItems:"center", gap:8,
+            background:"rgba(255,255,255,.1)",
+            backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+            borderRadius:30, padding:"7px 20px", fontSize:12, color:"#86efac",
+            marginBottom:24, border:"1px solid rgba(255,255,255,.18)",
+            boxShadow:"0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15)"
+          }}>
             🇧🇩 &nbsp;Bangladesh's Trusted Service Platform
           </div>
-          <h1 style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize: isMob ? 28 : 42, fontWeight:800, color:WH, lineHeight:1.25, marginBottom:16 }}>
+          <h1 style={{
+            fontFamily:"'Plus Jakarta Sans',sans-serif",
+            fontSize: isMob ? 30 : 46, fontWeight:800, color:WH, lineHeight:1.22, marginBottom:18,
+            textShadow:"0 2px 20px rgba(0,0,0,.3)"
+          }}>
             {tr.tagline}
           </h1>
-          <p style={{ fontSize:16, color:"#86efac", marginBottom:36, lineHeight:1.7 }}>{tr.sub}</p>
+          <p style={{ fontSize:16, color:"#86efac", marginBottom:40, lineHeight:1.75, opacity:.92 }}>{tr.sub}</p>
 
           {/* Stats bar */}
-          <div style={{ display:"flex", justifyContent:"center", gap:32, marginBottom:40, flexWrap:"wrap" }}>
-            {[["500+", lang==="en"?"Services":"সেবা"], ["10K+", lang==="en"?"Customers":"গ্রাহক"], ["1200+", lang==="en"?"Providers":"Provider"], ["4.8★", lang==="en"?"Rating":"রেটিং"]].map(([v,l]) => (
-              <div key={l} style={{ textAlign:"center" }}>
-                <div style={{ fontSize:22, fontWeight:800, color:WH, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{v}</div>
-                <div style={{ fontSize:11, color:"#86efac" }}>{l}</div>
+          <div style={{ display:"flex", justifyContent:"center", gap:0, marginBottom:44, flexWrap:"wrap" }}>
+            {[["500+", lang==="en"?"Services":"সেবা"], ["10K+", lang==="en"?"Customers":"গ্রাহক"], ["1200+", lang==="en"?"Providers":"Provider"], ["4.8★", lang==="en"?"Rating":"রেটিং"]].map(([v,l],i,arr) => (
+              <div key={l} style={{
+                textAlign:"center", padding:"12px 28px",
+                borderRight: i<arr.length-1 ? "1px solid rgba(255,255,255,.12)" : "none"
+              }}>
+                <div style={{ fontSize:24, fontWeight:800, color:WH, fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:-.5 }}>{v}</div>
+                <div style={{ fontSize:11, color:"#86efac", marginTop:3, letterSpacing:.5 }}>{l}</div>
               </div>
             ))}
           </div>
 
           {/* CTA buttons */}
           <div className="lp-hero-btns" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
-            <button className="lp-btn" style={{ background:WH, color:G, fontSize:15, padding:"14px 36px", borderRadius:14, fontWeight:800 }} onClick={onGetStarted}>
+            <button className="lp-btn" style={{
+              background:"rgba(255,255,255,.95)", color:G, fontSize:15, padding:"15px 38px",
+              borderRadius:14, fontWeight:800,
+              boxShadow:"0 8px 28px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,1)"
+            }} onClick={onGetStarted}>
               🛍️ {tr.bookBtn}
             </button>
-            <button className="lp-btn" style={{ background:"transparent", color:WH, border:"2px solid rgba(255,255,255,.4)", fontSize:15, padding:"13px 34px", borderRadius:14, fontWeight:700 }}
-              onClick={onRegisterProvider}>
+            <button className="lp-btn" style={{
+              background:"rgba(255,255,255,.1)", color:WH, border:"1.5px solid rgba(255,255,255,.35)",
+              fontSize:15, padding:"14px 36px", borderRadius:14, fontWeight:700,
+              backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+              boxShadow:"0 4px 20px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15)"
+            }} onClick={onRegisterProvider}>
               👷 {tr.provBtn}
             </button>
-            <button className="lp-btn" style={{ background:"rgba(255,255,255,.1)", color:WH, fontSize:14, padding:"12px 26px", borderRadius:14, border:"1px solid rgba(255,255,255,.2)" }}
-              onClick={() => setAiOpen(true)}>
+            <button className="lp-btn" style={{
+              background:"rgba(255,255,255,.08)", color:WH, fontSize:14, padding:"13px 28px",
+              borderRadius:14, border:"1px solid rgba(255,255,255,.18)",
+              backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)"
+            }} onClick={() => setAiOpen(true)}>
               🤖 {lang === "en" ? "Ask AI" : "AI-কে জিজ্ঞেস করুন"}
             </button>
           </div>
 
           {/* Trust badges */}
-          <div style={{ marginTop:32, display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap" }}>
+          <div style={{ marginTop:36, display:"flex", justifyContent:"center", gap:12, flexWrap:"wrap" }}>
             {["✅ KYC Verified", "🔒 Secure Payment", "🆘 SOS Protected", "⚖️ Legal Shield"].map(b => (
-              <div key={b} style={{ fontSize:11, color:"rgba(255,255,255,.65)", display:"flex", alignItems:"center", gap:5 }}>{b}</div>
+              <div key={b} style={{
+                fontSize:11, color:"rgba(255,255,255,.8)", display:"flex", alignItems:"center", gap:6,
+                background:"rgba(255,255,255,.08)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+                border:"1px solid rgba(255,255,255,.14)", borderRadius:30,
+                padding:"5px 14px", fontWeight:600,
+                boxShadow:"inset 0 1px 0 rgba(255,255,255,.1)"
+              }}>{b}</div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ── SERVICES ── */}
-      <section style={{ padding:"64px 20px", background: dark ? "#0F172A" : "#F8FFFA" }}>
+      <section style={{
+        padding:"72px 20px",
+        background: dark
+          ? "linear-gradient(180deg,#080F0B 0%,#0A1812 100%)"
+          : "linear-gradient(180deg,#F0F7F3 0%,#F8FFFA 100%)"
+      }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:36 }}>
-            <div style={{ fontSize:11, letterSpacing:2, color:G, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>500+ সেবা</div>
-            <h2 style={{ fontSize:28, fontWeight:800, marginBottom:8 }}>{tr.svcTitle}</h2>
+          <div style={{ textAlign:"center", marginBottom:40 }}>
+            <div style={{
+              display:"inline-block", fontSize:11, letterSpacing:2, color:G, fontWeight:700,
+              textTransform:"uppercase", marginBottom:10,
+              background: dark?"rgba(34,212,127,.1)":"rgba(22,163,74,.08)",
+              border:`1px solid ${G}33`, borderRadius:30, padding:"4px 16px"
+            }}>500+ সেবা</div>
+            <h2 style={{
+              fontSize:30, fontWeight:800, marginBottom:8,
+              background:`linear-gradient(135deg,${txt},${G})`,
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+            }}>{tr.svcTitle}</h2>
             <p style={{ color:sub, fontSize:14 }}>{tr.svcSub}</p>
           </div>
           <div className="lp-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14 }}>
             {CATS.map(c => (
-              <div key={c.name} className="svc-card" onClick={onGetStarted}
-                style={{ borderTop:`3px solid ${c.col}` }}>
-                <div style={{ fontSize:32, marginBottom:8 }}>{c.icon}</div>
-                <div style={{ fontSize:13, fontWeight:700, color:txt, lineHeight:1.35, marginBottom:4 }}>{lang === "en" ? c.nameEn : c.name}</div>
-                <div style={{ fontSize:11, color:G, fontWeight:600 }}>{c.price}</div>
+              <div key={c.name} className="svc-card" onClick={onGetStarted} style={{
+                borderTop:`3px solid ${c.col}`,
+                boxShadow:`0 4px 16px ${c.col}15,inset 0 1px 0 rgba(255,255,255,.7)`
+              }}>
+                <div style={{ fontSize:34, marginBottom:10, filter:`drop-shadow(0 2px 6px ${c.col}44)` }}>{c.icon}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:txt, lineHeight:1.35, marginBottom:5 }}>{lang === "en" ? c.nameEn : c.name}</div>
+                <div style={{ fontSize:11, color:G, fontWeight:700, background:`${G}15`, borderRadius:30, padding:"2px 10px", display:"inline-block" }}>{c.price}</div>
               </div>
             ))}
           </div>
-          <div style={{ textAlign:"center", marginTop:28 }}>
-            <button className="lp-btn lp-btn-g" onClick={onGetStarted} style={{ fontSize:14, padding:"12px 32px" }}>
+          <div style={{ textAlign:"center", marginTop:32 }}>
+            <button className="lp-btn lp-btn-g" onClick={onGetStarted} style={{ fontSize:14, padding:"13px 36px" }}>
               {lang === "en" ? "View All Services →" : "সব সেবা দেখুন →"}
             </button>
           </div>
@@ -272,19 +476,48 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section style={{ padding:"64px 20px", background:card }}>
+      <section style={{
+        padding:"72px 20px",
+        background: dark
+          ? "linear-gradient(180deg,#0A1812 0%,#0D2010 100%)"
+          : "linear-gradient(180deg,#FFFFFF 0%,#F6FDF9 100%)"
+      }}>
         <div style={{ maxWidth:900, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:40 }}>
-            <div style={{ fontSize:11, letterSpacing:2, color:G, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Simple Process</div>
-            <h2 style={{ fontSize:28, fontWeight:800 }}>{tr.howTitle}</h2>
+          <div style={{ textAlign:"center", marginBottom:44 }}>
+            <div style={{
+              display:"inline-block", fontSize:11, letterSpacing:2, color:G, fontWeight:700,
+              textTransform:"uppercase", marginBottom:10,
+              background: dark?"rgba(34,212,127,.1)":"rgba(22,163,74,.08)",
+              border:`1px solid ${G}33`, borderRadius:30, padding:"4px 16px"
+            }}>Simple Process</div>
+            <h2 style={{
+              fontSize:30, fontWeight:800,
+              background:`linear-gradient(135deg,${txt},${G})`,
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+            }}>{tr.howTitle}</h2>
           </div>
           <div className="lp-how" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:20 }}>
             {HOW.map((h, i) => (
-              <div key={i} style={{ textAlign:"center", padding:"24px 16px", borderRadius:16, border:`1.5px solid ${bdr}`, position:"relative" }}>
-                <div style={{ position:"absolute", top:-14, left:"50%", transform:"translateX(-50%)", width:28, height:28, borderRadius:"50%", background:G, color:WH, fontWeight:800, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>{i+1}</div>
-                <div style={{ fontSize:40, marginBottom:10, marginTop:6 }}>{h.icon}</div>
-                <div style={{ fontWeight:700, fontSize:14, marginBottom:6 }}>{h.t}</div>
-                <div style={{ fontSize:12, color:sub, lineHeight:1.5 }}>{h.d}</div>
+              <div key={i} style={{
+                textAlign:"center", padding:"28px 18px 22px", position:"relative",
+                borderRadius:20,
+                background: dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)",
+                backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                border:`1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"}`,
+                boxShadow:`0 4px 20px rgba(0,0,0,.06),0 0 0 1px ${G}11,inset 0 1px 0 rgba(255,255,255,.7)`,
+                transition:"all .25s cubic-bezier(.16,1,.3,1)"
+              }}>
+                <div style={{
+                  position:"absolute", top:-14, left:"50%", transform:"translateX(-50%)",
+                  width:30, height:30, borderRadius:"50%",
+                  background:`linear-gradient(135deg,${G},${GD})`,
+                  color:WH, fontWeight:800, fontSize:13,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  boxShadow:`0 4px 12px ${G}55,inset 0 1px 0 rgba(255,255,255,.3)`
+                }}>{i+1}</div>
+                <div style={{ fontSize:42, marginBottom:12, marginTop:8, filter:`drop-shadow(0 4px 8px rgba(0,0,0,.15))` }}>{h.icon}</div>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:7, color:txt }}>{h.t}</div>
+                <div style={{ fontSize:12, color:sub, lineHeight:1.6 }}>{h.d}</div>
               </div>
             ))}
           </div>
@@ -292,18 +525,32 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/* ── TRUST PILLARS ── */}
-      <section style={{ padding:"64px 20px", background: dark ? "#0A1F12" : GBG }}>
+      <section style={{
+        padding:"72px 20px",
+        background: dark
+          ? "linear-gradient(180deg,#0D2010 0%,#080F0B 100%)"
+          : "linear-gradient(180deg,#F0FDF4 0%,#F6FFF9 100%)"
+      }}>
         <div style={{ maxWidth:1100, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:40 }}>
-            <div style={{ fontSize:11, letterSpacing:2, color:G, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Trust & Safety</div>
-            <h2 style={{ fontSize:28, fontWeight:800 }}>{tr.trustTitle}</h2>
+          <div style={{ textAlign:"center", marginBottom:44 }}>
+            <div style={{
+              display:"inline-block", fontSize:11, letterSpacing:2, color:G, fontWeight:700,
+              textTransform:"uppercase", marginBottom:10,
+              background: dark?"rgba(34,212,127,.1)":"rgba(22,163,74,.08)",
+              border:`1px solid ${G}33`, borderRadius:30, padding:"4px 16px"
+            }}>Trust & Safety</div>
+            <h2 style={{
+              fontSize:30, fontWeight:800,
+              background:`linear-gradient(135deg,${txt},${G})`,
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+            }}>{tr.trustTitle}</h2>
           </div>
           <div className="lp-trust" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
             {TRUST.map((t, i) => (
               <div key={i} className="trust-card">
-                <div style={{ fontSize:30, marginBottom:10 }}>{t.icon}</div>
-                <div style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>{t.t}</div>
-                <div style={{ fontSize:12, color:sub, lineHeight:1.6 }}>{t.d}</div>
+                <div style={{ fontSize:32, marginBottom:12, filter:"drop-shadow(0 2px 6px rgba(0,0,0,.12))" }}>{t.icon}</div>
+                <div style={{ fontWeight:800, fontSize:15, marginBottom:7, color:txt }}>{t.t}</div>
+                <div style={{ fontSize:12, color:sub, lineHeight:1.65 }}>{t.d}</div>
               </div>
             ))}
           </div>
@@ -311,15 +558,34 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/* ── SAFETY + SOS SECTION ── */}
-      <section style={{ padding:"64px 20px", background: dark ? "#1A0A0A" : "#FFF7F7" }}>
+      <section style={{
+        padding:"72px 20px",
+        background: dark
+          ? "linear-gradient(180deg,#080F0B 0%,#100808 100%)"
+          : "linear-gradient(180deg,#FFF7F7 0%,#FFF1F0 100%)"
+      }}>
         <div style={{ maxWidth:900, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:36 }}>
-            <div style={{ fontSize:11, letterSpacing:2, color:"#EF4444", fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>🛡️ Security First</div>
-            <h2 style={{ fontSize:28, fontWeight:800 }}>{tr.safetyTitle}</h2>
+          <div style={{ textAlign:"center", marginBottom:44 }}>
+            <div style={{
+              display:"inline-block", fontSize:11, letterSpacing:2, color:"#EF4444", fontWeight:700,
+              textTransform:"uppercase", marginBottom:10,
+              background: dark?"rgba(239,68,68,.1)":"rgba(239,68,68,.08)",
+              border:"1px solid rgba(239,68,68,.25)", borderRadius:30, padding:"4px 16px"
+            }}>🛡️ Security First</div>
+            <h2 style={{
+              fontSize:30, fontWeight:800,
+              background:`linear-gradient(135deg,${txt},#EF4444)`,
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+            }}>{tr.safetyTitle}</h2>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
             {/* SOS Card */}
-            <div style={{ background: dark?"#2D1515":"#FEF2F2", border:"2px solid #FCA5A5", borderRadius:18, padding:28 }}>
+            <div style={{
+              background: dark?"rgba(45,21,21,.85)":"rgba(254,242,242,.9)",
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:"1.5px solid rgba(252,165,165,.5)", borderRadius:20, padding:28,
+              boxShadow:"0 8px 32px rgba(239,68,68,.1),inset 0 1px 0 rgba(255,255,255,.15)"
+            }}>
               <div style={{ fontSize:40, marginBottom:12 }}>🆘</div>
               <div style={{ fontWeight:800, fontSize:17, color:"#DC2626", marginBottom:10 }}>{tr.sosTitle}</div>
               <p style={{ fontSize:13, color: dark?"#FCA5A5":"#7F1D1D", lineHeight:1.7 }}>{tr.sosDesc}</p>
@@ -331,7 +597,12 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             </div>
 
             {/* Anti-fraud Card */}
-            <div style={{ background: dark?"#1A1A30":"#EEF2FF", border:"2px solid #A5B4FC", borderRadius:18, padding:28 }}>
+            <div style={{
+              background: dark?"rgba(26,26,48,.85)":"rgba(238,242,255,.9)",
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:"1.5px solid rgba(165,180,252,.45)", borderRadius:20, padding:28,
+              boxShadow:"0 8px 32px rgba(99,102,241,.1),inset 0 1px 0 rgba(255,255,255,.12)"
+            }}>
               <div style={{ fontSize:40, marginBottom:12 }}>⚖️</div>
               <div style={{ fontWeight:800, fontSize:17, color:"#4338CA", marginBottom:10 }}>
                 {lang === "en" ? "Legal Protection & Anti-Fraud" : "আইনি সুরক্ষা ও প্রতারণা-বিরোধী"}
@@ -347,7 +618,12 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             </div>
 
             {/* Verification Card */}
-            <div style={{ background: dark?"#0D2018":"#DCFCE7", border:"2px solid #86EFAC", borderRadius:18, padding:28 }}>
+            <div style={{
+              background: dark?"rgba(13,32,24,.85)":"rgba(220,252,231,.9)",
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:"1.5px solid rgba(134,239,172,.4)", borderRadius:20, padding:28,
+              boxShadow:"0 8px 32px rgba(21,128,61,.1),inset 0 1px 0 rgba(255,255,255,.15)"
+            }}>
               <div style={{ fontSize:40, marginBottom:12 }}>🪪</div>
               <div style={{ fontWeight:800, fontSize:17, color:"#15803D", marginBottom:10 }}>
                 {lang === "en" ? "Mandatory KYC Verification" : "বাধ্যতামূলক KYC যাচাই"}
@@ -360,7 +636,12 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             </div>
 
             {/* Privacy Card */}
-            <div style={{ background: dark?"#1A1520":"#FAF5FF", border:"2px solid #D8B4FE", borderRadius:18, padding:28 }}>
+            <div style={{
+              background: dark?"rgba(26,21,32,.85)":"rgba(250,245,255,.9)",
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:"1.5px solid rgba(216,180,254,.4)", borderRadius:20, padding:28,
+              boxShadow:"0 8px 32px rgba(124,58,237,.1),inset 0 1px 0 rgba(255,255,255,.12)"
+            }}>
               <div style={{ fontSize:40, marginBottom:12 }}>🔐</div>
               <div style={{ fontWeight:800, fontSize:17, color:"#7C3AED", marginBottom:10 }}>
                 {lang === "en" ? "Data Privacy & Security" : "ডেটা গোপনীয়তা ও নিরাপত্তা"}
@@ -376,12 +657,26 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/* ── CONTACT ── */}
-      <section style={{ padding:"64px 20px", background: card }}>
+      <section style={{
+        padding:"72px 20px",
+        background: dark
+          ? "linear-gradient(180deg,#100808 0%,#080F0B 100%)"
+          : "linear-gradient(180deg,#FFFFFF 0%,#F6FDF9 100%)"
+      }}>
         <div style={{ maxWidth:800, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:36 }}>
-            <div style={{ fontSize:11, letterSpacing:2, color:G, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Live Support</div>
-            <h2 style={{ fontSize:28, fontWeight:800 }}>{tr.contactTitle}</h2>
-            <p style={{ color:sub, fontSize:14, marginTop:8 }}>
+          <div style={{ textAlign:"center", marginBottom:44 }}>
+            <div style={{
+              display:"inline-block", fontSize:11, letterSpacing:2, color:G, fontWeight:700,
+              textTransform:"uppercase", marginBottom:10,
+              background: dark?"rgba(34,212,127,.1)":"rgba(22,163,74,.08)",
+              border:`1px solid ${G}33`, borderRadius:30, padding:"4px 16px"
+            }}>Live Support</div>
+            <h2 style={{
+              fontSize:30, fontWeight:800,
+              background:`linear-gradient(135deg,${txt},${G})`,
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"
+            }}>{tr.contactTitle}</h2>
+            <p style={{ color:sub, fontSize:14, marginTop:10 }}>
               {lang === "en" ? "Reach us instantly — 24/7 available" : "যেকোনো সময় যোগাযোগ করুন — ২৪/৭ সক্রিয়"}
             </p>
           </div>
@@ -415,7 +710,15 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           </div>
 
           {/* Emergency line */}
-          <div style={{ marginTop:24, padding:"16px 22px", borderRadius:14, background: dark?"#1A0A0A":"#FFF1F2", border:"1.5px solid #FCA5A5", display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{
+            marginTop:24, padding:"18px 24px",
+            borderRadius:18,
+            background: dark?"rgba(26,10,10,.85)":"rgba(255,241,242,.9)",
+            backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+            border:"1.5px solid rgba(252,165,165,.4)",
+            display:"flex", alignItems:"center", gap:16,
+            boxShadow:"0 4px 20px rgba(239,68,68,.08),inset 0 1px 0 rgba(255,255,255,.2)"
+          }}>
             <div style={{ fontSize:28 }}>🚨</div>
             <div>
               <div style={{ fontWeight:700, color:"#DC2626", fontSize:14 }}>
@@ -430,13 +733,26 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: dark?"#0A0A0A":GD, padding:"48px 20px 24px" }}>
-        <div style={{ maxWidth:1100, margin:"0 auto" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:32, marginBottom:36 }}>
+      <footer style={{
+        background: dark
+          ? "linear-gradient(180deg,#060D08 0%,#030806 100%)"
+          : `linear-gradient(155deg,#0B3A1F 0%,${GD} 50%,#0D4228 100%)`,
+        padding:"56px 20px 28px",
+        position:"relative", overflow:"hidden"
+      }}>
+        {/* Footer mesh overlay */}
+        <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none" }}/>
+        <div style={{ maxWidth:1100, margin:"0 auto", position:"relative", zIndex:1 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:32, marginBottom:40 }}>
             <div>
-              <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:12 }}>
-                <div style={{ width:34, height:34, borderRadius:10, background:`linear-gradient(135deg,${G},#0891B2)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17 }}>🌿</div>
-                <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:17, fontWeight:800, color:WH }}>IMAP</div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:12,
+                  background:`linear-gradient(135deg,${G},#0891B2)`,
+                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:19,
+                  boxShadow:`0 4px 14px ${G}55,inset 0 1px 0 rgba(255,255,255,.25)`
+                }}>🌿</div>
+                <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:19, fontWeight:800, color:WH, letterSpacing:-.3 }}>IMAP</div>
               </div>
               <p style={{ fontSize:13, color:"#86EFAC", lineHeight:1.7, maxWidth:240 }}>{tr.footerDesc}</p>
             </div>
@@ -456,7 +772,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               </div>
             ))}
           </div>
-          <div style={{ borderTop:"1px solid rgba(255,255,255,.1)", paddingTop:20, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
+          <div style={{ borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:22, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
             <div style={{ fontSize:12, color:"#6EE7B7" }}>© 2026 IMAP Bangladesh. {lang === "en" ? "All rights reserved." : "সর্বস্বত্ব সংরক্ষিত।"}</div>
             <div style={{ display:"flex", gap:16 }}>
               <button onClick={() => setLang && setLang(lang === "bn" ? "en" : "bn")}
@@ -475,27 +791,61 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ── FLOATING AI BUTTON ── */}
       {!aiOpen && (
         <button onClick={() => setAiOpen(true)}
-          style={{ position:"fixed", bottom:28, right:18, width:56, height:56, borderRadius:16, background:`linear-gradient(135deg,${G},#0891B2)`, border:"none", cursor:"pointer", fontSize:24, boxShadow:"0 6px 24px rgba(22,163,74,.35)", zIndex:800, display:"flex", alignItems:"center", justifyContent:"center", transition:"transform .2s" }}
-          onMouseEnter={e => e.currentTarget.style.transform="scale(1.1)"}
-          onMouseLeave={e => e.currentTarget.style.transform="scale(1)"}>
+          style={{
+            position:"fixed", bottom:28, right:18, width:58, height:58, borderRadius:18,
+            background:`linear-gradient(135deg,${G},#0891B2)`,
+            border:"1.5px solid rgba(255,255,255,.2)",
+            cursor:"pointer", fontSize:26,
+            boxShadow:`0 8px 28px ${G}55,0 4px 12px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.25)`,
+            zIndex:800, display:"flex", alignItems:"center", justifyContent:"center",
+            transition:"all .22s cubic-bezier(.16,1,.3,1)"
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform="scale(1.12) translateY(-2px)"; e.currentTarget.style.boxShadow=`0 14px 36px ${G}66,0 6px 16px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.3)`; }}
+          onMouseLeave={e => { e.currentTarget.style.transform="scale(1)"; e.currentTarget.style.boxShadow=`0 8px 28px ${G}55,0 4px 12px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.25)`; }}>
           🤖
         </button>
       )}
 
       {/* ── AI CHAT WIDGET ── */}
       {aiOpen && (
-        <div style={{ position:"fixed", bottom:18, right:18, width:340, height:480, background:card, borderRadius:20, boxShadow:"0 20px 60px rgba(0,0,0,.22)", border:`1px solid ${bdr}`, zIndex:900, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{
+          position:"fixed", bottom:18, right:18, width:348, height:488,
+          background: dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
+          backdropFilter:"blur(24px) saturate(200%)", WebkitBackdropFilter:"blur(24px) saturate(200%)",
+          borderRadius:24,
+          boxShadow:`0 32px 80px rgba(0,0,0,.28),0 8px 24px rgba(0,0,0,.14),0 0 0 1px ${G}22,inset 0 1px 0 rgba(255,255,255,.15)`,
+          border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
+          zIndex:900, display:"flex", flexDirection:"column", overflow:"hidden"
+        }}>
           {/* Header */}
-          <div style={{ background:`linear-gradient(135deg,${G},#0891B2)`, padding:"14px 18px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{
+            background:`linear-gradient(135deg,#0D7A4A,${G},#0891B2)`,
+            backgroundSize:"200%",
+            padding:"15px 18px",
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            boxShadow:"0 4px 16px rgba(0,0,0,.15)"
+          }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:34, height:34, borderRadius:11, background:"rgba(255,255,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🤖</div>
+              <div style={{
+                width:36, height:36, borderRadius:12,
+                background:"rgba(255,255,255,.18)",
+                backdropFilter:"blur(8px)",
+                display:"flex", alignItems:"center", justifyContent:"center", fontSize:19,
+                border:"1px solid rgba(255,255,255,.25)"
+              }}>🤖</div>
               <div>
                 <div style={{ color:WH, fontWeight:700, fontSize:14 }}>{tr.aiTitle}</div>
                 <div style={{ color:"rgba(255,255,255,.75)", fontSize:11 }}>{lang === "en" ? "Powered by IMAP AI" : "IMAP AI দ্বারা চালিত"}</div>
               </div>
             </div>
             <button onClick={() => setAiOpen(false)}
-              style={{ background:"rgba(255,255,255,.2)", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", color:WH, fontSize:16 }}>✕</button>
+              style={{
+                background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.2)",
+                borderRadius:10, width:32, height:32,
+                cursor:"pointer", color:WH, fontSize:16,
+                backdropFilter:"blur(4px)",
+                display:"flex", alignItems:"center", justifyContent:"center"
+              }}>✕</button>
           </div>
 
           {/* Messages */}
@@ -524,29 +874,58 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           </div>
 
           {/* Login prompt */}
-          <div style={{ padding:"10px 14px", background: dark?"#1E3A2F":"#F0FDF4", borderTop:`1px solid ${bdr}`, fontSize:11, color:sub, textAlign:"center" }}>
+          <div style={{
+            padding:"10px 14px",
+            background: dark?"rgba(14,31,24,.8)":"rgba(240,253,244,.9)",
+            borderTop:`1px solid ${dark?"rgba(30,69,53,.4)":"rgba(214,236,227,.6)"}`,
+            fontSize:11, color:sub, textAlign:"center"
+          }}>
             {lang === "en"
               ? <>Full AI access after <span style={{ color:G, cursor:"pointer", fontWeight:700 }} onClick={onGetStarted}>Login →</span></>
               : <>সম্পূর্ণ AI সহায়তার জন্য <span style={{ color:G, cursor:"pointer", fontWeight:700 }} onClick={onGetStarted}>লগইন করুন →</span></>}
           </div>
 
           {/* Input */}
-          <div style={{ padding:"10px 12px", display:"flex", gap:8, borderTop:`1px solid ${bdr}` }}>
+          <div style={{
+            padding:"10px 12px", display:"flex", gap:8,
+            borderTop:`1px solid ${dark?"rgba(30,69,53,.4)":"rgba(214,236,227,.6)"}`
+          }}>
             <input
               value={aiMsg} onChange={e => setAiMsg(e.target.value)}
               onKeyDown={e => e.key === "Enter" && sendAi()}
               placeholder={tr.aiPlaceholder}
-              style={{ flex:1, border:`1.5px solid ${bdr}`, borderRadius:11, padding:"9px 13px", fontSize:13, background: dark?"#0F172A":WH, color:txt, outline:"none", fontFamily:"inherit" }}
+              style={{
+                flex:1,
+                border:`1.5px solid ${dark?"rgba(30,69,53,.7)":"rgba(214,236,227,.8)"}`,
+                borderRadius:12, padding:"9px 14px", fontSize:13,
+                background: dark?"rgba(8,15,11,.8)":"rgba(255,255,255,.9)",
+                color:txt, outline:"none", fontFamily:"inherit",
+                backdropFilter:"blur(8px)"
+              }}
             />
             <button onClick={sendAi}
-              style={{ background:G, border:"none", borderRadius:11, width:40, height:40, cursor:"pointer", fontSize:18, color:WH, flexShrink:0 }}>➤</button>
+              style={{
+                background:`linear-gradient(135deg,${G},#0EA5E9)`,
+                border:"none", borderRadius:12, width:42, height:42,
+                cursor:"pointer", fontSize:17, color:WH, flexShrink:0,
+                boxShadow:`0 4px 12px ${G}44`,
+                display:"flex", alignItems:"center", justifyContent:"center"
+              }}>➤</button>
           </div>
         </div>
       )}
 
       {/* ── MOBILE STICKY LOGIN BAR (always visible on phones) ── */}
       {isMob && (
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:800, background:card, borderTop:`2px solid ${G}`, padding:"10px 16px", display:"flex", gap:10, boxShadow:"0 -4px 20px rgba(22,163,74,.15)" }}>
+        <div style={{
+          position:"fixed", bottom:0, left:0, right:0, zIndex:800,
+          background: dark?"rgba(8,15,11,.94)":"rgba(255,255,255,.94)",
+          backdropFilter:"blur(20px) saturate(180%)", WebkitBackdropFilter:"blur(20px) saturate(180%)",
+          borderTop:`2px solid ${G}44`,
+          borderRadius:"20px 20px 0 0",
+          padding:"12px 16px", display:"flex", gap:10,
+          boxShadow:`0 -8px 32px rgba(22,163,74,.18),inset 0 1px 0 rgba(255,255,255,.4)`
+        }}>
           <button className="lp-btn lp-btn-o" style={{ flex:1, fontSize:14, padding:"11px 0" }} onClick={onGetStarted}>{tr.loginBtn}</button>
           <button className="lp-btn lp-btn-g" style={{ flex:1, fontSize:14, padding:"12px 0" }} onClick={onGetStarted}>{tr.regBtn}</button>
         </div>

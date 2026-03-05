@@ -263,11 +263,27 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Hind Siliguri','Noto Sans Bengali',sans-serif",color:C.text}}>
-      <div style={{background:C.card,borderBottom:`1px solid ${C.bdr}`,padding:"0 20px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+      <div style={{
+        background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
+        backdropFilter:"blur(20px) saturate(200%)",WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
+        padding:"0 20px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",
+        position:"sticky",top:0,zIndex:100,
+        boxShadow:dark
+          ?"0 2px 20px rgba(0,0,0,.3),inset 0 -1px 0 rgba(34,212,127,.06)"
+          :"0 2px 16px rgba(21,163,96,.06),inset 0 -1px 0 rgba(255,255,255,.8)"
+      }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{fontSize:20}}>🌿</div>
+          <div style={{
+            fontSize:20,
+            textShadow:`0 0 12px ${C.p}88`
+          }}>🌿</div>
           <div>
-            <div style={{fontWeight:800,fontSize:14,color:C.p}}>IMAP {lang==="bn"?"প্রদানকারী":"Provider"}</div>
+            <div style={{
+              fontWeight:800,fontSize:14,lineHeight:1,
+              background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"
+            }}>IMAP {lang==="bn"?"প্রদানকারী":"Provider"}</div>
             <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"এআই পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম":"AI Powered Service Platform"}</div>
           </div>
         </div>
@@ -288,14 +304,22 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                 <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"প্রদানকারী":"Provider"}</div>
               </div>
             </div>
-            <button onClick={onLogout} style={{background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.logout}</button>
+            <button onClick={onLogout} style={{background:"rgba(239,68,68,.1)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,padding:"6px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.logout}</button>
           </>}
           {/* Mobile-only: three-dot menu */}
           {isMobile&&<div style={{position:"relative"}}>
             <button onClick={()=>setDotMenu(o=>!o)} style={{width:34,height:34,borderRadius:9,border:`1px solid ${C.bdr}`,background:C.card,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:C.text}}>⋮</button>
             {dotMenu&&(<>
               <div onClick={()=>setDotMenu(false)} style={{position:"fixed",inset:0,zIndex:599}}/>
-              <div style={{position:"absolute",right:0,top:40,width:190,background:C.card,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.18)",border:`1px solid ${C.bdr}`,zIndex:600,overflow:"hidden",animation:"fadeUp .15s ease"}}>
+              <div style={{
+                position:"absolute",right:0,top:40,width:190,
+                background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
+                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                borderRadius:16,
+                boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
+                border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
+                zIndex:600,overflow:"hidden",animation:"fadeUp .15s cubic-bezier(.16,1,.3,1)"
+              }}>
                 {/* User info */}
                 <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:10}}>
                   <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>👷</div>
@@ -352,14 +376,14 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                 {jobs.filter(j=>j.status==="incoming").map(j=>(
                   <div key={j.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.bdr}`}}>
                     <div>
-                      {j.urgent&&<span style={{background:"#FEE2E2",color:"#EF4444",borderRadius:8,padding:"2px 8px",fontSize:10,fontWeight:700,marginBottom:4,display:"inline-block"}}>🚨 {lang==="bn"?"জরুরি":"Urgent"}</span>}
+                      {j.urgent&&<span style={{background:"rgba(239,68,68,.12)",color:"#EF4444",borderRadius:8,padding:"2px 8px",fontSize:10,fontWeight:700,marginBottom:4,display:"inline-block"}}>🚨 {lang==="bn"?"জরুরি":"Urgent"}</span>}
                       <div style={{fontWeight:600,fontSize:13}}>{j.service}</div>
                       <div style={{fontSize:11,color:C.muted}}>{j.customer} • {j.address} • {j.time}</div>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <span style={{fontWeight:800,color:C.p,fontSize:14}}>৳{j.amount}</span>
                       <button onClick={()=>acceptJob(j.id)} style={{background:C.p,color:"#fff",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
-                      <button onClick={()=>declineJob(j.id)} style={{background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
+                      <button onClick={()=>declineJob(j.id)} style={{background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
                     </div>
                   </div>
                 ))}
@@ -395,7 +419,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                     <div key={j.id} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,marginBottom:10,borderLeft:`3px solid ${sl.col}`}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
-                          {j.urgent&&<span style={{background:"#FEE2E2",color:"#EF4444",borderRadius:8,padding:"2px 8px",fontSize:10,fontWeight:700,marginBottom:6,display:"inline-block"}}>🚨 {lang==="bn"?"জরুরি":"Urgent"}</span>}
+                          {j.urgent&&<span style={{background:"rgba(239,68,68,.12)",color:"#EF4444",borderRadius:8,padding:"2px 8px",fontSize:10,fontWeight:700,marginBottom:6,display:"inline-block"}}>🚨 {lang==="bn"?"জরুরি":"Urgent"}</span>}
                           <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>{j.service}</div>
                           <div style={{fontSize:12,color:C.muted,marginBottom:2}}>👤 {j.customer}</div>
                           <div style={{fontSize:12,color:C.muted,marginBottom:2}}>📍 {j.address}</div>
@@ -409,15 +433,15 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                       {status==="incoming"&&(
                         <div style={{display:"flex",gap:8,marginTop:12}}>
                           <button onClick={()=>acceptJob(j.id)} style={{flex:1,padding:"10px",background:C.p,color:"#fff",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
-                          <button onClick={()=>declineJob(j.id)} style={{flex:1,padding:"10px",background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
+                          <button onClick={()=>declineJob(j.id)} style={{flex:1,padding:"10px",background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
                         </div>
                       )}
                       {status==="active"&&(
                         <div style={{marginTop:12,display:"flex",gap:8}}>
-                          <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"#DCFCE7":"#EFF6FF",color:gpsTracking[j.id]!=null?"#15803D":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"#16A34A":"#3B82F6"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                          <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"rgba(22,163,74,.12)":"rgba(59,130,246,.1)",color:gpsTracking[j.id]!=null?"#15803D":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"rgba(22,163,74,.5)":"rgba(59,130,246,.4)"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
                             {gpsTracking[j.id]!=null?(lang==="bn"?"📍 লাইভ: চালু":"📍 GPS: ON"):(lang==="bn"?"📍 লোকেশন দিন":"📍 Share GPS")}
                           </button>
-                          <button onClick={()=>completeJob(j.id)} style={{flex:2,padding:"10px",background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
+                          <button onClick={()=>completeJob(j.id)} style={{flex:2,padding:"10px",background:"rgba(16,185,129,.12)",color:"#065F46",border:"1px solid rgba(16,185,129,.35)",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
                         </div>
                       )}
                     </div>
@@ -558,8 +582,8 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               <div style={{fontWeight:800,fontSize:18}}>{profile.name}</div>
               <div style={{fontSize:13,color:C.muted,marginTop:4}}>{profile.service} • {profile.area}</div>
               <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:10}}>
-                {user.nid?<span style={{background:C.plt,color:C.p,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>🛡️ {lang==="bn"?"NID যাচাইকৃত":"NID Verified"}</span>:<span style={{background:"#FEF3C7",color:"#92400E",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>⚠️ {lang==="bn"?"যাচাই বাকি":"Not Verified"}</span>}
-                <span style={{background:"#D1FAE5",color:"#065F46",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>⭐ 4.8</span>
+                {user.nid?<span style={{background:C.plt,color:C.p,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>🛡️ {lang==="bn"?"NID যাচাইকৃত":"NID Verified"}</span>:<span style={{background:"rgba(245,158,11,.12)",color:"#92400E",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>⚠️ {lang==="bn"?"যাচাই বাকি":"Not Verified"}</span>}
+                <span style={{background:"rgba(16,185,129,.15)",color:"#065F46",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>⭐ 4.8</span>
               </div>
             </div>
             <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`,marginBottom:16}}>
@@ -616,13 +640,13 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
-              <div style={{background:"#FFFBEB",borderRadius:14,padding:16,border:"1px solid #FCD34D",marginBottom:16}}>
+              <div style={{background:"rgba(245,158,11,.1)",borderRadius:14,padding:16,border:"1px solid rgba(245,158,11,.35)",marginBottom:16}}>
                 <div style={{fontWeight:700,fontSize:14,color:"#92400E",marginBottom:6}}>⚠️ {lang==="bn"?"NID যাচাই করুন":"Verify your NID"}</div>
                 <div style={{fontSize:12,color:"#B45309",marginBottom:12}}>{lang==="bn"?"NID যাচাইয়ের পর বেশি কাজ পাবেন এবং ট্রাস্ট স্কোর বাড়বে":"Verified providers get more jobs and higher trust score"}</div>
                 <button style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:10,padding:"10px 18px",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>📷 {lang==="bn"?"NID ছবি তুলুন":"Upload NID Photos"}</button>
               </div>
             )}
-            <button onClick={onLogout} style={{width:"100%",padding:"12px",background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.logout}</button>
+            <button onClick={onLogout} style={{width:"100%",padding:"12px",background:"rgba(239,68,68,.1)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.logout}</button>
           </>
         )}
 
@@ -743,7 +767,14 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
       </div>
 
-      {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#1A1A2E",color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,boxShadow:"0 4px 20px rgba(0,0,0,.2)",pointerEvents:"none"}}>{toast}</div>}
+      {toast&&<div style={{
+        position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
+        background:"rgba(10,22,16,.92)",
+        backdropFilter:"blur(16px) saturate(200%)",WebkitBackdropFilter:"blur(16px) saturate(200%)",
+        color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,
+        boxShadow:"0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(34,212,127,.12),inset 0 1px 0 rgba(255,255,255,.08)",
+        border:"1px solid rgba(34,212,127,.15)",pointerEvents:"none",whiteSpace:"nowrap"
+      }}>{toast}</div>}
     </div>
   );
 }

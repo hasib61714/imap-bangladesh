@@ -250,8 +250,8 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
   };
 
   const antToken = { colorPrimary: "#16A34A", borderRadius: 12, fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" };
-  const bg     = dark ? "#0f172a" : "#f0fdf4";
-  const cardBg = dark ? "#1e293b" : "#ffffff";
+  const bg     = dark ? "#080F0B" : "#f0fdf4";
+  const cardBg = dark ? "rgba(14,31,24,.92)" : "rgba(255,255,255,.92)";
 
   return (
     <ConfigProvider theme={{ algorithm: dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm, token: antToken }}>
@@ -260,6 +260,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
         @keyframes authFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
         .auth-page{animation:authFade .35s ease;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;background:${bg};font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif}
         .auth-card .ant-card-body{padding:28px 28px 24px}
+        .auth-card{backdrop-filter:blur(20px) saturate(200%)!important;-webkit-backdrop-filter:blur(20px) saturate(200%)!important;border:1px solid ${dark?'rgba(30,69,53,.5)':'rgba(255,255,255,.7)'}!important;}
         .auth-top{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:99}
         .s-btn{display:flex!important;align-items:center;justify-content:flex-start;gap:10px;width:100%;height:46px;border-radius:12px!important;font-size:14px;font-weight:600!important;margin-bottom:10px!important}
         .otp-input input{font-size:26px!important;letter-spacing:10px;text-align:center;font-family:monospace}
@@ -283,13 +284,13 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
       <div className="auth-page">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1 }} onClick={tapLogo}>🌿</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#16A34A", marginTop: 6, letterSpacing: -0.5 }}>IMAP AI Powered Service Platform</div>
+          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #22D47F88)` }} onClick={tapLogo}>🌿</div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#1DBF73,#22D47F)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>🇧🇩 {lang === "bn" ? "বাংলাদেশের এআই-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম" : "Bangladesh"}</div>
           {logoTaps >= 3 && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 5, fontWeight: 700 }}>🔓 {lang === "bn" ? "গোপন মোড সক্রিয়" : "Secret mode active"}</div>}
         </div>
 
-        <Card className="auth-card" style={{ width: "100%", maxWidth: 420, background: cardBg, borderRadius: 22, boxShadow: "0 12px 40px rgba(0,0,0,.12)" }} bordered={false}>
+        <Card className="auth-card" style={{ width: "100%", maxWidth: 420, background: cardBg, borderRadius: 22, boxShadow: dark?"0 24px 64px rgba(0,0,0,.35),0 0 0 1px rgba(34,212,127,.08),inset 0 1px 0 rgba(255,255,255,.06)":"0 20px 56px rgba(21,163,96,.1),0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.9)" }} bordered={false}>
 
           {/* ── ADMIN SECRET ─────────────────────────────── */}
           {logoTaps >= 3 ? (

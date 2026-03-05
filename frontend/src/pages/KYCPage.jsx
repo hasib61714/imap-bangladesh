@@ -164,12 +164,12 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
                   {statusBadge(docStatus)}
                 </div>
                 {docStatus==="rejected"&&rejReason&&(
-                  <div style={{marginTop:10,padding:"8px 12px",background:"#FEF2F2",borderRadius:8,fontSize:12,color:"#991B1B"}}>
+                  <div style={{marginTop:10,padding:"8px 12px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,fontSize:12,color:"#991B1B"}}>
                     <b>{tr.kycRejectReason}:</b> {rejReason}
                   </div>
                 )}
                 {docStatus==="rejected"&&(
-                  <button onClick={()=>{setAdding(true);setSelType(doc.type||doc.doc_type||"nid");setDocNum(docNumber);setImgFront("");setImgBack("");setImgSelfie("");}} style={{marginTop:10,padding:"8px 16px",background:"#FEE2E2",color:"#EF4444",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                  <button onClick={()=>{setAdding(true);setSelType(doc.type||doc.doc_type||"nid");setDocNum(docNumber);setImgFront("");setImgBack("");setImgSelfie("");}} style={{marginTop:10,padding:"8px 16px",background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
                     🔄 {tr.kycResubmit}
                   </button>
                 )}
@@ -234,7 +234,14 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
         </div>
       )}
 
-      {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:C.dark,color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,boxShadow:"0 4px 20px rgba(0,0,0,.2)"}}>{toast}</div>}
+      {toast&&<div style={{
+        position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
+        background:"rgba(8,15,11,.92)",
+        backdropFilter:"blur(16px) saturate(200%)",WebkitBackdropFilter:"blur(16px) saturate(200%)",
+        color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,
+        boxShadow:"0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(34,212,127,.12),inset 0 1px 0 rgba(255,255,255,.08)",
+        border:"1px solid rgba(34,212,127,.15)",whiteSpace:"nowrap"
+      }}>{toast}</div>}
     </div>
   );
 }

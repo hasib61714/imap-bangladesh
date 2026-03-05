@@ -108,12 +108,12 @@ function LiveMap({tracking,setTracking}) {
       const d=L.DomUtil.create("button");
       d.innerHTML="🛰️";
       d.title="Toggle satellite";
-      Object.assign(d.style,{background:"#fff",border:"2px solid #ccc",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",boxShadow:"0 2px 8px rgba(0,0,0,.15)"});
+      Object.assign(d.style,{background:"rgba(255,255,255,.92)",backdropFilter:"blur(10px)",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",border:"1.5px solid rgba(255,255,255,.6)",boxShadow:"0 4px 14px rgba(0,0,0,.15)"});
       L.DomEvent.on(d,"click",L.DomEvent.stopPropagation);
       L.DomEvent.on(d,"click",()=>{
         satMode=!satMode;
         if(satMode){map.removeLayer(roadLayer);satLayer.addTo(map);d.style.background="#1DBF73";d.style.color="#fff";}
-        else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="#fff";d.style.color="#000";}
+        else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="rgba(255,255,255,.92)";d.style.color="#000";}
       });
       return d;
     };
@@ -191,20 +191,31 @@ function LiveMap({tracking,setTracking}) {
   const eMin=Math.floor(eta/60),eSec=eta%60;
 
   return(
-    <div style={{borderRadius:20,overflow:"hidden",boxShadow:"0 6px 32px rgba(21,163,96,.18)",position:"relative",background:"#EAF0E8"}}>
+    <div style={{
+      borderRadius:24,overflow:"hidden",
+      boxShadow:`0 12px 48px rgba(21,163,96,.2),0 4px 16px rgba(0,0,0,.08),0 0 0 1px ${dark?"rgba(30,69,53,.4)":"rgba(29,191,115,.1)"}`,
+      position:"relative",background:dark?"#080F0B":"#EAF0E8"
+    }}>
       {/* Leaflet map container */}
       <div ref={mapDiv} style={{width:"100%",height:270}}/>
 
       {/* GPS acquiring indicator */}
       {!gpsOk&&(
-        <div style={{position:"absolute",top:10,left:10,background:"rgba(255,255,255,.92)",borderRadius:8,padding:"4px 10px",fontSize:10,color:"#888",display:"flex",alignItems:"center",gap:5,boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>
+        <div style={{position:"absolute",top:10,left:10,background:"rgba(255,255,255,.88)",backdropFilter:"blur(12px) saturate(180%)",WebkitBackdropFilter:"blur(12px) saturate(180%)",borderRadius:10,padding:"4px 10px",fontSize:10,color:"#888",display:"flex",alignItems:"center",gap:5,boxShadow:"0 4px 14px rgba(0,0,0,.1)",border:"1px solid rgba(255,255,255,.6)"}}>
           <span>📍</span> {lang==="bn"?"লোকেশন নিচ্ছে...":"Getting location..."}
         </div>
       )}
 
       {/* ── TRACKING ON: Uber-style provider card ── */}
       {tracking&&(
-        <div style={{position:"absolute",bottom:0,left:0,right:0,background:"#fff",borderRadius:"20px 20px 0 0",padding:"14px 16px 18px",boxShadow:"0 -4px 24px rgba(0,0,0,.13)"}}>
+        <div style={{
+          position:"absolute",bottom:0,left:0,right:0,
+          background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
+          backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",
+          borderRadius:"22px 22px 0 0",padding:"16px 16px 20px",
+          boxShadow:"0 -8px 32px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)",
+          border:"1px solid rgba(255,255,255,.2)"
+        }}>
           {/* Provider row */}
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
             <div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:"#fff",flexShrink:0,boxShadow:`0 3px 12px ${C.p}44`}}>
@@ -226,7 +237,7 @@ function LiveMap({tracking,setTracking}) {
             </div>
           </div>
           {/* Progress */}
-          <div style={{height:4,background:"#F3F4F6",borderRadius:4,overflow:"hidden",marginBottom:6}}>
+          <div style={{height:4,background:"rgba(0,0,0,.1)",borderRadius:4,overflow:"hidden",marginBottom:6}}>
             <div style={{height:4,background:`linear-gradient(90deg,${C.p},${C.pdk})`,width:`${Math.max(5,100-Math.round(eta/480*100))}%`,borderRadius:4,transition:"width .5s"}}/>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#bbb",marginBottom:12}}>
@@ -238,10 +249,10 @@ function LiveMap({tracking,setTracking}) {
             <button style={{flex:1,padding:"10px 6px",background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",border:"none",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               💬 {lang==="bn"?"চ্যাট":"Chat"}
             </button>
-            <button style={{flex:1,padding:"10px 6px",background:"#F0FDF4",color:C.p,border:`1.5px solid ${C.p}44`,borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <button style={{flex:1,padding:"10px 6px",background:"rgba(29,191,115,.1)",color:C.p,border:`1.5px solid ${C.p}55`,borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               📞 {lang==="bn"?"কল":"Call"}
             </button>
-            <button onClick={()=>setTracking(false)} style={{flex:1,padding:"10px 6px",background:"#FEF2F2",color:"#EF4444",border:"1.5px solid #FECACA",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <button onClick={()=>setTracking(false)} style={{flex:1,padding:"10px 6px",background:"rgba(239,68,68,.1)",color:"#EF4444",border:"1.5px solid rgba(239,68,68,.35)",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               ✕ {lang==="bn"?"বাতিল":"Cancel"}
             </button>
           </div>
@@ -251,11 +262,18 @@ function LiveMap({tracking,setTracking}) {
       {/* ── TRACKING OFF: start button ── */}
       {!tracking&&(
         <div style={{position:"absolute",bottom:10,left:10,right:10,display:"flex",gap:8}}>
-          <button onClick={()=>setTracking(true)} style={{flex:1,padding:"11px",background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",border:"none",borderRadius:13,fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 4px 14px ${C.p}55`,display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+          <button onClick={()=>setTracking(true)} style={{
+            flex:1,padding:"12px",
+            background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+            color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:14,
+            fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+            boxShadow:`0 6px 20px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`,
+            display:"flex",alignItems:"center",justifyContent:"center",gap:7
+          }}>
             📍 {lang==="bn"?"লাইভ ট্র্যাকিং শুরু করুন":"Start Live Tracking"}
           </button>
           {gpsOk&&(
-            <div style={{width:42,height:42,background:"rgba(255,255,255,.95)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:C.p,boxShadow:"0 2px 8px rgba(0,0,0,.12)",flexDirection:"column",gap:1}}>
+            <div style={{width:42,height:42,background:"rgba(255,255,255,.9)",backdropFilter:"blur(10px) saturate(180%)",WebkitBackdropFilter:"blur(10px) saturate(180%)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:C.p,boxShadow:`0 4px 14px rgba(0,0,0,.1),0 0 0 1px ${C.p}22`,border:`1px solid ${C.p}22`,flexDirection:"column",gap:1}}>
               <span style={{fontSize:15}}>📡</span><span>GPS</span>
             </div>
           )}
@@ -287,7 +305,7 @@ function PCard({p,delay=0,onBook,onView}) {
           <div className="row" style={{gap:5,flexWrap:"wrap"}}>
             <span style={{fontSize:15,fontWeight:700,color:C.text,lineHeight:1.2}}>{name}</span>
             {p.ok&&<span className="badge" style={{background:"#D1FAE5",color:"#065F46",fontSize:10}}>✓</span>}
-            {p.top&&<span className="badge" style={{background:"#FFF3CD",color:"#7C5800",fontSize:10}}>⭐ {p.badge}</span>}
+            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03",fontSize:10}}>⭐ {p.badge}</span>}
             {p.ai_score>=80&&<span className="badge" style={{background:"#EDE9FE",color:"#5B21B6",fontSize:10}}>🏆 AI Pick</span>}
             {p.ai_score>=60&&p.ai_score<80&&<span className="badge" style={{background:"#DBEAFE",color:"#1E40AF",fontSize:10}}>⭐ Recommended</span>}
           </div>
@@ -299,7 +317,11 @@ function PCard({p,delay=0,onBook,onView}) {
         {tags.map(t=><span key={t} className="tag">{t}</span>)}
       </div>
       <div className="row" style={{justifyContent:"space-between",borderTop:`1px solid ${C.bdr}`,paddingTop:12}}>
-        <div><div style={{fontSize:10,color:C.muted}}>{note}</div><div style={{fontSize:19,fontWeight:700,color:C.p}}>{p.price}</div></div>
+        <div><div style={{fontSize:10,color:C.muted}}>{note}</div><div style={{
+          fontSize:20,fontWeight:800,
+          background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+          WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"
+        }}>{p.price}</div></div>
         <div className="row" style={{gap:7}}>
           <button className="btn btn-gh" style={{border:`1px solid ${C.bdr}`,fontSize:12}} onClick={e=>{e.stopPropagation();onView(p);}}>{tr.profileBtn}</button>
           <button className="btn btn-g" style={{padding:"8px 13px",fontSize:12}} onClick={e=>{e.stopPropagation();onBook(p);}}>{tr.bookNow}</button>
@@ -362,7 +384,7 @@ function PDetail({p,onClose,onBook,onChat}) {
           <div className="row" style={{gap:7,flexWrap:"wrap"}}>
             <span style={{fontSize:19,fontWeight:700}}>{name}</span>
             {p.ok&&<span className="badge" style={{background:"#D1FAE5",color:"#065F46"}}>✅</span>}
-            {p.top&&<span className="badge" style={{background:"#FFF3CD",color:"#7C5800"}}>⭐ {p.badge}</span>}
+            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03"}}>⭐ {p.badge}</span>}
           </div>
           <div style={{fontSize:13,color:C.muted,marginTop:3}}>{svc} · 📍 {loc}</div>
           <div className="row" style={{gap:12,marginTop:7,flexWrap:"wrap"}}>
@@ -381,10 +403,19 @@ function PDetail({p,onClose,onBook,onChat}) {
       {tab==="about"&&<div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:10,marginBottom:14}}>
           {[["💼",tr.totalJobsL,p.jobs],["📊",tr.scoreL,p.score+"/100"],["💹",tr.loanScoreL,p.loanScore+"/100"]].map(([ic,l,v],i)=>(
-            <div key={i} style={{background:C.bg,borderRadius:11,padding:12,textAlign:"center"}}><div style={{fontSize:20,marginBottom:4}}>{ic}</div><div style={{fontSize:16,fontWeight:700,color:C.p}}>{v}</div><div style={{fontSize:11,color:C.muted}}>{l}</div></div>
+            <div key={i} style={{
+              background:dark?"rgba(34,212,127,.06)":"rgba(29,191,115,.05)",
+              borderRadius:12,padding:12,textAlign:"center",
+              border:`1px solid ${C.p}15`,
+              boxShadow:`inset 0 1px 0 rgba(255,255,255,.5),0 2px 8px rgba(0,0,0,.04)`
+            }}><div style={{fontSize:20,marginBottom:4}}>{ic}</div><div style={{fontSize:16,fontWeight:700,color:C.p}}>{v}</div><div style={{fontSize:11,color:C.muted}}>{l}</div></div>
           ))}
         </div>
-        <div style={{background:`${C.p}0A`,borderRadius:12,padding:12,border:`1px solid ${C.p}20`}}>
+      <div style={{
+        background:`${C.p}0A`,borderRadius:13,padding:12,
+        border:`1px solid ${C.p}25`,
+        boxShadow:`0 4px 16px ${C.p}12,inset 0 1px 0 rgba(255,255,255,.4)`
+      }}>
           <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:6}}>{tr.verifiedL}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
             {["✅ NID","✅ Phone","✅ Background","✅ Photo"].map(i=><div key={i} style={{fontSize:12,color:C.sub}}>{i}</div>)}
@@ -531,7 +562,7 @@ function BookModal({p,onClose,onSuccess}) {
       <div style={{fontSize:17,fontWeight:700,marginBottom:6}}>{lang==="en"?"Verify Payment":"পেমেন্ট যাচাই করুন"}</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="en"?`Enter code sent via ${pay}`:pay+" এ পাঠানো কোড দিন"}</div>
       <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.p}}>{otpPhone}</div>
-      <div style={{background:"#EFF6FF",borderRadius:12,padding:"10px 18px",marginBottom:16,border:"1px solid #BFDBFE",fontSize:13,color:"#1D4ED8"}}>
+      <div style={{background:"rgba(59,130,246,.1)",borderRadius:12,padding:"10px 18px",marginBottom:16,border:"1px solid rgba(59,130,246,.3)",fontSize:13,color:"#1D4ED8"}}>
         🎯 {lang==="en"?"Demo OTP:":"ডেমো OTP:"} <b style={{fontSize:20,letterSpacing:4}}>{otpCode}</b>
       </div>
       <input
@@ -557,7 +588,7 @@ function BookModal({p,onClose,onSuccess}) {
     <div style={{padding:24,textAlign:"center"}}>
       <div style={{fontSize:56,marginBottom:10}}>⚠️</div>
       <div style={{fontSize:17,fontWeight:700,color:"#DC2626",marginBottom:8}}>{lang==="en"?"Suspicious Activity Detected":"সন্দেহজনক কার্যকলাপ শনাক্ত"}</div>
-      <div style={{background:"#FEF2F2",borderRadius:12,padding:14,marginBottom:14,border:"1px solid #FECACA"}}>
+      <div style={{background:"rgba(239,68,68,.08)",borderRadius:12,padding:14,marginBottom:14,border:"1px solid rgba(239,68,68,.25)"}}>
         {fraudWarn.flags.map((f,i)=>(
           <div key={i} style={{fontSize:12,color:"#7F1D1D",marginBottom:4}}>• {f}</div>
         ))}
@@ -575,7 +606,12 @@ function BookModal({p,onClose,onSuccess}) {
       <div style={{fontSize:64,marginBottom:14}}>🎉</div>
       <div style={{fontSize:21,fontWeight:700}}>{tr.bookDone}</div>
       <div style={{fontSize:14,color:C.muted,marginTop:6}}>{name} {eta} {tr.min} {tr.arrives}</div>
-      <div style={{background:C.bg,borderRadius:14,padding:18,margin:"14px 0",border:`1px solid ${C.bdr}`}}>
+      <div style={{
+        background:dark?"rgba(34,212,127,.06)":"rgba(29,191,115,.05)",
+        borderRadius:16,padding:18,margin:"14px 0",
+        border:`1.5px solid ${C.p}30`,
+        boxShadow:`0 8px 24px ${C.p}12,inset 0 1px 0 rgba(255,255,255,.3)`
+      }}>
         <div style={{fontSize:11,color:C.muted}}>{tr.bookId}</div>
         <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"BK-"+Math.floor(Math.random()*9000+1000)}</div>
         {dynPrice?.surgeActive&&<div style={{fontSize:10,color:"#F59E0B",marginTop:6}}>⚡ {dynPrice.surgeReason}</div>}
@@ -659,7 +695,7 @@ function BookModal({p,onClose,onSuccess}) {
             </div>
           </div>
         </div>
-        {bookErr&&<div style={{background:"#FEE2E2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#B91C1C",fontWeight:600}}>❌ {bookErr}</div>}
+        {bookErr&&<div style={{background:"rgba(239,68,68,.1)",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#B91C1C",fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}>❌ {bookErr}</div>}
         <div className="row" style={{gap:8}}>
           <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={()=>setStep(1)}>{tr.backBtn}</button>
           <button className="btn btn-g" style={{flex:2}} disabled={loadingConfirm} onClick={()=>{setBookErr(null);handleConfirm(false);}}>{loadingConfirm?(lang==="en"?"Checking...":"যাচাই হচ্ছে..."):tr.confirmBtn}</button>
@@ -758,13 +794,18 @@ function DisputeModal({booking,onClose}){
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:18,padding:22,maxWidth:420,width:"100%",maxHeight:"82vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+      <div style={{
+        background:C.card,borderRadius:20,padding:22,
+        maxWidth:420,width:"100%",maxHeight:"82vh",overflowY:"auto",
+        boxShadow:`0 24px 64px rgba(0,0,0,.25),0 0 0 1px ${C.p}11`,
+        border:`1px solid ${C.bdr}`
+      }} onClick={e=>e.stopPropagation()}>
         {submitted?(
           <div style={{textAlign:"center",padding:"24px 0"}}>
             <div style={{fontSize:44,marginBottom:12}}>✅</div>
             <div style={{fontSize:17,fontWeight:700,color:"#065F46",marginBottom:8}}>{lang==="en"?"Dispute Submitted!":"অভিযোগ জমা হয়েছে!"}</div>
             <div style={{fontSize:13,color:"#6B7280",marginBottom:20}}>{lang==="en"?"We'll review and respond within 24–48 hours.":"আমরা ২৪–৪৮ ঘণ্টার মধ্যে পর্যালোচনা করব।"}</div>
-            <div style={{background:"#D1FAE5",borderRadius:12,padding:"12px 16px",marginBottom:20,textAlign:"left"}}>
+            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:20,textAlign:"left",border:"1px solid rgba(16,185,129,.3)"}}>
               <div style={{fontSize:12,fontWeight:700,color:"#065F46",marginBottom:4}}>{lang==="en"?"Reference ID":"রেফারেন্স আইডি"}</div>
               <div style={{fontSize:15,fontWeight:800,color:"#10B981",fontFamily:"monospace"}}>{refId}</div>
             </div>
@@ -776,17 +817,17 @@ function DisputeModal({booking,onClose}){
               <div style={{fontSize:16,fontWeight:700}}>⚠️ {lang==="en"?"File a Dispute":"অভিযোগ দাখিল"}</div>
               <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}>✕</button>
             </div>
-            <div style={{background:"#FEF3C7",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#92400E"}}>📋 {svc} · {lang==="en"?booking.dateEn||booking.date:booking.date} · {booking.price}</div>
+            <div style={{background:"rgba(245,158,11,.1)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#92400E",border:"1px solid rgba(245,158,11,.25)"}}>📋 {svc} · {lang==="en"?booking.dateEn||booking.date:booking.date} · {booking.price}</div>
             <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:10}}>{lang==="en"?"Issue Type":"সমস্যার ধরন"}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
               {TYPES.map(t=>(
-                <button key={t} onClick={()=>setType(t)} style={{padding:"9px 10px",borderRadius:10,border:`1.5px solid ${type===t?"#F59E0B":"#E5E7EB"}`,background:type===t?"#FFFBEB":"#F9FAFB",color:type===t?"#92400E":"#374151",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{t}</button>
+                <button key={t} onClick={()=>setType(t)} style={{padding:"9px 10px",borderRadius:10,border:`1.5px solid ${type===t?"rgba(245,158,11,.6)":C.bdr}`,background:type===t?"rgba(245,158,11,.12)":C.bg,color:type===t?"#92400E":C.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{t}</button>
               ))}
             </div>
             <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:8}}>{lang==="en"?"Description":"বিবরণ"}</div>
             <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3}
               placeholder={lang==="en"?"Describe the issue in detail...":"সমস্যার বিস্তারিত লিখুন..."}
-              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E7EB",fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"vertical",boxSizing:"border-box",color:"#111",background:"#F9FAFB",marginBottom:16}}/>
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.bdr}`,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"vertical",boxSizing:"border-box",color:C.text,background:C.bg,marginBottom:16}}/>
             <button onClick={handleSubmit} disabled={!type||desc.length<=5||submitting}
               style={{width:"100%",padding:"13px",borderRadius:12,background:type&&desc.length>5?"linear-gradient(135deg,#F59E0B,#D97706)":"#D1D5DB",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:type&&desc.length>5?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
               {submitting?(lang==="en"?"Submitting...":"জমা হচ্ছে..."):(lang==="en"?"Submit Dispute":"অভিযোগ জমা দিন")}
@@ -835,7 +876,12 @@ function GuaranteeModal({booking,onClose}){
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:18,padding:22,maxWidth:420,width:"100%"}} onClick={e=>e.stopPropagation()}>
+      <div style={{
+        background:C.card,borderRadius:20,padding:22,
+        maxWidth:420,width:"100%",
+        boxShadow:`0 24px 64px rgba(0,0,0,.25),0 0 0 1px ${C.p}11`,
+        border:`1px solid ${C.bdr}`
+      }} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div style={{fontSize:16,fontWeight:700}}>🛡️ {lang==="en"?"Service Guarantee":"সার্ভিস গ্যারান্টি"}</div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}>✕</button>
@@ -853,7 +899,7 @@ function GuaranteeModal({booking,onClose}){
         ))}
         <div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={printGuarantee} style={{flex:1,padding:"12px",borderRadius:12,background:"linear-gradient(135deg,#10B981,#059669)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Download PDF":"PDF ডাউনলোড"}</button>
-          <button onClick={onClose} style={{padding:"12px 16px",borderRadius:12,background:"#F3F4F6",border:"none",color:"#374151",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>✕</button>
+          <button onClick={onClose} style={{padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.bdr}`,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>✕</button>
         </div>
       </div>
     </div>
@@ -1024,23 +1070,23 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
                 <span className="badge" style={{background:S.bg,color:S.col,marginTop:4,display:"inline-flex"}}>{S[lang]||S.en}</span>
               </div>
             </div>
-            {st==="ongoing"&&(<div><div style={{background:"#EFF6FF",borderRadius:10,padding:10,border:"1px solid #BFDBFE"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}<button onClick={()=>{if(window.confirm(lang==="en"?"Cancel this booking? Your wallet will be refunded.":"এই বুকিং বাতিল করবেন? আপনার ওয়ালেটে রিফান্ড হবে।"))cancelBooking(b.rawId||b.id);}} disabled={cancellingId===( b.rawId||b.id)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid #EF4444",background:"#FEF2F2",color:"#EF4444",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>❌ {cancellingId===(b.rawId||b.id)?(lang==="bn"?"বাতিল হচ্ছে...":"Cancelling..."):(lang==="bn"?"বুকিং বাতিল করুন":"Cancel Booking")}</button></div>)}
+            {st==="ongoing"&&(<div><div style={{background:"rgba(59,130,246,.08)",borderRadius:10,padding:10,border:"1px solid rgba(59,130,246,.25)"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}<button onClick={()=>{if(window.confirm(lang==="en"?"Cancel this booking? Your wallet will be refunded.":"এই বুকিং বাতিল করবেন? আপনার ওয়ালেটে রিফান্ড হবে।"))cancelBooking(b.rawId||b.id);}} disabled={cancellingId===( b.rawId||b.id)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#EF4444",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>❌ {cancellingId===(b.rawId||b.id)?(lang==="bn"?"বাতিল হচ্ছে...":"Cancelling..."):(lang==="bn"?"বুকিং বাতিল করুন":"Cancel Booking")}</button></div>)}
             {st==="completed"&&<div style={{marginTop:10}}>
               <div className="row" style={{gap:8,marginBottom:7}}>
                 <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`,fontSize:12}} onClick={()=>onRate(findProvider(b.pid))}>{tr.giveRating}</button>
                 <button className="btn btn-g" style={{flex:1,padding:"8px",fontSize:12}} onClick={()=>onBook(findProvider(b.pid))}>{tr.rebookBtn}</button>
               </div>
               <div className="row" style={{gap:8}}>
-                <button onClick={()=>setGuarantee(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #10B981",background:"#D1FAE5",color:"#065F46",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🛡️ {lang==="en"?"Guarantee":"গ্যারান্টি"}</button>
-                <button onClick={()=>setDispute(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #F59E0B",background:"#FFFBEB",color:"#92400E",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"Dispute":"অভিযোগ"}</button>
+                <button onClick={()=>setGuarantee(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(16,185,129,.5)",background:"rgba(16,185,129,.12)",color:"#065F46",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🛡️ {lang==="en"?"Guarantee":"গ্যারান্টি"}</button>
+                <button onClick={()=>setDispute(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(245,158,11,.5)",background:"rgba(245,158,11,.12)",color:"#92400E",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"Dispute":"অভিযোগ"}</button>
               </div>
               <div className="row" style={{gap:8,marginTop:7}}>
-                <button onClick={()=>printReceipt(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #6366F1",background:"#EEF2FF",color:"#3730A3",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🧾 {lang==="en"?"Receipt":"রসিদ"}</button>
-                <button onClick={()=>printInvoice(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid #3B82F6",background:"#EFF6FF",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Invoice":"ইনভয়েস"}</button>
+                <button onClick={()=>printReceipt(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(99,102,241,.5)",background:"rgba(99,102,241,.1)",color:"#3730A3",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🧾 {lang==="en"?"Receipt":"রসিদ"}</button>
+                <button onClick={()=>printInvoice(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(59,130,246,.5)",background:"rgba(59,130,246,.1)",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Invoice":"ইনভয়েস"}</button>
               </div>
             </div>}
             {st==="cancelled"&&<div style={{marginTop:10}}>
-              <button onClick={()=>setDispute(b)} style={{width:"100%",padding:"8px",borderRadius:10,border:"1.5px solid #EF4444",background:"#FEE2E2",color:"#B91C1C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"File Dispute / Refund":"অভিযোগ / রিফান্ড"}</button>
+              <button onClick={()=>setDispute(b)} style={{width:"100%",padding:"8px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#B91C1C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"File Dispute / Refund":"অভিযোগ / রিফান্ড"}</button>
             </div>}
           </div>
         );
@@ -1118,7 +1164,7 @@ function LoanScore() {
       <div style={{fontSize:56,marginBottom:12}}>🎉</div>
       <div style={{fontSize:18,fontWeight:700,color:"#065F46",marginBottom:8}}>{lang==="en"?"Application Submitted!":"আবেদন জমা হয়েছে!"}</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="en"?"We will review and contact you within 2–3 business days.":"আমরা ২–৩ কার্যদিবসের মধ্যে আপনার সাথে যোগাযোগ করব।"}</div>
-      <div style={{background:"#D1FAE5",borderRadius:12,padding:"14px 18px",marginBottom:20,display:"inline-block"}}>
+      <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"14px 18px",marginBottom:20,display:"inline-block",border:"1px solid rgba(16,185,129,.3)"}}>
         <div style={{fontSize:12,color:"#065F46",fontWeight:700,marginBottom:4}}>{lang==="en"?"Application ID":"আবেদন আইডি"}</div>
         <div style={{fontSize:18,fontWeight:800,color:"#10B981",fontFamily:"monospace"}}>{loanRef}</div>
       </div>
@@ -1138,7 +1184,11 @@ function LoanScore() {
         <PBar v={score} col="#fff"/>
         <div style={{fontSize:13,color:"rgba(255,255,255,.8)",marginTop:8}}>{msg}</div>
       </div>
-      <div style={{background:"#fff",borderRadius:13,padding:14,marginBottom:14,border:`1px solid ${C.bdr}`}}>
+      <div style={{
+        background:C.card,borderRadius:13,padding:14,marginBottom:14,
+        border:`1px solid ${C.bdr}`,
+        boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.35)`
+      }}>
         <div style={{fontSize:13,fontWeight:700,marginBottom:12}}>{tr.scoreAnalysis}</div>
         {[["📋",95],["💳",88],["⭐",92],["📱",78],["🏆",70]].map(([ic,s],i)=>{
           const labels={en:["Service History","Payment Regularity","Customer Rating","Activity","Years of Experience"],bn:["সেবার ইতিহাস","পেমেন্ট নিয়মিততা","গ্রাহক রেটিং","সক্রিয়তা","অভিজ্ঞতার বছর"]};
@@ -1152,7 +1202,12 @@ function LoanScore() {
       </div>
       <div style={{fontSize:14,fontWeight:700,marginBottom:12}}>{tr.availOffers}</div>
       {OFFERS.map((o,i)=>(
-        <div key={i} style={{background:"#fff",borderRadius:14,padding:15,marginBottom:10,border:`${o.best?"2px":"1px"} solid ${o.best?C.p:C.bdr}`,boxShadow:o.best?`0 4px 14px ${C.p}20`:"none"}}>
+        <div key={i} style={{
+          background:o.best?`${C.p}06`:C.card,
+          borderRadius:14,padding:15,marginBottom:10,
+          border:`${o.best?"2px":"1px"} solid ${o.best?C.p:C.bdr}`,
+          boxShadow:o.best?`0 6px 20px ${C.p}25,inset 0 1px 0 rgba(255,255,255,.3)`:"0 2px 8px rgba(0,0,0,.04)"
+        }}>
           {o.best&&<div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:1,marginBottom:5}}>{tr.bestOfferL}</div>}
           <div className="row" style={{justifyContent:"space-between"}}>
             <div>
@@ -1215,15 +1270,22 @@ function ProviderDash() {
       {tab==="overview"&&<div>
         <div className="g2" style={{marginBottom:14}}>
           {[{ic:"📊",l:tr.perfScore,v:`${p.score}/100`,col:C.p},{ic:"⏱️",l:tr.avgResp,v:`8 ${tr.min}`,col:"#3B82F6"},{ic:"📋",l:tr.todayJobs,v:"3",col:"#F59E0B"},{ic:"💹",l:tr.loanScoreL||"Loan Score",v:`${p.loanScore}/100`,col:"#8B5CF6"}].map((item,i)=>(
-            <div key={i} style={{background:"#fff",borderRadius:13,padding:14,border:`1px solid ${C.bdr}`}}>
+            <div key={i} style={{
+              background:C.card,borderRadius:13,padding:14,
+              border:`1px solid ${C.bdr}`,
+              boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4)`
+            }}>
               <div style={{fontSize:20,marginBottom:5}}>{item.ic}</div>
               <div style={{fontSize:16,fontWeight:700,color:item.col}}>{item.v}</div>
               <div style={{fontSize:11,color:C.muted}}>{item.l}</div>
             </div>
           ))}
         </div>
-        <div style={{background:"#fff",borderRadius:13,padding:14,border:`1px solid ${C.bdr}`}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>{tr.badgesL}</div>
+        <div style={{
+          background:C.card,borderRadius:13,padding:14,
+          border:`1px solid ${C.bdr}`,
+          boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4)`
+        }}>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
             {(lang==="en"?["⚡ Electrical Expert","🌟 Top Rated","⏰ On Time","🔒 Trusted"]:["⚡ বিদ্যুৎ বিশেষজ্ঞ","🌟 সেরা রেটিং","⏰ সময়মতো","🔒 বিশ্বস্ত"]).map(b=>(
               <span key={b} className="badge" style={{background:C.plt,color:C.p,fontSize:11,padding:"5px 11px"}}>{b}</span>
@@ -1238,7 +1300,7 @@ function ProviderDash() {
               <div>
                 <div className="row" style={{gap:7}}>
                   <div style={{fontSize:14,fontWeight:700}}>{j.t}</div>
-                  {j.urgent&&<span className="badge" style={{background:"#FEE2E2",color:"#B91C1C",fontSize:10}}>{tr.urgent}</span>}
+                  {j.urgent&&<span className="badge" style={{background:"rgba(239,68,68,.12)",color:"#B91C1C",fontSize:10}}>{tr.urgent}</span>}
                 </div>
                 <div style={{fontSize:12,color:C.muted,marginTop:3}}>📍 {j.loc} · {j.time}</div>
               </div>
@@ -1252,11 +1314,19 @@ function ProviderDash() {
         ))}
       </div>}
       {tab==="earnings"&&<div>
-        <div style={{background:"#fff",borderRadius:13,padding:16,border:`1px solid ${C.bdr}`,marginBottom:14}}>
+        <div style={{
+          background:C.card,borderRadius:13,padding:16,marginBottom:14,
+          border:`1px solid ${C.bdr}`,
+          boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.35)`
+        }}>
           <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>{tr.weeklyEarnings}</div>
           <MiniBar data={p.earnings} tr={tr}/>
         </div>
-        <div style={{background:"#fff",borderRadius:13,padding:14,border:`1px solid ${C.bdr}`}}>
+        <div style={{
+          background:C.card,borderRadius:13,padding:14,
+          border:`1px solid ${C.bdr}`,
+          boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.35)`
+        }}>
           {[[tr.thisWeek,"৳১১,৪০০"],[tr.thisMonth,"৳৪৮,৫০০"],[tr.totalEarnings,"৳২,৯৬,৪৫০"]].map(([l,v],i)=>(
             <div key={i} className="row" style={{justifyContent:"space-between",padding:"10px 0",borderBottom:i<2?`1px solid ${C.bdr}`:"none"}}><span style={{fontSize:13,color:C.muted}}>{l}</span><span style={{fontSize:14,fontWeight:700,color:C.p}}>{v}</span></div>
           ))}
@@ -1376,7 +1446,11 @@ function NIDPage({onClose}) {
           <PBar v={trust}/>
           <div style={{fontSize:11,color:C.muted,marginTop:6}}>{tr.nidNote}</div>
         </div>
-        <div style={{background:"#fff",borderRadius:13,border:`1px solid ${C.bdr}`,overflow:"hidden",marginBottom:16}}>
+        <div style={{
+          background:C.card,borderRadius:13,
+          border:`1px solid ${C.bdr}`,overflow:"hidden",marginBottom:16,
+          boxShadow:`0 3px 12px rgba(0,0,0,.04)`
+        }}>
           {verified_items.map(([l,done],i,arr)=>(
             <div key={i} className="row" style={{padding:"11px 14px",borderBottom:i<arr.length-1?`1px solid ${C.bdr}`:"none",gap:10}}>
               <div className="jc" style={{width:28,height:28,borderRadius:8,background:done?"#D1FAE5":"#FEF9C3",fontSize:13}}>{done?"✅":"⏳"}</div>
@@ -1387,7 +1461,11 @@ function NIDPage({onClose}) {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
           {profile_stats.map(([ic,l,v],i)=>(
-            <div key={i} style={{background:"#fff",borderRadius:11,padding:12,border:`1px solid ${C.bdr}`,textAlign:"center"}}>
+            <div key={i} style={{
+              background:C.card,borderRadius:11,padding:12,
+              border:`1px solid ${C.bdr}`,textAlign:"center",
+              boxShadow:`0 2px 8px rgba(0,0,0,.03),inset 0 1px 0 rgba(255,255,255,.4)`
+            }}>
               <div style={{fontSize:18,marginBottom:3}}>{ic}</div>
               <div style={{fontSize:14,fontWeight:700,color:C.p}}>{v}</div>
               <div style={{fontSize:11,color:C.muted}}>{l}</div>
@@ -1417,7 +1495,7 @@ function NIDPage({onClose}) {
           </div>
         ))}
         {nidExtracted&&(
-          <div style={{background:"#D1FAE5",borderRadius:11,padding:"10px 14px",marginBottom:10,border:"1.5px solid #059669"}}>
+          <div style={{background:"rgba(16,185,129,.12)",borderRadius:11,padding:"10px 14px",marginBottom:10,border:"1.5px solid rgba(5,150,105,.4)"}}>
             <div style={{fontSize:11,color:"#065F46",fontWeight:700,marginBottom:2}}>🤖 AI স্ক্যান — NID নম্বর:</div>
             <div style={{fontSize:16,fontWeight:700,letterSpacing:2,color:"#047857"}}>{nidExtracted}</div>
           </div>
@@ -1441,7 +1519,7 @@ function ElderlyMode({onExit,onBook,onEmergency}) {
   const pv = ctxProviders.map(toUiProv);
   const SERVICES=[{icon:"⚡",name:tr.elecProblem,p:pv[0]||PROVIDERS[0]},{icon:"🔧",name:tr.waterProblem,p:pv[2]||PROVIDERS[2]},{icon:"🏥",name:tr.docNurse,p:pv[1]||PROVIDERS[1]},{icon:"🧹",name:tr.cleanService,p:pv[3]||PROVIDERS[3]}];
   return (
-    <div style={{minHeight:"100vh",background:"#F0FFF8",padding:"24px 16px 88px",fontFamily:"'Hind Siliguri',sans-serif"}}>
+    <div style={{minHeight:"100vh",background:C.bg,padding:"24px 16px 88px",fontFamily:"'Hind Siliguri',sans-serif"}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:24}}>
         <div><div style={{fontSize:26,fontWeight:700,color:C.text}}>{tr.elderlyGreet}</div><div style={{fontSize:16,color:C.muted}}>{tr.elderlyWith}</div></div>
         <button onClick={onExit} style={{background:C.plt,border:"none",borderRadius:11,padding:"10px 16px",fontSize:15,cursor:"pointer",color:C.p,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif"}}>{tr.normalMode}</button>
@@ -1453,13 +1531,23 @@ function ElderlyMode({onExit,onBook,onEmergency}) {
       <div style={{fontSize:20,fontWeight:700,marginBottom:16,color:C.text}}>{tr.needWhat}</div>
       <div className="g2" style={{gap:16,marginBottom:22}}>
         {SERVICES.map((s,i)=>(
-          <button key={i} onClick={()=>onBook(s.p)} style={{padding:"26px 10px",background:"#fff",border:`3px solid ${C.bdr}`,borderRadius:20,cursor:"pointer",textAlign:"center",fontFamily:"'Hind Siliguri',sans-serif",boxShadow:"0 3px 12px rgba(21,163,96,.08)",width:"100%"}}>
+          <button key={i} onClick={()=>onBook(s.p)} style={{
+            padding:"26px 10px",background:C.card,
+            border:`2px solid ${C.bdr}`,borderRadius:20,cursor:"pointer",
+            textAlign:"center",fontFamily:"'Hind Siliguri',sans-serif",
+            boxShadow:`0 4px 16px rgba(21,163,96,.1),inset 0 1px 0 rgba(255,255,255,.5)`,
+            width:"100%",transition:"all .2s"
+          }}>
             <div style={{fontSize:46,marginBottom:10}}>{s.icon}</div>
             <div style={{fontSize:18,fontWeight:700,color:C.text,lineHeight:1.3}}>{s.name}</div>
           </button>
         ))}
       </div>
-      <div style={{background:"#fff",borderRadius:20,padding:20,border:`1px solid ${C.bdr}`,textAlign:"center"}}>
+      <div style={{
+        background:C.card,borderRadius:20,padding:20,
+        border:`1px solid ${C.bdr}`,textAlign:"center",
+        boxShadow:`0 6px 24px rgba(21,163,96,.08),inset 0 1px 0 rgba(255,255,255,.4)`
+      }}>
         <div style={{fontSize:46,marginBottom:8}}>🎙️</div>
         <div style={{fontSize:19,fontWeight:700}}>{tr.voiceHelp}</div>
         <div style={{fontSize:15,color:C.muted,marginTop:5,marginBottom:16}}>{tr.voiceSub}</div>
@@ -1706,7 +1794,7 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
 
         {/* KYC nudge if pending */}
         {(u.kycStatus||"pending")==="pending"&&(
-          <div style={{background:"#FEF9C3",border:"1px solid #FCD34D",borderRadius:14,padding:16,marginBottom:18,display:"flex",gap:12,alignItems:"center"}}>
+          <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.35)",borderRadius:14,padding:16,marginBottom:18,display:"flex",gap:12,alignItems:"center"}}>
             <div style={{fontSize:28}}>🛡️</div>
             <div style={{flex:1}}>
               <div style={{fontWeight:700,fontSize:13,color:"#7C5800",marginBottom:3}}>{lang==="bn"?"KYC যাচাই বাকি আছে":"KYC Verification Pending"}</div>
@@ -1945,7 +2033,13 @@ function Chat({isMobile}) {
           </div>
         ))}
         {typing&&(
-          <div style={{display:"flex",gap:4,padding:"10px 13px",background:"#fff",border:`1px solid ${C.bdr}`,borderRadius:"14px 14px 14px 4px",width:58,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
+          <div style={{
+            display:"flex",gap:4,padding:"10px 13px",
+            background:dark?"rgba(15,30,22,.85)":"rgba(255,255,255,.92)",
+            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            border:`1px solid ${C.bdr}`,borderRadius:"14px 14px 14px 4px",width:58,
+            boxShadow:"0 4px 14px rgba(0,0,0,.08)"
+          }}>
             <div className="dot"/><div className="dot"/><div className="dot"/>
           </div>
         )}
@@ -2358,7 +2452,7 @@ function SettingsPage(){
           <button key={id} onClick={()=>setTab(id.trim())} style={{flex:1,padding:"9px 4px",borderRadius:10,border:"none",background:tab===id.trim()?C.p:"transparent",color:tab===id.trim()?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{ic}</button>
         ))}
       </div>
-      {saved&&<div style={{background:"#D1FAE5",borderRadius:12,padding:"10px 16px",marginBottom:14,fontSize:13,color:"#065F46",fontWeight:700,textAlign:"center"}}>{tr.stSaved}</div>}
+      {saved&&<div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"10px 16px",marginBottom:14,fontSize:13,color:"#065F46",fontWeight:700,textAlign:"center",border:"1px solid rgba(16,185,129,.3)"}}>{tr.stSaved}</div>}
       {tab==="profile"&&(
         <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.bdr}`}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
@@ -2383,7 +2477,7 @@ function SettingsPage(){
               <Toggle val={item.val} set={item.set}/>
             </div>
           ))}
-          <div style={{marginTop:16,padding:"12px 14px",background:"#FEF2F2",borderRadius:12,border:"1px solid #FECACA",cursor:"pointer"}}>
+          <div style={{marginTop:16,padding:"12px 14px",background:"rgba(239,68,68,.08)",borderRadius:12,border:"1px solid rgba(239,68,68,.25)",cursor:"pointer"}}>
             <div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>🗑️ {tr.stDeleteAcc}</div>
             <div style={{fontSize:11,color:"#9CA3AF",marginTop:3}}>{lang==="en"?"This action cannot be undone":"এই পদক্ষেপ অপরিবর্তনযোগ্য"}</div>
           </div>
@@ -2685,7 +2779,13 @@ function ReferralPage(){
           <button onClick={doCopy} style={{padding:"10px 20px",borderRadius:10,background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
             {copied?tr.rfCopied:"📋 Copy"}
           </button>
-          <button onClick={doShare} style={{padding:"10px 20px",borderRadius:10,background:"#fff",border:"none",color:"#0D7F5F",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
+          <button onClick={doShare} style={{
+            padding:"10px 20px",borderRadius:10,
+            background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.4)",
+            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",
+            boxShadow:"0 4px 14px rgba(0,0,0,.15)"
+          }}>
             📲 {tr.rfShare}
           </button>
         </div>
@@ -3118,7 +3218,7 @@ function PromosPage(){
       <div style={{background:C.card,borderRadius:16,padding:18,marginBottom:16,border:`1px solid ${C.bdr}`}}>
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:10}}>🎟️ {lang==="en"?"Apply Coupon":"\u0995\u09c1\u09aa\u09a8 \u0995\u09cb\u09a1 \u09a6\u09bf\u09a8"}</div>
         {appliedCode&&(
-          <div style={{background:"#D1FAE5",borderRadius:12,padding:"12px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid rgba(16,185,129,.25)"}}>
             <div>
               <div style={{fontSize:13,fontWeight:800,color:"#065F46"}}>{appliedCode.code} — {appliedCode.pct}% {lang==="en"?"off":"ছাড়"}</div>
               <div style={{fontSize:11,color:"#047857"}}>{lang==="en"?`Max save ৳${appliedCode.maxTk}`:`সর্বোচ্চ ৳${appliedCode.maxTk} সাশ্রয়`}</div>
@@ -3388,7 +3488,7 @@ function WalletPage() {
       {tab==="topup"&&(
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
           {success&&(
-            <div style={{background:"#D1FAE5",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:14,color:"#065F46",fontWeight:700,textAlign:"center"}}>{tr.wlSuccess} +৳{finalAmt}</div>
+            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:14,color:"#065F46",fontWeight:700,textAlign:"center",border:"1px solid rgba(16,185,129,.25)"}}>{tr.wlSuccess} +৳{finalAmt}</div>
           )}
           {/* Amount presets */}
           <div style={{fontSize:13,fontWeight:700,color:C.sub,marginBottom:10}}>{lang==="en"?"Select Amount":"পরিমাণ বেছুন"}</div>
@@ -3531,7 +3631,15 @@ function DisasterPage() {
             style={{padding:"7px 14px",borderRadius:10,background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.5)",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
             {shared?"✅ "+tr.dsShared:"📍 "+tr.dsShare}
           </button>
-          <a href="tel:999" style={{padding:"7px 14px",borderRadius:10,background:"#fff",border:"none",color:"#DC2626",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",textDecoration:"none",display:"flex",alignItems:"center",gap:5}}>
+          <a href="tel:999" style={{
+            padding:"7px 14px",borderRadius:10,
+            background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.5)",
+            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",
+            fontFamily:"'Hind Siliguri',sans-serif",textDecoration:"none",
+            display:"flex",alignItems:"center",gap:5,
+            boxShadow:"0 4px 14px rgba(0,0,0,.15)"
+          }}>
             🚨 999
           </a>
         </div>
@@ -3628,7 +3736,7 @@ function DisasterPage() {
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
           <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>📋 {tr.dsReportBtn}</div>
           {reported&&(
-            <div style={{background:"#D1FAE5",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600}}>✅ {tr.dsReported}</div>
+            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}>✅ {tr.dsReported}</div>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
@@ -3774,7 +3882,7 @@ function BloodDonationPage() {
 
           {/* Compatibility tip */}
           {bgFilter!=="all"&&(
-            <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"9px 13px",marginBottom:14,fontSize:12,color:"#991B1B"}}>
+            <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.25)",borderRadius:10,padding:"9px 13px",marginBottom:14,fontSize:12,color:"#991B1B"}}>
               🩸 <strong>{bgFilter}</strong> {lang==="en"?"can donate to:":"দিতে পারবেন:"} <strong>{(GROUP_COMPAT[bgFilter]||[]).join(", ")}</strong>
             </div>
           )}
@@ -3796,8 +3904,8 @@ function BloodDonationPage() {
                   </div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
                     {d.avail
-                      ?<span style={{fontSize:10,background:"#D1FAE5",color:"#065F46",borderRadius:6,padding:"2px 7px",fontWeight:700}}>✓ {tr.bdAvail}</span>
-                      :<span style={{fontSize:10,background:"#F3F4F6",color:C.muted,borderRadius:6,padding:"2px 7px",fontWeight:600}}>⏸ Unavailable</span>
+                      ?<span style={{fontSize:10,background:"rgba(16,185,129,.15)",color:"#065F46",borderRadius:6,padding:"2px 7px",fontWeight:700}}>✓ {tr.bdAvail}</span>
+                      :<span style={{fontSize:10,background:"rgba(0,0,0,.08)",color:C.muted,borderRadius:6,padding:"2px 7px",fontWeight:600}}>⏸ Unavailable</span>
                     }
                     {d.avail&&(
                       <button onClick={()=>{
@@ -3822,7 +3930,7 @@ function BloodDonationPage() {
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
           <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>🆘 {tr.bdReq}</div>
           {sent&&(
-            <div style={{background:"#D1FAE5",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600}}>✅ {tr.bdSent}</div>
+            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}>✅ {tr.bdSent}</div>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
@@ -3866,7 +3974,7 @@ function BloodDonationPage() {
             </div>
           ))}
           {/* Benefits */}
-          <div style={{background:"#FEF2F2",borderRadius:14,padding:"16px",border:"1px solid #FECACA"}}>
+          <div style={{background:"rgba(239,68,68,.08)",borderRadius:14,padding:"16px",border:"1px solid rgba(239,68,68,.2)"}}>
             <div style={{fontWeight:700,fontSize:13,color:"#991B1B",marginBottom:10}}>❤️ {lang==="en"?"Benefits of Donating":"দানের সুবিধা"}</div>
             {(lang==="en"?
               ["🩺 Free health check-up","💪 Burns 650 calories per donation","🛡️ Reduces heart disease risk","🏅 Donor certificate & badge","📞 Priority in emergency requests"]
@@ -3948,7 +4056,15 @@ function NearbyPage({onBook,onView}) {
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{tr.gpsTitle}</div>
         <div style={{fontSize:13,opacity:.85,marginBottom:16}}>আপনার কাছের সেরা প্রদানকারী খুঁজুন</div>
         {status==="idle"&&(
-          <button onClick={detect} style={{background:"#fff",color:C.pdk,border:"none",borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",display:"flex",alignItems:"center",gap:7}}>
+          <button onClick={detect} style={{
+            background:"rgba(255,255,255,.18)",color:"#fff",
+            border:"1.5px solid rgba(255,255,255,.5)",
+            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:14,
+            cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",
+            display:"flex",alignItems:"center",gap:7,
+            boxShadow:"0 4px 16px rgba(0,0,0,.15)"
+          }}>
             <span>📍</span>{tr.gpsDetect}
           </button>
         )}
@@ -3968,12 +4084,12 @@ function NearbyPage({onBook,onView}) {
 
       {/* Error states */}
       {status==="denied"&&(
-        <div style={{background:"#FFF3CD",border:"1px solid #FFC107",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#856404",display:"flex",alignItems:"center",gap:9}}>
+        <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.35)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#856404",display:"flex",alignItems:"center",gap:9}}>
           🔒 {tr.gpsPermDenied}
         </div>
       )}
       {status==="error"&&(
-        <div style={{background:"#FEE2E2",border:"1px solid #FCA5A5",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#991B1B",display:"flex",alignItems:"center",gap:9}}>
+        <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.35)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#991B1B",display:"flex",alignItems:"center",gap:9}}>
           ⚠️ {tr.gpsError}
         </div>
       )}
@@ -4114,7 +4230,14 @@ function LiveChatPage({provider, onBack}) {
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",maxHeight:"100vh",background:C.bg,fontFamily:"'Hind Siliguri',sans-serif"}}>
       {/* Header */}
-      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:C.card,borderBottom:`1px solid ${C.bdr}`,position:"sticky",top:0,zIndex:50}}>
+      <div style={{
+        display:"flex",alignItems:"center",gap:12,padding:"14px 18px",
+        background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
+        backdropFilter:"blur(20px) saturate(200%)",WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
+        position:"sticky",top:0,zIndex:50,
+        boxShadow:dark?"0 2px 20px rgba(0,0,0,.3)":"0 2px 12px rgba(21,163,96,.05)"
+      }}>
         <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",fontSize:22,color:C.p,padding:"0 6px 0 0",lineHeight:1}}>←</button>
         <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
           {typeof avatar==="string"&&avatar.length===1?avatar:"👤"}
@@ -4439,18 +4562,18 @@ export default function IMAP() {
             <PBar v={((5-emgCnt)/5)*100} col={C.red}/>
           </div>
         ):(
-          <div style={{background:"#FFF5F5",borderRadius:12,padding:14,margin:"16px 0",border:"1px solid #FED7D7"}}>
+          <div style={{background:"rgba(239,68,68,.08)",borderRadius:12,padding:14,margin:"16px 0",border:"1px solid rgba(239,68,68,.25)"}}>
             <div style={{fontSize:14,fontWeight:600,color:C.red}}>{tr.emgConnected}</div>
           </div>
         )}
         <div className="g2" style={{marginBottom:12,gap:8}}>
           {(lang==="en"?["🏥 Ambulance","💊 Nurse","🩺 Doctor","🩸 Blood Donor"]:["🏥 অ্যাম্বুলেন্স","💊 নার্স","🩺 ডাক্তার","🩸 রক্তদাতা"]).map(item=>(
             <button key={item} onClick={()=>setEmgSvc(item)}
-              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"#FFF5F5",border:`2px solid ${emgSvc===item?"#DC2626":"#FED7D7"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"✓ ":""}{item}</button>
+              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"rgba(239,68,68,.08)",border:`2px solid ${emgSvc===item?"#DC2626":"rgba(220,38,38,.25)"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"✓ ":""}{item}</button>
           ))}
         </div>
         {emgSvc&&(
-          <div style={{background:"#FFF5F5",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:C.red,fontWeight:600,border:"1px solid #FED7D7"}}>✅ {lang==="en"?`Requesting ${emgSvc}...`:`${emgSvc} অনুরোধ পাঠানো হচ্ছে...`}</div>
+          <div style={{background:"rgba(239,68,68,.08)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:C.red,fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}>✅ {lang==="en"?`Requesting ${emgSvc}...`:`${emgSvc} অনুরোধ পাঠানো হচ্ছে...`}</div>
         )}
         <button className="btn btn-gh" style={{width:"100%",border:`1px solid ${C.bdr}`}} onClick={()=>{setEmg(false);setEmgSvc(null);}}>{tr.emgCancel}</button>
       </div>
@@ -4459,20 +4582,44 @@ export default function IMAP() {
 
   /* ── NAVBAR ── */
   const Nav = ()=>(
-    <nav style={{background:C.card,borderBottom:`1px solid ${C.bdr}`,position:"sticky",top:0,zIndex:600,boxShadow:"0 1px 12px rgba(0,0,0,.05)"}}>
+    <nav style={{
+      background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
+      backdropFilter:"blur(20px) saturate(200%)",
+      WebkitBackdropFilter:"blur(20px) saturate(200%)",
+      borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
+      position:"sticky",top:0,zIndex:600,
+      boxShadow:dark
+        ?"0 2px 20px rgba(0,0,0,.3),inset 0 -1px 0 rgba(34,212,127,.06)"
+        :"0 2px 16px rgba(21,163,96,.06),inset 0 -1px 0 rgba(255,255,255,.8)"
+    }}>
       <div className="wp row" style={{height:62,gap:18}}>
         {/* Logo */}
         <div className="row" style={{gap:8,cursor:"pointer",flexShrink:0}} onClick={()=>{setPage("home");closeAll();}}>
-          <div className="jc" style={{width:36,height:36,borderRadius:11,background:`linear-gradient(135deg,${C.p},${C.pdk})`,fontSize:17}}>🌿</div>
+          <div className="jc" style={{
+            width:38,height:38,borderRadius:12,
+            background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+            fontSize:18,
+            boxShadow:`0 4px 14px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`
+          }}>🌿</div>
           <div>
-            <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:19,fontWeight:800,color:C.p,lineHeight:1}}>IMAP</div>
-            <div style={{fontSize:9,color:C.muted,letterSpacing:1.5,textTransform:"uppercase"}}>AI Powered Service Platform</div>
+            <div style={{
+              fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:19,fontWeight:800,lineHeight:1,
+              background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"
+            }}>IMAP</div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:1.5,textTransform:"uppercase",opacity:.8}}>AI Powered Service Platform</div>
           </div>
         </div>
         {/* Search bar (desktop) */}
         <div className="nsearch" style={{flex:1,maxWidth:440,position:"relative"}}>
           <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:C.muted}}>🔍</div>
-          <input placeholder={tr.search} readOnly onClick={()=>setModal("search")} style={{width:"100%",padding:"10px 14px 10px 38px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,background:C.bg,cursor:"pointer"}} onFocus={e=>e.target.style.borderColor=C.p} onBlur={e=>e.target.style.borderColor=C.bdr}/>
+          <input placeholder={tr.search} readOnly onClick={()=>setModal("search")} style={{
+            width:"100%",padding:"10px 14px 10px 38px",
+            border:`1.5px solid ${C.bdr}`,borderRadius:12,fontSize:13,
+            color:C.text,background:dark?"rgba(8,15,11,.6)":"rgba(248,252,250,.8)",
+            cursor:"pointer",backdropFilter:"blur(8px)",
+            transition:"all .2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,.04)"
+          }} onFocus={e=>{e.target.style.borderColor=C.p;e.target.style.boxShadow=`0 0 0 3px ${C.p}18`;}} onBlur={e=>{e.target.style.borderColor=C.bdr;e.target.style.boxShadow="inset 0 1px 3px rgba(0,0,0,.04)";}}/>
         </div>
         {/* Desktop nav links — শুধু মূল পেজগুলো */}
         <div className="dnav row" style={{gap:2,flexShrink:0}}>
@@ -4488,16 +4635,38 @@ export default function IMAP() {
           {!isMobile&&<button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>}
           {/* Icon buttons (desktop only) */}
           {!isMobile&&[["👴",tr.elderlyMode,()=>setElderly(true)],["🗺️",tr.map,()=>setModal("map")],["🔍",tr.find,()=>setModal("search")]].map(([ic,title,fn])=>(
-            <button key={title} title={title} className="htab" onClick={fn} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{ic}</button>
+            <button key={title} title={title} className="htab" onClick={fn} style={{
+              width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,
+              background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)",
+              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:15,transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"
+            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>{ic}</button>
           ))}
           {/* Notification bell */}
           <div style={{position:"relative"}}>
-            <button onClick={()=>{setNotifDrop(o=>!o);setProfDrop(false);setNavDotMenu(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,position:"relative",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+            <button onClick={()=>{setNotifDrop(o=>!o);setProfDrop(false);setNavDotMenu(false);}} style={{
+              width:36,height:36,
+              border:`1px solid ${C.bdr}`,borderRadius:9,
+              background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)",
+              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:15,position:"relative",transition:"all .2s",
+              boxShadow:"0 2px 8px rgba(0,0,0,.06)"
+            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
               🔔
               {unreadCount>0&&<div className="jc" style={{position:"absolute",top:5,right:5,width:12,height:12,background:C.red,borderRadius:"50%",fontSize:8,color:"#fff",fontWeight:700}}>{unreadCount>9?"9+":unreadCount}</div>}
             </button>
             {notifDrop&&(
-              <div style={{position:"absolute",right:0,top:44,width:310,background:C.card,borderRadius:16,boxShadow:"0 10px 40px rgba(0,0,0,.13)",border:`1px solid ${C.bdr}`,zIndex:700,overflow:"hidden",animation:"fadeUp .2s ease"}}
+              <div style={{
+                position:"absolute",right:0,top:46,width:320,
+                background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
+                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                borderRadius:18,
+                boxShadow:`0 20px 60px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
+                border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
+                zIndex:700,overflow:"hidden",animation:"fadeUp .2s cubic-bezier(.16,1,.3,1)"
+              }}
 >
                 <div className="row" style={{padding:"12px 15px",borderBottom:`1px solid ${C.bdr}`,justifyContent:"space-between"}}>
                   <div style={{fontSize:14,fontWeight:700}}>🔔 {tr.notifications}</div>
@@ -4520,9 +4689,23 @@ export default function IMAP() {
           </div>
           {/* Profile */}
           <div style={{position:"relative"}}>
-            <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}} onClick={()=>{setProfDrop(o=>!o);setNotifDrop(false);setNavDotMenu(false);}}>{authUser?.name?.[0]||"আ"}</div>
+            <div className="jc" style={{
+              width:36,height:36,borderRadius:9,
+              background:`linear-gradient(135deg,${C.p},${C.pdk})`,
+              color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13,
+              boxShadow:`0 4px 14px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`,
+              transition:"all .2s"
+            }} onClick={()=>{setProfDrop(o=>!o);setNotifDrop(false);setNavDotMenu(false);}}>{authUser?.name?.[0]||"আ"}</div>
             {profDrop&&(
-              <div style={{position:"absolute",right:0,top:44,width:232,background:C.card,borderRadius:15,boxShadow:"0 10px 40px rgba(0,0,0,.13)",border:`1px solid ${C.bdr}`,zIndex:700,overflow:"hidden",animation:"fadeUp .2s ease",maxHeight:"80vh",overflowY:"auto"}}>
+              <div style={{
+                position:"absolute",right:0,top:46,width:240,
+                background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
+                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                borderRadius:18,
+                boxShadow:`0 20px 60px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
+                border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
+                zIndex:700,overflow:"hidden",animation:"fadeUp .2s cubic-bezier(.16,1,.3,1)",maxHeight:"80vh",overflowY:"auto"
+              }}>
                 {/* প্রোফাইল হেড */}
                 <div style={{padding:14,borderBottom:`1px solid ${C.bdr}`,textAlign:"center"}}>
                   <div className="jc" style={{width:44,height:44,borderRadius:11,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:17,margin:"0 auto 7px"}}>{authUser?.name?.[0]||"আ"}</div>
@@ -4601,7 +4784,7 @@ export default function IMAP() {
             <button onClick={()=>{setNavDotMenu(o=>!o);setProfDrop(false);setNotifDrop(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:C.text,fontWeight:700}}>⋮</button>
             {navDotMenu&&(<>
               <div onClick={()=>setNavDotMenu(false)} style={{position:"fixed",inset:0,zIndex:599}}/>
-              <div style={{position:"absolute",right:0,top:42,width:200,background:C.card,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",border:`1px solid ${C.bdr}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s ease"}}>
+              <div style={{position:"absolute",right:0,top:42,width:200,background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",borderRadius:16,boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s cubic-bezier(.16,1,.3,1)"}}>
                 {/* User info */}
                 <div style={{padding:"11px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:9}}>
                   <div className="jc" style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{authUser?.name?.[0]||"আ"}</div>
@@ -4688,7 +4871,13 @@ export default function IMAP() {
                 {tr.heroTitle}<br/><span style={{color:C.p}}>{tr.heroAccent}</span>
               </h1>
               <p style={{fontSize:15,color:"rgba(255,255,255,.72)",lineHeight:1.75,marginBottom:26,maxWidth:440}}>{tr.heroDesc}</p>
-              <div className="hsw row" style={{background:"#fff",borderRadius:14,padding:"7px 7px 7px 16px",gap:7,maxWidth:510,boxShadow:"0 10px 36px rgba(0,0,0,.22)"}}>
+              <div className="hsw row" style={{
+                background:"rgba(255,255,255,.95)",
+                backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",
+                borderRadius:14,padding:"7px 7px 7px 16px",gap:7,maxWidth:510,
+                boxShadow:"0 10px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.9)",
+                border:"1px solid rgba(255,255,255,.6)"
+              }}>
                 <span style={{fontSize:17}}>🔍</span>
                 <input readOnly placeholder={tr.search} style={{flex:1,border:"none",fontSize:13,color:C.text,background:"transparent",padding:"5px 0",cursor:"pointer"}} onClick={()=>setModal("search")}/>
                 <button className="btn btn-g" style={{padding:"10px 16px",fontSize:13,borderRadius:10,flexShrink:0}} onClick={()=>setModal("search")}>{tr.find}</button>
@@ -4722,7 +4911,7 @@ export default function IMAP() {
                 <div style={{fontSize:12,color:"rgba(255,255,255,.78)"}}>{tr.emergencyDesc}</div>
               </div>
             </div>
-            <button className="btn" style={{padding:"11px 22px",background:"#fff",color:C.red,fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
+            <button className="btn" style={{padding:"11px 22px",background:"rgba(255,255,255,.15)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
           </div>
         </div>
       </section>
@@ -4739,7 +4928,7 @@ export default function IMAP() {
       </div>
 
       {/* How it Works */}
-      <section className="sp" style={{background:"#fff"}}>
+      <section className="sp" style={{background:C.bg}}>
         <div className="wp">
           <div style={{textAlign:"center",marginBottom:44}}>
             <div style={{display:"inline-flex",gap:6,background:C.plt,borderRadius:99,padding:"6px 16px",marginBottom:12,alignItems:"center"}}>
@@ -4773,7 +4962,7 @@ export default function IMAP() {
       </section>
 
       {/* Service categories */}
-      <section className="sp" style={{background:"#fff"}}>
+      <section className="sp" style={{background:C.bg}}>
         <div className="wp">
           <div className="row" style={{justifyContent:"space-between",marginBottom:32,flexWrap:"wrap",gap:12}}>
             <div><div className="sec-h">{tr.svcsTitle}</div><div className="sec-s">{tr.svcsSub}</div></div>
@@ -4858,7 +5047,7 @@ export default function IMAP() {
       </section>
 
       {/* Social impact + live stats */}
-      <section className="sp" style={{background:"#fff"}}>
+      <section className="sp" style={{background:C.bg}}>
         <div className="wp">
           <div className="g2 sl" style={{gap:44,alignItems:"center"}}>
             <div>
@@ -5069,7 +5258,14 @@ export default function IMAP() {
         <div style={{fontSize:18,fontWeight:700}}>{tr.allProviders} ({provData.length}+)</div>
         <div className="row" style={{gap:7}}>
           {[tr.filterBest,tr.filterNew,tr.filterNear].map(f=>(
-            <button key={f} className="btn" style={{padding:"7px 13px",borderRadius:99,border:`1.5px solid ${C.bdr}`,background:"#fff",color:C.sub,fontSize:12,fontWeight:600}}>{f}</button>
+            <button key={f} className="btn" style={{
+              padding:"7px 13px",borderRadius:99,
+              border:`1.5px solid ${C.bdr}`,
+              background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.85)",
+              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              color:C.sub,fontSize:12,fontWeight:600,
+              boxShadow:"0 2px 8px rgba(0,0,0,.05)"
+            }}>{f}</button>
           ))}
         </div>
       </div>
@@ -5135,7 +5331,15 @@ export default function IMAP() {
         <style>{CSS}{dark?CSS_DARK:""}</style>
         <Nav/>
         {isOffline&&(
-          <div style={{position:"sticky",top:0,zIndex:999,background:"#1F2937",color:"#F9FAFB",textAlign:"center",padding:"7px 14px",fontSize:12.5,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <div style={{
+            position:"sticky",top:0,zIndex:999,
+            background:"linear-gradient(90deg,#1F2937,#111827,#1F2937)",
+            backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
+            color:"#F9FAFB",textAlign:"center",padding:"8px 14px",fontSize:12.5,fontWeight:600,
+            display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+            boxShadow:"0 2px 12px rgba(0,0,0,.3)",
+            borderBottom:"1px solid rgba(255,255,255,.08)"
+          }}>
             <span>📡</span> <span>{tr===T.en?"You are offline — some features may be unavailable":"আপনি অফলাইনে আছেন — কিছু ফিচার সাময়িকভাবে অনুপলব্ধ"}</span>
           </div>
         )}
@@ -5256,7 +5460,7 @@ export default function IMAP() {
         {!showSos && (
           <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}
             title={lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alert"}
-            style={{position:"fixed",bottom:isMobile?216:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid #fff",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
+            style={{position:"fixed",bottom:isMobile?216:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid rgba(255,255,255,.7)",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55),0 0 0 1px rgba(239,68,68,.3),inset 0 1px 0 rgba(255,255,255,.25)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
             🆘
           </button>
         )}

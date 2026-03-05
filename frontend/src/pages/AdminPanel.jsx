@@ -591,7 +591,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           <Header style={{
             padding:"0 20px", display:"flex", alignItems:"center",
             justifyContent:"space-between", position:"sticky", top:0, zIndex:100,
-            background:dark?"#141414":"#fff", borderBottom:"1px solid rgba(0,0,0,0.08)", height:56,
+            background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
+            backdropFilter:"blur(20px) saturate(200%)",
+            WebkitBackdropFilter:"blur(20px) saturate(200%)",
+            borderBottom:dark?"1px solid rgba(30,69,53,.5)":"1px solid rgba(255,255,255,.6)",
+            boxShadow:dark
+              ?"0 2px 20px rgba(0,0,0,.3),inset 0 -1px 0 rgba(5,150,105,.06)"
+              :"0 2px 16px rgba(5,150,105,.06),inset 0 -1px 0 rgba(255,255,255,.8)",
+            height:56,
           }}>
             <Space>
               {!isMobile && (
@@ -613,8 +620,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
           {/* Mobile tab scroll */}
           {isMobile && (
-            <div style={{display:"flex",overflowX:"auto",background:dark?"#141414":"#fff",
-              borderBottom:"1px solid rgba(0,0,0,0.08)",scrollbarWidth:"none"}}>
+            <div style={{
+              display:"flex",overflowX:"auto",
+              background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
+              backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",
+              borderBottom:`1px solid ${dark?"rgba(30,69,53,.4)":"rgba(0,0,0,0.06)"}`,
+              scrollbarWidth:"none",
+              boxShadow:dark?"0 2px 12px rgba(0,0,0,.2)":"0 2px 8px rgba(0,0,0,.04)"
+            }}>
               {menuItems.map(item=>(
                 <button key={item.key} onClick={()=>setTab(item.key)} style={{
                   flex:"0 0 auto",padding:"10px 14px",border:"none",
