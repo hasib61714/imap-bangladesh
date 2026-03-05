@@ -85,7 +85,18 @@ router.get("/wallet", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/users/wallet/topup ──────────────────────────
+// NOTE: In production (payment gateway configured) wallet top-up must go through
+// POST /api/payments/initiate with { type: "wallet_topup", topup_amount }.
+// This endpoint is only allowed in dev/mock mode.
+const paymentGateway = require("../utils/payment");
 router.post("/wallet/topup", authMiddleware, async (req, res) => {
+  if (paymentGateway.isConfigured()) {
+    return res.status(400).json({
+      error: "Use the payment gateway for wallet top-up.",
+      useGateway: true,
+      hint: "POST /api/payments/initiate with { type: 'wallet_topup', topup_amount }",
+    });
+  }
   try {
     const { amount, method = "bKash" } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });

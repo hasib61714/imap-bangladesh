@@ -3365,29 +3365,32 @@ function WalletPage() {
     if(!finalAmt||finalAmt<10||topping) return;
     setTopping(true);
     try {
-      const d=await usersApi.topup(finalAmt,selMethod);
-      const newBal=d.balance??balance+finalAmt;
-      setBalance(newBal); setCtxBalance(newBal);
+      const d=await paymentsApi.initiateTopup(finalAmt,selMethod);
+      if(d.url){
+        // Real gateway — redirect (user returns with ?payment=success)
+        window.location.href=d.url;
+        return;
+      }
+      // Mock/dev mode — top-up credited immediately, refresh wallet
+      const walletData=await usersApi.getWallet();
+      if(walletData.balance!==undefined){ setBalance(walletData.balance); setCtxBalance(walletData.balance); }
+      if(Array.isArray(walletData.transactions)){
+        setApiTxns(walletData.transactions.map(t=>({
+          id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
+          icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+          type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
+          titleBn: t.description_bn||t.description||"লেনদেন",
+          titleEn: t.description_en||t.description||"Transaction",
+          provider: "",
+          amount: t.type==="debit"?-Math.abs(parseFloat(t.amount||0)):+Math.abs(parseFloat(t.amount||0)),
+          method: t.method||"Wallet",
+          date: t.created_at?new Date(t.created_at).toLocaleDateString("bn-BD"):"সম্প্রতি",
+          dateEn: t.created_at?new Date(t.created_at).toLocaleDateString("en-GB"):"Recent",
+          status:"success",
+        })));
+      }
       setSuccess(true); setTimeout(()=>setSuccess(false),3500);
-      // Reload transaction history to show new topup entry
-      usersApi.getWallet().then(data=>{
-        if(Array.isArray(data.transactions)){
-          setApiTxns(data.transactions.map(t=>({
-            id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
-            icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
-            type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
-            titleBn: t.description_bn||t.description||"লেনদেন",
-            titleEn: t.description_en||t.description||"Transaction",
-            provider: "",
-            amount: t.type==="debit"?-Math.abs(parseFloat(t.amount||0)):+Math.abs(parseFloat(t.amount||0)),
-            method: t.method||"Wallet",
-            date: t.created_at?new Date(t.created_at).toLocaleDateString("bn-BD"):"সম্প্রতি",
-            dateEn: t.created_at?new Date(t.created_at).toLocaleDateString("en-GB"):"Recent",
-            status:"success",
-          })));
-        }
-      }).catch(()=>{});
-    } catch(e){ console.error("topup:",e); alert(lang==="en"?"Top-up failed. Please try again.":"টপ-আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"); }
+    } catch(e){ console.warn("topup:",e); alert(lang==="en"?"Top-up failed. Please try again.":"টপ-আপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"); }
     finally{ setTopping(false); }
   };
 

@@ -22,29 +22,51 @@ const FE = () => process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || "ht
 /* ── POST /api/payments/initiate ── */
 router.post("/initiate", authMiddleware, async (req, res) => {
   try {
-    const { booking_id, payment_method = "sslcommerz" } = req.body;
-    if (!booking_id) return res.status(400).json({ error: "booking_id required" });
+    const { booking_id, topup_amount, type = "booking", payment_method = "sslcommerz" } = req.body;
 
-    const [brows] = await pool.query(
-      "SELECT b.*, u.name AS cus_name, u.email AS cus_email, u.phone AS cus_phone FROM bookings b LEFT JOIN users u ON u.id = b.customer_id WHERE b.id = ? AND b.customer_id = ?",
-      [booking_id, req.user.id]
-    );
-    if (!brows.length) return res.status(404).json({ error: "Booking not found" });
+    let totalAmount, payId, customerInfo, productInfo;
 
-    const booking     = brows[0];
-    const totalAmount = parseFloat(booking.amount) + parseFloat(booking.platform_fee || 0);
-    const payId       = uuidv4();
+    if (type === "wallet_topup") {
+      // ── Wallet top-up: no booking needed ──
+      const amt = parseFloat(topup_amount);
+      if (!amt || amt < 10 || amt > 100000)
+        return res.status(400).json({ error: "Top-up amount must be ৳10–৳1,00,000" });
 
-    await pool.query(
-      "INSERT INTO payments (id, booking_id, user_id, amount, method, status, gateway_tran_id) VALUES (?,?,?,?,?,'pending',?)",
-      [payId, booking_id, req.user.id, totalAmount, payment_method, payId]
-    );
+      payId = uuidv4();
+      totalAmount = amt;
+      await pool.query(
+        "INSERT INTO payments (id, booking_id, user_id, amount, method, status, gateway_tran_id) VALUES (?,NULL,?,?,?,'pending',?)",
+        [payId, req.user.id, totalAmount, payment_method, payId]
+      );
+      customerInfo = { name: req.user.name, email: req.user.email || "noemail@imap.app", phone: req.user.phone || "01700000000", address: "Dhaka, Bangladesh" };
+      productInfo  = { name: "Wallet Top-up", category: "Wallet" };
+
+    } else {
+      // ── Booking payment ──
+      if (!booking_id) return res.status(400).json({ error: "booking_id required" });
+
+      const [brows] = await pool.query(
+        "SELECT b.*, u.name AS cus_name, u.email AS cus_email, u.phone AS cus_phone FROM bookings b LEFT JOIN users u ON u.id = b.customer_id WHERE b.id = ? AND b.customer_id = ?",
+        [booking_id, req.user.id]
+      );
+      if (!brows.length) return res.status(404).json({ error: "Booking not found" });
+
+      const booking = brows[0];
+      totalAmount   = parseFloat(booking.amount) + parseFloat(booking.platform_fee || 0);
+      payId         = uuidv4();
+      await pool.query(
+        "INSERT INTO payments (id, booking_id, user_id, amount, method, status, gateway_tran_id) VALUES (?,?,?,?,?,'pending',?)",
+        [payId, booking_id, req.user.id, totalAmount, payment_method, payId]
+      );
+      customerInfo = { name: booking.cus_name, email: booking.cus_email, phone: booking.cus_phone, address: booking.address || "Dhaka, Bangladesh" };
+      productInfo  = { name: booking.service_name_en || "IMAP Service", category: "Home Service" };
+    }
 
     if (payment.isConfigured()) {
       const resp = await payment.initiatePayment({
         orderId: payId, amount: totalAmount,
-        customer: { name: booking.cus_name, email: booking.cus_email, phone: booking.cus_phone, address: booking.address || "Dhaka, Bangladesh" },
-        product:  { name: booking.service_name_en || "IMAP Service", category: "Home Service" },
+        customer: customerInfo,
+        product:  productInfo,
       });
       if (resp?.GatewayPageURL) {
         await pool.query("UPDATE payments SET gateway_session_key = ? WHERE id = ?", [resp.sessionkey, payId]);
@@ -55,7 +77,18 @@ router.post("/initiate", authMiddleware, async (req, res) => {
 
     // Mock (dev mode)
     await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=?", ["MOCK-"+payId, payId]);
-    await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [booking_id]);
+    if (type === "wallet_topup") {
+      await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [totalAmount, req.user.id]);
+      const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+      await pool.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [req.user.id, "topup", totalAmount, "ওয়ালেট টপআপ", "Wallet Top-up", payment_method, u.balance]
+      );
+      cache.del(`user:wallet:${req.user.id}`);
+      cache.del(`user:profile:${req.user.id}`);
+    } else {
+      await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [booking_id]);
+    }
     cache.delPattern(new RegExp(`^payments:user:${req.user.id}:`));
     cache.delPattern(/^payments:admin:all:/);
     res.json({ mock: true, paymentId: payId, message: "মক পেমেন্ট সফল (dev mode — SSLCommerz credentials .env এ যোগ করুন)" });
@@ -76,7 +109,20 @@ router.post("/ipn", async (req, res) => {
     const [payRows] = await pool.query("SELECT * FROM payments WHERE id = ?", [tran_id]);
     if (!payRows.length || payRows[0].status === "success") return res.json({ status: "already_processed" });
     await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=?", [val_id, tran_id]);
-    await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [payRows[0].booking_id]);
+    if (payRows[0].booking_id) {
+      // Booking payment
+      await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [payRows[0].booking_id]);
+    } else {
+      // Wallet top-up — credit user balance
+      await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [payRows[0].amount, payRows[0].user_id]);
+      const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [payRows[0].user_id]);
+      await pool.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [payRows[0].user_id, "topup", payRows[0].amount, "ওয়ালেট টপআপ", "Wallet Top-up", payRows[0].method, u.balance]
+      );
+      cache.del(`user:wallet:${payRows[0].user_id}`);
+      cache.del(`user:profile:${payRows[0].user_id}`);
+    }
     await pool.query("INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
       [payRows[0].user_id, "✅", "payment", "পেমেন্ট সফল", "Payment Successful",
        `৳${parseFloat(amount).toFixed(0)} পেমেন্ট গ্রহণ করা হয়েছে।`, `Payment of ৳${parseFloat(amount).toFixed(0)} received.`]);
@@ -96,8 +142,22 @@ router.post("/success", async (req, res) => {
     try {
       await payment.validatePayment(val_id);
       await pool.query("UPDATE payments SET status='success', gateway_val_id=?, paid_at=NOW() WHERE id=? AND status!='success'", [val_id, tran_id]);
-      const [p] = await pool.query("SELECT booking_id FROM payments WHERE id=?", [tran_id]);
-      if (p.length) await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [p[0].booking_id]);
+      const [p] = await pool.query("SELECT * FROM payments WHERE id=?", [tran_id]);
+      if (p.length) {
+        if (p[0].booking_id) {
+          await pool.query("UPDATE bookings SET payment_status='paid', status='confirmed' WHERE id=?", [p[0].booking_id]);
+        } else {
+          // Wallet top-up
+          await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [p[0].amount, p[0].user_id]);
+          const [[u]] = await pool.query("SELECT balance FROM users WHERE id = ?", [p[0].user_id]);
+          await pool.query(
+            "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+            [p[0].user_id, "topup", p[0].amount, "ওয়ালেট টপআপ", "Wallet Top-up", p[0].method, u.balance]
+          );
+          cache.del(`user:wallet:${p[0].user_id}`);
+          cache.del(`user:profile:${p[0].user_id}`);
+        }
+      }
     } catch(e) { logger.error("success-redirect:", e); }
   }
   res.redirect(`${FE()}?payment=success&tran_id=${tran_id}`);

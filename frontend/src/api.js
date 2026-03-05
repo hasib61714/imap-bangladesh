@@ -350,6 +350,9 @@ export const payments = {
   /** Initiate payment for a booking */
   initiate: (booking_id, payment_method = "sslcommerz") =>
     post("/payments/initiate", { booking_id, payment_method }),
+  /** Initiate wallet top-up via payment gateway */
+  initiateTopup: (topup_amount, payment_method = "sslcommerz") =>
+    post("/payments/initiate", { type: "wallet_topup", topup_amount, payment_method }),
   /** List my payment history */
   list: (page = 1) => get(`/payments?page=${page}`),
   /** Get single payment detail */
