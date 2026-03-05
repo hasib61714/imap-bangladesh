@@ -265,6 +265,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Hind Siliguri','Noto Sans Bengali',sans-serif",color:C.text}}>
+      <style>{`
+        @keyframes pp-fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes pp-pulse-ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+        @keyframes pp-slide-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes pp-pop-in{0%{transform:scale(.82);opacity:0}70%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+      `}</style>
       <div style={{
         background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
         backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
@@ -292,7 +298,10 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         <div style={{display:"flex",alignItems:"center",gap:isMobile?5:8}}>
           {/* Available toggle — always visible */}
           <div onClick={()=>{const next=!available;setAvailable(next);showToast(next?(lang==="bn"?"উপলব্ধ":"Available"):(lang==="bn"?"ব্যস্ত মোড চালু":"Busy mode on"));providersApi.toggleAvailability(next).catch(()=>{});}}   style={{display:"flex",alignItems:"center",gap:6,background:available?C.plt:"#FEE2E2",borderRadius:20,padding:isMobile?"5px 8px":"5px 12px",cursor:"pointer",border:`1px solid ${available?C.p+"44":"#EF444444"}`}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
+            <div style={{position:"relative",width:8,height:8,display:"grid",placeItems:"center",flexShrink:0}}>
+              {available&&<div style={{position:"absolute",inset:-4,borderRadius:"50%",background:C.p,opacity:.4,animation:"pp-pulse-ring 1.6s ease-out infinite"}}/>}
+              <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
+            </div>
             <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"✓":"✗"):(available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>
           {/* Desktop-only: lang + dark + name */}
@@ -362,10 +371,10 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
 
         {tab==="dash"&&(
           <>
-            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?`🙏 শুভেচ্ছা, ${user.name}!`:`👋 Welcome, ${user.name}!`}</div>
+            <div style={{fontWeight:800,fontSize:18,marginBottom:16,animation:"pp-fadeUp .35s ease both"}}>{lang==="bn"?`🙏 শুভেচ্ছা, ${user.name}!`:`👋 Welcome, ${user.name}!`}</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:22}}>
               {statCards.map((s,i)=>(
-                <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,borderTop:`3px solid ${s.col}`,textAlign:"center"}}>
+                <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,borderTop:`3px solid ${s.col}`,textAlign:"center",animation:`pp-fadeUp .4s ease ${i*.08}s both`}}>
                   <div style={{fontSize:24,marginBottom:6}}>{s.icon}</div>
                   <div style={{fontSize:20,fontWeight:800,color:s.col}}>{s.val}</div>
                   <div style={{fontSize:11,color:C.muted}}>{lang==="bn"?s.lbn:s.len}</div>
@@ -376,7 +385,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               <div style={{background:C.card,borderRadius:16,padding:18,border:`2px solid ${C.p}`,marginBottom:16}}>
                 <div style={{fontWeight:700,fontSize:14,color:C.p,marginBottom:12}}>🔔 {lang==="bn"?"নতুন অনুরোধ আসছে":"New incoming requests"}</div>
                 {jobs.filter(j=>j.status==="incoming").map(j=>(
-                  <div key={j.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.bdr}`}}>
+                  <div key={j.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.bdr}`,animation:"pp-slide-in .3s ease both"}}>
                     <div>
                       {j.urgent&&<span style={{background:"rgba(239,68,68,.12)",color:"#EF4444",borderRadius:8,padding:"2px 8px",fontSize:10,fontWeight:700,marginBottom:4,display:"inline-block"}}>🚨 {lang==="bn"?"জরুরি":"Urgent"}</span>}
                       <div style={{fontWeight:600,fontSize:13}}>{j.service}</div>
@@ -397,7 +406,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                 {lbn:"এই মাসে",len:"This Month",val:"৳"+earnings.thisMonth.toLocaleString(),col:"#F59E0B"},
                 {lbn:"সর্বমোট",len:"All Time",val:"৳"+earnings.total.toLocaleString(),col:"#8B5CF6"},
               ].map((e,i)=>(
-                <div key={i} style={{textAlign:"center",padding:14,borderRight:!isMobile&&i<2?`1px solid ${C.bdr}`:"none",borderBottom:isMobile&&i<2?`1px solid ${C.bdr}`:"none"}}>
+                <div key={i} style={{textAlign:"center",padding:14,borderRight:!isMobile&&i<2?`1px solid ${C.bdr}`:"none",borderBottom:isMobile&&i<2?`1px solid ${C.bdr}`:"none",animation:`pp-fadeUp .4s ease ${i*.1}s both`}}>
                   <div style={{fontSize:18,fontWeight:800,color:e.col}}>{e.val}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:3}}>{lang==="bn"?e.lbn:e.len}</div>
                 </div>
