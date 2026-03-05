@@ -21,9 +21,11 @@ function getSocket(token) {
     reconnectionAttempts: 10,
   });
 
-  _socket.on("connect",    () => console.log("🔌 Socket connected:", _socket.id));
-  _socket.on("disconnect", () => console.log("🔌 Socket disconnected"));
-  _socket.on("connect_error", e => console.warn("Socket error:", e.message));
+  if (import.meta.env.DEV) {
+    _socket.on("connect",    () => console.log("🔌 Socket connected:", _socket.id));
+    _socket.on("disconnect", () => console.log("🔌 Socket disconnected"));
+    _socket.on("connect_error", e => console.warn("Socket error:", e.message));
+  }
 
   return _socket;
 }
