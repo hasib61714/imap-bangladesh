@@ -12,6 +12,9 @@ router.post("/", authMiddleware, async (req, res) => {
   if (!type || !validTypes.includes(type)) {
     return res.status(400).json({ error: "Valid type required: " + validTypes.join(", ") });
   }
+  if (description && description.length > 1000) {
+    return res.status(400).json({ error: "description max 1000 chars" });
+  }
 
   try {
     const [result] = await pool.query(

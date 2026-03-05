@@ -49,6 +49,11 @@ router.post("/", authMiddleware, kycRules, async (req, res) => {
     const selfie_image= req.body.img_selfie|| req.body.selfie_image|| null;
 
     if (!front_image) return res.status(400).json({ error: "Front image is required" });
+    // Limit base64 image sizes (~5 MB decoded ≈ 6.8 MB base64 ≈ 7 168 000 chars)
+    const MAX_IMG = 7_168_000;
+    if (front_image.length > MAX_IMG) return res.status(400).json({ error: "Front image too large (max 5 MB)" });
+    if (back_image   && back_image.length   > MAX_IMG) return res.status(400).json({ error: "Back image too large (max 5 MB)" });
+    if (selfie_image && selfie_image.length > MAX_IMG) return res.status(400).json({ error: "Selfie image too large (max 5 MB)" });
 
     // Remove previous for same type
     await pool.query("DELETE FROM kyc_docs WHERE user_id = ? AND doc_type = ?", [req.user.id, doc_type]);

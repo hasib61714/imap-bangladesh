@@ -101,12 +101,19 @@ router.get("/score", authMiddleware, async (req, res) => {
 // ── POST /api/loans/apply ─────────────────────────────────
 router.post("/apply", authMiddleware, async (req, res) => {
   try {
-    const { full_name, phone, purpose, amount, tenure_months = 12, interest_rate = 9 } = req.body;
+    const { full_name, phone, purpose, amount, tenure_months = 12 } = req.body;
 
-    if (!full_name?.trim()) return res.status(400).json({ error: "পূর্ণ নাম প্রয়োজন।" });
-    if (!phone?.trim())     return res.status(400).json({ error: "ফোন নম্বর প্রয়োজন।" });
+    if (!full_name?.trim() || full_name.length > 120) return res.status(400).json({ error: "পূর্ণ নাম প্রয়োজন (সর্বোচ্চ ১২০ অক্ষর)।" });
+    if (!phone?.trim() || phone.length > 20)     return res.status(400).json({ error: "ফোন নম্বর প্রয়োজন।" });
     if (!amount || parseFloat(amount) <= 0)
       return res.status(400).json({ error: "সঠিক পরিমাণ দিন।" });
+    if (parseFloat(amount) > 100000)
+      return res.status(400).json({ error: "সর্বোচ্চ লোন সীমা ১,০০,০০০ টাকা।" });
+    if (purpose && purpose.length > 500)
+      return res.status(400).json({ error: "purpose max 500 chars" });
+    const ALLOWED_TENURES = [3, 6, 12, 24];
+    const safeTenure = ALLOWED_TENURES.includes(parseInt(tenure_months)) ? parseInt(tenure_months) : 12;
+    const INTEREST_RATE = 9.00; // fixed by platform — never accept from user
 
     // Prevent duplicate active loan
     const [[{ cnt }]] = await pool.query(
@@ -133,7 +140,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [id, req.user.id, prov?.id || null,
        full_name.trim(), phone.trim(), purpose || null,
-       parseFloat(amount), parseInt(tenure_months), parseFloat(interest_rate),
+       parseFloat(amount), safeTenure, INTEREST_RATE,
        score, refNo]
     );
 
