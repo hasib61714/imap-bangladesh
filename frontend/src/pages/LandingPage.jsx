@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════
    IMAP Bangladesh — LandingPage
@@ -78,6 +78,55 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   const [faqOpen,       setFaqOpen]       = useState(null);
   const [annDismissed,  setAnnDismissed]  = useState(false);
   const chatEndRef = useRef(null);
+
+  /* ─────────── SCROLL REVEAL ─────────── */
+  const [revealed, setRevealed] = useState({});
+  const revealRef = useCallback(node => {
+    if (!node) return;
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          setRevealed(r => ({ ...r, [e.target.dataset.rid]: true }));
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    obs.observe(node);
+  }, []);
+
+  /* ─────────── ANIMATED COUNTER ─────────── */
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [counters, setCounters] = useState({ svc: 0, cust: 0, prov: 0, rat: 0 });
+  const statsRef = useCallback(node => {
+    if (!node) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setStatsVisible(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.4 });
+    obs.observe(node);
+  }, []);
+
+  useEffect(() => {
+    if (!statsVisible) return;
+    const targets = { svc: 500, cust: 10000, prov: 1200, rat: 4.8 };
+    const dur = 1800, steps = 60, interval = dur / steps;
+    let step = 0;
+    const t = setInterval(() => {
+      step++;
+      const p = step / steps;
+      const ease = 1 - Math.pow(1 - p, 3);
+      setCounters({
+        svc:  Math.round(targets.svc  * ease),
+        cust: Math.round(targets.cust * ease),
+        prov: Math.round(targets.prov * ease),
+        rat:  Math.round(targets.rat  * ease * 10) / 10,
+      });
+      if (step >= steps) clearInterval(t);
+    }, interval);
+    return () => clearInterval(t);
+  }, [statsVisible]);
 
   /* ─────────── COLOUR TOKENS ─────────── */
   /*  Light: BD flag green + red on white; Dark: brighter shades on near-black */
@@ -201,6 +250,71 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         @keyframes lp-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes lp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
         @keyframes lp-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes lp-floatA{0%,100%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(6px,-10px) rotate(8deg)}66%{transform:translate(-4px,6px) rotate(-6deg)}}
+        @keyframes lp-floatB{0%,100%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(-8px,8px) rotate(-10deg)}66%{transform:translate(5px,-5px) rotate(7deg)}}
+        @keyframes lp-floatC{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(10px,-8px) rotate(12deg)}}
+        @keyframes lp-floatD{0%,100%{transform:translate(0,0)}25%{transform:translate(-6px,-12px)}75%{transform:translate(4px,8px)}}
+        @keyframes lp-revealUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes lp-revealLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes lp-revealRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes lp-scaleIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+        @keyframes lp-pulse-sos{0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,.5)}60%{box-shadow:0 0 0 12px rgba(232,25,44,0)}}
+        @keyframes lp-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+        @keyframes lp-wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+        @keyframes lp-wave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.6)}}
+        @keyframes lp-badge-pop{0%{transform:scale(0) rotate(-15deg)}70%{transform:scale(1.15) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
+        @keyframes lp-count-pop{0%{transform:scale(1)}30%{transform:scale(1.18)}100%{transform:scale(1)}}
+        @keyframes lp-orbit{from{transform:rotate(0deg) translateX(90px) rotate(0deg)}to{transform:rotate(360deg) translateX(90px) rotate(-360deg)}}
+        @keyframes lp-orbit2{from{transform:rotate(180deg) translateX(140px) rotate(-180deg)}to{transform:rotate(540deg) translateX(140px) rotate(-540deg)}}
+        @keyframes lp-ripple{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.4);opacity:0}}
+        @keyframes lp-slide-ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+        /* ── Scroll reveal classes ── */
+        .lp-reveal{opacity:0;transform:translateY(40px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
+        .lp-reveal.vis{opacity:1;transform:translateY(0);}
+        .lp-reveal-l{opacity:0;transform:translateX(-40px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
+        .lp-reveal-l.vis{opacity:1;transform:translateX(0);}
+        .lp-reveal-r{opacity:0;transform:translateX(40px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
+        .lp-reveal-r.vis{opacity:1;transform:translateX(0);}
+        .lp-reveal-scale{opacity:0;transform:scale(.85);transition:opacity .55s cubic-bezier(.16,1,.3,1),transform .55s cubic-bezier(.16,1,.3,1);}
+        .lp-reveal-scale.vis{opacity:1;transform:scale(1);}
+
+        /* ── Service icon wiggle on hover ── */
+        .lp-svc-card:hover .svc-icon{animation:lp-wiggle .45s ease;}
+
+        /* ── Shimmer skeleton for loading state ── */
+        .lp-shimmer{background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.18) 50%,rgba(255,255,255,0) 100%);background-size:400px 100%;animation:lp-shimmer 1.8s infinite linear;}
+
+        /* ── SOS pulse ── */
+        .lp-sos-pulse{animation:lp-pulse-sos 2s ease-in-out infinite;}
+
+        /* ── Step hover lift ── */
+        .lp-step{transition:transform .22s,box-shadow .22s;}
+        .lp-step:hover{transform:translateY(-6px);box-shadow:0 18px 44px rgba(0,0,0,.15)!important;}
+
+        /* ── Trust card reveal stagger (CSS only) ── */
+        .trust-card-wrap:nth-child(2){transition-delay:.1s!important}
+        .trust-card-wrap:nth-child(3){transition-delay:.2s!important}
+        .trust-card-wrap:nth-child(4){transition-delay:.3s!important}
+        .trust-card-wrap:nth-child(5){transition-delay:.4s!important}
+        .trust-card-wrap:nth-child(6){transition-delay:.5s!important}
+
+        /* ── Testimonial stagger ── */
+        .tm-card-wrap:nth-child(2){transition-delay:.15s!important}
+        .tm-card-wrap:nth-child(3){transition-delay:.3s!important}
+
+        /* ── Service card stagger ── */
+        .svc-card-wrap:nth-child(2){transition-delay:.04s!important}
+        .svc-card-wrap:nth-child(3){transition-delay:.08s!important}
+        .svc-card-wrap:nth-child(4){transition-delay:.12s!important}
+        .svc-card-wrap:nth-child(5){transition-delay:.16s!important}
+        .svc-card-wrap:nth-child(6){transition-delay:.20s!important}
+        .svc-card-wrap:nth-child(7){transition-delay:.24s!important}
+        .svc-card-wrap:nth-child(8){transition-delay:.28s!important}
+        .svc-card-wrap:nth-child(9){transition-delay:.32s!important}
+        .svc-card-wrap:nth-child(10){transition-delay:.36s!important}
+        .svc-card-wrap:nth-child(11){transition-delay:.40s!important}
+        .svc-card-wrap:nth-child(12){transition-delay:.44s!important}
 
         /* ── Buttons ── */
         .lp-btn{border:none;cursor:pointer;font-family:inherit;transition:all .2s cubic-bezier(.16,1,.3,1);font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
@@ -322,6 +436,26 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         {/* Dot grid overlay */}
         <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px)", backgroundSize:"28px 28px", pointerEvents:"none" }}/>
 
+        {/* ── Floating service icon decorations ── */}
+        {[
+          { icon:"🏠", top:"12%",  left:"4%",   size:40, anim:"lp-floatA", dur:"6s",  delay:"0s",   opacity:.55 },
+          { icon:"🧹", top:"68%",  left:"3%",   size:34, anim:"lp-floatB", dur:"7.5s",delay:".8s",  opacity:.45 },
+          { icon:"🔧", top:"22%",  right:"4%",  size:38, anim:"lp-floatC", dur:"5.5s",delay:".3s",  opacity:.5  },
+          { icon:"👩‍⚕️",top:"60%",  right:"5%",  size:36, anim:"lp-floatD", dur:"8s",  delay:"1s",   opacity:.45 },
+          { icon:"⚡", top:"40%",  left:"8%",   size:30, anim:"lp-floatB", dur:"6.5s",delay:"1.5s", opacity:.35 },
+          { icon:"🚚", top:"78%",  right:"10%", size:32, anim:"lp-floatA", dur:"7s",  delay:"2s",   opacity:.4  },
+          { icon:"📚", top:"8%",   right:"20%", size:28, anim:"lp-floatC", dur:"9s",  delay:".5s",  opacity:.3  },
+          { icon:"🛡️", top:"85%",  left:"18%",  size:28, anim:"lp-floatD", dur:"8.5s",delay:"1.2s", opacity:.3  },
+        ].map((f, i) => (
+          <div key={i} style={{
+            position:"absolute", top:f.top, left:f.left, right:f.right,
+            fontSize:f.size, opacity:f.opacity,
+            animation:`${f.anim} ${f.dur} ease-in-out ${f.delay} infinite`,
+            pointerEvents:"none", userSelect:"none", zIndex:0,
+            filter:"drop-shadow(0 4px 8px rgba(0,0,0,.3))",
+          }}>{f.icon}</div>
+        ))}
+
         <div style={{ maxWidth:820, margin:"0 auto", textAlign:"center", position:"relative", zIndex:1 }}>
           {/* Country badge */}
           <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.2)", borderRadius:30, padding:"6px 18px", fontSize:13, color:"rgba(255,255,255,.85)", marginBottom:22, fontWeight:600 }}>
@@ -349,18 +483,31 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         </div>
       </header>
 
+      {/* ════════════ WAVE DIVIDER ════════════ */}
+      <div style={{ lineHeight:0, background: dark ? "#0F1A16" : "#006A4E", marginTop:-2 }}>
+        <svg viewBox="0 0 1440 48" preserveAspectRatio="none" style={{ display:"block", width:"100%", height:48 }}>
+          <path d="M0,32 C240,0 480,48 720,24 C960,0 1200,48 1440,24 L1440,0 L0,0 Z"
+            fill={dark ? "#040A06" : "#004D38"} />
+        </svg>
+      </div>
+
       {/* ════════════ STATS STRIP ════════════ */}
-      <section aria-label="Platform statistics" style={{ background: dark ? "#0F1A16" : "#006A4E" }}>
+      <section aria-label="Platform statistics" ref={statsRef} style={{ background: dark ? "#0F1A16" : "#006A4E" }}>
         <div style={{ maxWidth:1000, margin:"0 auto" }}>
           <div className="lp-stats-flex" style={{ display:"flex" }}>
             {[
-              ["500+", "সেবা", "Services"],
-              ["১০,০০০+", "গ্রাহক", "Customers"],
-              ["১,২০০+", "প্রোভাইডার", "Providers"],
-              ["৪.৮★", "রেটিং", "Rating"],
-            ].map(([v, bn, en]) => (
-              <div key={v} className="lp-stat">
-                <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:30, fontWeight:800, color:"#FFFFFF", lineHeight:1 }}>{v}</div>
+              { val: counters.svc,  suffix:"+",  bn:"সেবা",        en:"Services"  },
+              { val: counters.cust, suffix:"+",  bn:"গ্রাহক",      en:"Customers" },
+              { val: counters.prov, suffix:"+",  bn:"প্রোভাইডার", en:"Providers" },
+              { val: counters.rat,  suffix:"★",  bn:"রেটিং",      en:"Rating"    },
+            ].map(({ val, suffix, bn, en }, i) => (
+              <div key={i} className="lp-stat">
+                <div style={{
+                  fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:30, fontWeight:800, color:"#FFFFFF", lineHeight:1,
+                  animation: statsVisible ? `lp-count-pop .4s ease ${i * .15}s both` : "none",
+                }}>
+                  {val >= 1000 ? (val / 1000).toFixed(0) + "K" : val}{suffix}
+                </div>
                 <div style={{ fontSize:13, color:"rgba(255,255,255,.7)", marginTop:5 }}>{lang === "bn" ? bn : en}</div>
               </div>
             ))}
@@ -371,30 +518,35 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ SERVICES ════════════ */}
       <section aria-labelledby="svc-heading" style={{ padding:"84px 24px", background:bg2 }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="svc-head" className={`lp-reveal${revealed["svc-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:G }}>{T.svcLabel}</span>
             <h2 id="svc-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color:txt, lineHeight:1.25, marginBottom:12 }}>{T.svcTitle}</h2>
             <p style={{ fontSize:15, color:sub, lineHeight:1.65 }}>{T.svcSub}</p>
           </div>
 
           <div className="lp-svc-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
-            {CATS.map(c => (
-              <article key={c.nameBn} className="lp-svc-card"
-                onClick={onGetStarted}
-                style={{ borderTop:`3px solid ${c.col}` }}
-                itemScope itemType="https://schema.org/Service">
-                <div style={{ fontSize:38, marginBottom:12 }}>{c.icon}</div>
-                <div itemProp="name" style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8, lineHeight:1.3 }}>
-                  {lang === "en" ? c.nameEn : c.nameBn}
-                </div>
-                <div style={{ fontSize:11, fontWeight:700, color:c.col, background:`${c.col}18`, borderRadius:20, padding:"3px 10px", display:"inline-block" }}>
-                  {lang === "en" ? c.priceEn : c.priceBn}
-                </div>
-              </article>
+            {CATS.map((c, idx) => (
+              <div key={c.nameBn} className={`svc-card-wrap lp-reveal-scale${revealed[`svc-${idx}`]?" vis":""}`}
+                ref={revealRef} data-rid={`svc-${idx}`}>
+                <article className="lp-svc-card"
+                  onClick={onGetStarted}
+                  style={{ borderTop:`3px solid ${c.col}` }}
+                  itemScope itemType="https://schema.org/Service">
+                  <div className="svc-icon" style={{ fontSize:38, marginBottom:12 }}>{c.icon}</div>
+                  <div itemProp="name" style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8, lineHeight:1.3 }}>
+                    {lang === "en" ? c.nameEn : c.nameBn}
+                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color:c.col, background:`${c.col}18`, borderRadius:20, padding:"3px 10px", display:"inline-block" }}>
+                    {lang === "en" ? c.priceEn : c.priceBn}
+                  </div>
+                </article>
+              </div>
             ))}
           </div>
 
-          <div style={{ textAlign:"center", marginTop:36 }}>
+          <div ref={revealRef} data-rid="svc-btn" className={`lp-reveal${revealed["svc-btn"]?" vis":""}`}
+            style={{ textAlign:"center", marginTop:36 }}>
             <button className="lp-btn lp-btn-g" onClick={onGetStarted}>{T.viewAll}</button>
           </div>
         </div>
@@ -403,18 +555,24 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ HOW IT WORKS ════════════ */}
       <section aria-labelledby="how-heading" style={{ padding:"84px 24px", background:bg }}>
         <div style={{ maxWidth:980, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="how-head" className={`lp-reveal${revealed["how-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:G }}>{T.howLabel}</span>
             <h2 id="how-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color:txt }}>{T.howTitle}</h2>
           </div>
           <div className="lp-4col" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:22 }}>
             {HOW_STEPS.map((h, i) => (
-              <div key={i} className="lp-step">
-                {/* Step number circle */}
-                <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${G}55` }}>{i + 1}</div>
-                <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}>{h.icon}</div>
-                <div style={{ fontWeight:800, fontSize:15, marginBottom:8, color:txt }}>{h.t}</div>
-                <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{h.d}</div>
+              <div key={i}
+                ref={revealRef} data-rid={`how-${i}`}
+                className={`lp-reveal${revealed[`how-${i}`]?" vis":""}`}
+                style={{ transitionDelay:`${i * .12}s` }}>
+                <div className="lp-step">
+                  {/* Step number circle */}
+                  <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${G}55` }}>{i + 1}</div>
+                  <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}>{h.icon}</div>
+                  <div style={{ fontWeight:800, fontSize:15, marginBottom:8, color:txt }}>{h.t}</div>
+                  <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{h.d}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -424,16 +582,22 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ WHY CHOOSE US ════════════ */}
       <section aria-labelledby="trust-heading" style={{ padding:"84px 24px", background:bg2 }}>
         <div style={{ maxWidth:1100, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="trust-head" className={`lp-reveal${revealed["trust-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:G }}>{T.trustLabel}</span>
             <h2 id="trust-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color:txt }}>{T.trustTitle}</h2>
           </div>
           <div className="lp-3col" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20 }}>
             {TRUST_ITEMS.map((t, i) => (
-              <div key={i} className="lp-card" style={{ padding:"26px 24px" }}>
-                <div style={{ fontSize:36, marginBottom:14 }}>{t.icon}</div>
-                <div style={{ fontWeight:800, fontSize:16, marginBottom:8, color:txt }}>{t.t}</div>
-                <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{t.d}</div>
+              <div key={i}
+                ref={revealRef} data-rid={`trust-${i}`}
+                className={`trust-card-wrap lp-reveal-scale${revealed[`trust-${i}`]?" vis":""}`}
+                style={{ transitionDelay:`${i * .1}s` }}>
+                <div className="lp-card" style={{ padding:"26px 24px" }}>
+                  <div style={{ fontSize:36, marginBottom:14 }}>{t.icon}</div>
+                  <div style={{ fontWeight:800, fontSize:16, marginBottom:8, color:txt }}>{t.t}</div>
+                  <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{t.d}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -443,44 +607,55 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ SAFETY ════════════ */}
       <section aria-labelledby="safety-heading" style={{ padding:"84px 24px", background: dark ? "#0C0F0A" : "#FFF8F9" }}>
         <div style={{ maxWidth:980, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="safe-head" className={`lp-reveal${revealed["safe-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:R }}>{T.safeLabel}</span>
             <h2 id="safety-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color: dark ? "#FFB3BA" : "#9B0000" }}>{T.safeTitle}</h2>
           </div>
 
           <div className="lp-2col-safe" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
             {/* SOS */}
-            <div style={{ background:dark?"#1A0A0C":"#FFFFFF", border:`1.5px solid ${R}33`, borderLeft:`4px solid ${R}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${R}12` }}>
-              <div style={{ fontSize:42, marginBottom:14 }}>🆘</div>
-              <h3 style={{ fontWeight:800, fontSize:18, color:R, marginBottom:10 }}>{T.sos_title}</h3>
-              <p style={{ fontSize:14, color:dark?"#FFBABF":"#7A0010", lineHeight:1.75 }}>{T.sos_desc}</p>
-              <div style={{ marginTop:16, padding:"10px 16px", background:`${R}12`, borderRadius:8, fontSize:13, color:R, fontWeight:700 }}>
-                🚨 {lang === "en" ? "Emergency: 999 · 199 · 16430" : "জরুরি: ৯৯৯ · ১৯৯ · ১৬৪৩০"}
+            <div ref={revealRef} data-rid="safe-sos" className={`lp-reveal-l${revealed["safe-sos"]?" vis":""}`}>
+              <div style={{ background:dark?"#1A0A0C":"#FFFFFF", border:`1.5px solid ${R}33`, borderLeft:`4px solid ${R}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${R}12` }}>
+                <div className="lp-sos-pulse" style={{ fontSize:42, marginBottom:14, display:"inline-block", borderRadius:12 }}>🆘</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:R, marginBottom:10 }}>{T.sos_title}</h3>
+                <p style={{ fontSize:14, color:dark?"#FFBABF":"#7A0010", lineHeight:1.75 }}>{T.sos_desc}</p>
+                <div style={{ marginTop:16, padding:"10px 16px", background:`${R}12`, borderRadius:8, fontSize:13, color:R, fontWeight:700 }}>
+                  🚨 {lang === "en" ? "Emergency: 999 · 199 · 16430" : "জরুরি: ৯৯৯ · ১৯৯ · ১৬৪৩০"}
+                </div>
               </div>
             </div>
 
             {/* KYC */}
-            <div style={{ background:dark?"#0A1A12":"#FFFFFF", border:`1.5px solid ${G}33`, borderLeft:`4px solid ${G}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${G}12` }}>
-              <div style={{ fontSize:42, marginBottom:14 }}>🪪</div>
-              <h3 style={{ fontWeight:800, fontSize:18, color:G, marginBottom:10 }}>{T.kyc_title}</h3>
-              <p style={{ fontSize:14, color:dark?sub:"#0A3D20", lineHeight:1.75 }}>{T.kyc_desc}</p>
-              <div style={{ marginTop:16, padding:"10px 16px", background:`${G}12`, borderRadius:8, fontSize:13, color:G, fontWeight:700 }}>
-                ✅ {lang === "en" ? "100% Verified & Trusted" : "১০০% যাচাইকৃত ও বিশ্বস্ত"}
+            <div ref={revealRef} data-rid="safe-kyc" className={`lp-reveal-r${revealed["safe-kyc"]?" vis":""}`}>
+              <div style={{ background:dark?"#0A1A12":"#FFFFFF", border:`1.5px solid ${G}33`, borderLeft:`4px solid ${G}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${G}12` }}>
+                <div style={{ fontSize:42, marginBottom:14 }}>🪪</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:G, marginBottom:10 }}>{T.kyc_title}</h3>
+                <p style={{ fontSize:14, color:dark?sub:"#0A3D20", lineHeight:1.75 }}>{T.kyc_desc}</p>
+                <div style={{ marginTop:16, padding:"10px 16px", background:`${G}12`, borderRadius:8, fontSize:13, color:G, fontWeight:700 }}>
+                  ✅ {lang === "en" ? "100% Verified & Trusted" : "১০০% যাচাইকৃত ও বিশ্বস্ত"}
+                </div>
               </div>
             </div>
 
             {/* Legal */}
-            <div style={{ background:dark?"#0C0A1C":"#FFFFFF", border:"1.5px solid #6366F144", borderLeft:"4px solid #6366F1", borderRadius:14, padding:28, boxShadow:"0 4px 20px #6366F112" }}>
-              <div style={{ fontSize:42, marginBottom:14 }}>⚖️</div>
-              <h3 style={{ fontWeight:800, fontSize:18, color:"#4338CA", marginBottom:10 }}>{T.legal_title}</h3>
-              <p style={{ fontSize:14, color:dark?"#A5B4FC":"#312E81", lineHeight:1.75 }}>{T.legal_desc}</p>
+            <div ref={revealRef} data-rid="safe-legal" className={`lp-reveal-l${revealed["safe-legal"]?" vis":""}`}
+              style={{ transitionDelay:".1s" }}>
+              <div style={{ background:dark?"#0C0A1C":"#FFFFFF", border:"1.5px solid #6366F144", borderLeft:"4px solid #6366F1", borderRadius:14, padding:28, boxShadow:"0 4px 20px #6366F112" }}>
+                <div style={{ fontSize:42, marginBottom:14 }}>⚖️</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:"#4338CA", marginBottom:10 }}>{T.legal_title}</h3>
+                <p style={{ fontSize:14, color:dark?"#A5B4FC":"#312E81", lineHeight:1.75 }}>{T.legal_desc}</p>
+              </div>
             </div>
 
             {/* Privacy */}
-            <div style={{ background:dark?"#0A0C1E":"#FFFFFF", border:"1.5px solid #3B82F644", borderLeft:"4px solid #3B82F6", borderRadius:14, padding:28, boxShadow:"0 4px 20px #3B82F612" }}>
-              <div style={{ fontSize:42, marginBottom:14 }}>🔐</div>
-              <h3 style={{ fontWeight:800, fontSize:18, color:"#2563EB", marginBottom:10 }}>{T.privacy_title}</h3>
-              <p style={{ fontSize:14, color:dark?"#93C5FD":"#1E3A8A", lineHeight:1.75 }}>{T.privacy_desc}</p>
+            <div ref={revealRef} data-rid="safe-priv" className={`lp-reveal-r${revealed["safe-priv"]?" vis":""}`}
+              style={{ transitionDelay:".1s" }}>
+              <div style={{ background:dark?"#0A0C1E":"#FFFFFF", border:"1.5px solid #3B82F644", borderLeft:"4px solid #3B82F6", borderRadius:14, padding:28, boxShadow:"0 4px 20px #3B82F612" }}>
+                <div style={{ fontSize:42, marginBottom:14 }}>🔐</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:"#2563EB", marginBottom:10 }}>{T.privacy_title}</h3>
+                <p style={{ fontSize:14, color:dark?"#93C5FD":"#1E3A8A", lineHeight:1.75 }}>{T.privacy_desc}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -489,39 +664,46 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ TESTIMONIALS ════════════ */}
       <section aria-labelledby="tm-heading" style={{ padding:"84px 24px", background:bg }}>
         <div style={{ maxWidth:1100, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="tm-head" className={`lp-reveal${revealed["tm-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:G }}>{T.tmLabel}</span>
             <h2 id="tm-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color:txt }}>{T.tmTitle}</h2>
           </div>
 
           <div className="lp-3col" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20 }}>
             {tmList.map((tm, i) => (
-              <article key={i} className="lp-tm-card" itemScope itemType="https://schema.org/Review">
-                {/* Stars */}
-                <div style={{ display:"flex", gap:3, marginBottom:14 }}>
-                  {[1,2,3,4,5].map(s => <span key={s} style={{ color:"#F59E0B", fontSize:17 }}>★</span>)}
-                </div>
-                <p itemProp="reviewBody" style={{ fontSize:14, color:sub, lineHeight:1.8, marginBottom:20, fontStyle:"italic" }}>"{tm.text}"</p>
-                <div style={{ display:"flex", alignItems:"center", gap:12, borderTop:`1px solid ${cardBdr}`, paddingTop:16 }}>
-                  <div style={{ width:42, height:42, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#FFFFFF", fontWeight:800, fontSize:14, flexShrink:0 }}>{tm.initials}</div>
-                  <div>
-                    <div itemProp="author" style={{ fontWeight:700, fontSize:14, color:txt }}>{tm.name}</div>
-                    <div style={{ fontSize:12, color:muted }}>{tm.role}</div>
+              <div key={i}
+                ref={revealRef} data-rid={`tm-${i}`}
+                className={`tm-card-wrap lp-reveal${revealed[`tm-${i}`]?" vis":""}`}
+                style={{ transitionDelay:`${i * .15}s` }}>
+                <article className="lp-tm-card" itemScope itemType="https://schema.org/Review">
+                  {/* Stars */}
+                  <div style={{ display:"flex", gap:3, marginBottom:14 }}>
+                    {[1,2,3,4,5].map(s => <span key={s} style={{ color:"#F59E0B", fontSize:17 }}>★</span>)}
                   </div>
-                </div>
-              </article>
+                  <p itemProp="reviewBody" style={{ fontSize:14, color:sub, lineHeight:1.8, marginBottom:20, fontStyle:"italic" }}>"{tm.text}"</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, borderTop:`1px solid ${cardBdr}`, paddingTop:16 }}>
+                    <div style={{ width:42, height:42, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#FFFFFF", fontWeight:800, fontSize:14, flexShrink:0 }}>{tm.initials}</div>
+                    <div>
+                      <div itemProp="author" style={{ fontWeight:700, fontSize:14, color:txt }}>{tm.name}</div>
+                      <div style={{ fontSize:12, color:muted }}>{tm.role}</div>
+                    </div>
+                  </div>
+                </article>
+              </div>
             ))}
           </div>
 
-          {/* Summary stats */}
-          <div style={{ display:"flex", justifyContent:"center", gap:56, marginTop:52, flexWrap:"wrap" }}>
+          {/* Animated summary stats */}
+          <div ref={revealRef} data-rid="tm-stats" className={`lp-reveal${revealed["tm-stats"]?" vis":""}`}
+            style={{ display:"flex", justifyContent:"center", gap:56, marginTop:52, flexWrap:"wrap" }}>
             {[
               ["১০,০০০+", "10,000+", "সন্তুষ্ট গ্রাহক", "Satisfied Customers"],
               ["৪.৯/৫", "4.9/5", "গড় রেটিং", "Average Rating"],
               ["৯৮%", "98%", "সন্তুষ্টির হার", "Satisfaction Rate"],
               ["৬৪", "64", "জেলায় কভারেজ", "Districts Covered"],
-            ].map(([bn, en, lbn, len]) => (
-              <div key={bn} style={{ textAlign:"center" }}>
+            ].map(([bn, en, lbn, len], i) => (
+              <div key={bn} style={{ textAlign:"center", animation: revealed["tm-stats"] ? `lp-scaleIn .5s ease ${i*.1}s both` : "none" }}>
                 <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:34, fontWeight:800, color:G, lineHeight:1 }}>{lang === "en" ? en : bn}</div>
                 <div style={{ fontSize:13, color:sub, marginTop:6 }}>{lang === "en" ? len : lbn}</div>
               </div>
@@ -530,10 +712,35 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         </div>
       </section>
 
+      {/* ════════════ LIVE ACTIVITY TICKER ════════════ */}
+      <div style={{ background: dark ? "#0F1A16" : "#006A4E", padding:"12px 0", overflow:"hidden", position:"relative" }}>
+        <div style={{ display:"flex", width:"max-content", animation:"lp-slide-ticker 28s linear infinite" }}>
+          {[...Array(2)].map((_, gi) => (
+            <div key={gi} style={{ display:"flex", gap:0 }}>
+              {[
+                lang==="en" ? "🏠 Home Maintenance booked in Dhaka"   : "🏠 ঢাকায় গৃহ রক্ষণাবেক্ষণ বুক হয়েছে",
+                lang==="en" ? "🧹 Cleaning service confirmed"          : "🧹 পরিষ্কার সেবা নিশ্চিত হয়েছে",
+                lang==="en" ? "👩‍⚕️ Healthcare provider verified"      : "👩‍⚕️ স্বাস্থ্যসেবা Provider যাচাইয়ের হয়েছে",
+                lang==="en" ? "⚡ Electrical repair completed"         : "⚡ বৈদ্যুতিক মেরামত সম্পন্ন হয়েছে",
+                lang==="en" ? "🧓 Elderly care arranged in Chittagong" : "🧓 চট্টগ্রামে বয়স্ক সেবা ব্যবস্থা হয়েছে",
+                lang==="en" ? "📚 Tutor booked in Sylhet"             : "📚 সিলেটে গৃহশিক্ষক বুক হয়েছে",
+                lang==="en" ? "🚚 Moving service in progress"          : "🚚 স্থানান্তর সেবা চলছে",
+                lang==="en" ? "⭐ New 5-star review received"          : "⭐ নতুন ৫-তারা রিভিউ পাওয়া গেছে",
+              ].map((item, i) => (
+                <span key={i} style={{ whiteSpace:"nowrap", fontSize:13, color:"rgba(255,255,255,.88)", fontWeight:600, padding:"0 28px", borderRight:"1px solid rgba(255,255,255,.15)" }}>
+                  {item}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ════════════ FAQ ════════════ */}
       <section aria-labelledby="faq-heading" style={{ padding:"84px 24px", background:bg2 }}>
         <div style={{ maxWidth:760, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:52 }}>
+          <div ref={revealRef} data-rid="faq-head" className={`lp-reveal${revealed["faq-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:52 }}>
             <span className="sec-label" style={{ color:G }}>{T.faqLabel}</span>
             <h2 id="faq-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(22px,3.5vw,32px)", fontWeight:800, color:txt }}>{T.faqTitle}</h2>
           </div>
@@ -556,7 +763,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ CONTACT ════════════ */}
       <section aria-labelledby="contact-heading" style={{ padding:"64px 24px", background:bg }}>
         <div style={{ maxWidth:800, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:40 }}>
+          <div ref={revealRef} data-rid="contact-head" className={`lp-reveal${revealed["contact-head"]?" vis":""}`}
+            style={{ textAlign:"center", marginBottom:40 }}>
             <span className="sec-label" style={{ color:G }}>{lang === "en" ? "CONTACT US" : "যোগাযোগ করুন"}</span>
             <h2 id="contact-heading" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(20px,3vw,28px)", fontWeight:800, color:txt }}>
               {lang === "en" ? "We're Available 24/7" : "আমরা ২৪/৭ সক্রিয়"}
@@ -602,7 +810,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         borderTop:`4px solid ${R}`,
         borderBottom:`4px solid ${R}`,
       }}>
-        <div style={{ maxWidth:720, margin:"0 auto", textAlign:"center" }}>
+        <div ref={revealRef} data-rid="cta-content" className={`lp-reveal${revealed["cta-content"]?" vis":""}`}
+          style={{ maxWidth:720, margin:"0 auto", textAlign:"center" }}>
           <div style={{ fontSize:12, color:"rgba(255,255,255,.65)", letterSpacing:2.5, textTransform:"uppercase", marginBottom:14, fontWeight:700 }}>🇧🇩 {T.ctaLabel}</div>
           <h2 style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(24px,4vw,42px)", fontWeight:800, color:"#FFFFFF", lineHeight:1.2, marginBottom:16 }}>{T.ctaTitle}</h2>
           <p style={{ fontSize:"clamp(14px,1.5vw,17px)", color:"rgba(255,255,255,.78)", marginBottom:38, lineHeight:1.75 }}>{T.ctaSub}</p>
