@@ -75,6 +75,7 @@ router.delete("/:id", authMiddleware, requireRole("admin"), async (req, res) => 
     cache.del("services:active"); cache.del("services:all");
     res.json({ success: true });
   } catch (err) {
+    logger.error("delete category:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

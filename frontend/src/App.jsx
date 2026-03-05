@@ -1104,6 +1104,7 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
 /* ══ LOAN SCORE ══ */
 function LoanScore() {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
   const { providers: ctxProviders } = useLiveData();
@@ -1229,6 +1230,7 @@ function LoanScore() {
 /* ══ PROVIDER DASHBOARD ══ */
 function ProviderDash() {
   const C=useC();
+  const dark=C===C_DARK;
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
   const [tab,setTab]=useState("overview");
@@ -2082,7 +2084,7 @@ function Chat({isMobile}) {
 
 /* ══ ONBOARDING ══ */
 function Onboarding({onDone}) {
-  const C=useC(); const tr=useTr();
+  const C=useC(); const dark=C===C_DARK; const tr=useTr();
   const [slide,setSlide]=useState(0);
   const SLIDES=[
     {ic:tr.ob1ic,t:tr.ob1t,d:tr.ob1d,bg:`linear-gradient(135deg,${C.dark},#0F3326)`},
@@ -4145,7 +4147,7 @@ function NearbyPage({onBook,onView}) {
 
 /* ─── Live Chat ──────────────────────────────────────── */
 function LiveChatPage({provider, onBack}) {
-  const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
+  const C=useC(); const dark=C===C_DARK; const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
   const roomId = `provider_${provider.id||provider.phone||"general"}`;
   const initMsgs=[
     {id:1,from:"provider",text:tr.lcAuto1,time:"10:02 AM"},

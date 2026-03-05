@@ -262,6 +262,7 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
     cache.del("admin:complaints:default");
     res.json({ success: true });
   } catch (err) {
+    logger.error("admin resolve complaint:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -332,7 +333,7 @@ router.get("/promos", ...auth, async (req, res) => {
        FROM promos ORDER BY id DESC`
     );
     res.json(rows);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { logger.error("admin promos list:", e); res.status(500).json({ error: "Server error" }); }
 });
 
 // ── POST /api/admin/promos ────────────────────────────────
@@ -348,7 +349,7 @@ router.post("/promos", ...auth, async (req, res) => {
     );
     cache.del("promos:active");
     res.status(201).json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { logger.error("admin promos create:", e); res.status(500).json({ error: "Server error" }); }
 });
 
 // ── PATCH /api/admin/promos/:id ───────────────────────────
@@ -358,7 +359,7 @@ router.patch("/promos/:id", ...auth, async (req, res) => {
     await pool.query("UPDATE promos SET is_active=? WHERE id=?", [is_active ? 1 : 0, req.params.id]);
     cache.del("promos:active");
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { logger.error("admin promos update:", e); res.status(500).json({ error: "Server error" }); }
 });
 
 // ── DELETE /api/admin/promos/:id ──────────────────────────
@@ -367,7 +368,7 @@ router.delete("/promos/:id", ...auth, async (req, res) => {
     await pool.query("DELETE FROM promos WHERE id=?", [req.params.id]);
     cache.del("promos:active");
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { logger.error("admin promos delete:", e); res.status(500).json({ error: "Server error" }); }
 });
 
 // ── GET /api/admin/settings ─────────────────────────────
@@ -445,7 +446,7 @@ router.get("/announcements", ...auth, async (req, res) => {
       return r;
     }, 30);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { logger.error("admin announcements:", e); res.status(500).json({ error: "Server error" }); }
 });
 
 

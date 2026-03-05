@@ -174,6 +174,7 @@ router.put("/notifications/read", authMiddleware, async (req, res) => {
   try {
     await pool.query("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [req.user.id]);    cache.del(`user:notifs:${req.user.id}`);    res.json({ success: true });
   } catch (err) {
+    logger.error("mark-all-notifs-read:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -258,6 +259,7 @@ router.patch("/notifications/:id/read", authMiddleware, async (req, res) => {
     cache.del(`user:notifs:${req.user.id}`);
     res.json({ success: true });
   } catch (err) {
+    logger.error("mark-notif-read:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
