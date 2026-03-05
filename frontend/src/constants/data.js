@@ -60,7 +60,7 @@ export const SVCS = [
    subsEn:["Babysitting","Child Care","School Pickup/Drop","Child Tutoring"]},
 
   // 13. Agro & Rural
-  {id:13, icon:"🌾", name:"কৃষি ও গ্রামীণ সেবা", nameEn:"Agro & Rural Services", col:"#22C55E", count:89,  avg:"৳৩৫০",  r:4.6,
+  {id:13, icon:"🌾", name:"কৃষি ও গ্রামীণ সেবা", nameEn:"Agro & Rural Services", col:"#00C170", count:89,  avg:"৳৩৫০",  r:4.6,
    subs:["পশু চিকিৎসক","খামার শ্রমিক","পশুপালন চিকিৎসা","খাদ্য ডেলিভারি","ফসল কাটার সহায়তা"],
    subsEn:["Veterinary Doctor","Farm Worker","Livestock Treatment","Feed Delivery","Crop Harvesting"]},
 

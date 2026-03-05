@@ -672,7 +672,7 @@ function BookModal({p,onClose,onSuccess}) {
       </>}
       {step===2&&<>
         <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{tr.payMethod}</div>
-        {[["bKash","💳","#E31E50"],["Nagad","📱","#F97316"],["Rocket","🚀","#7C3AED"],["Cash","💵","#22C55E"]].map(([nm,ic,cl])=>(
+        {[["bKash","💳","#E31E50"],["Nagad","📱","#F97316"],["Rocket","🚀","#7C3AED"],["Cash","💵","#00C170"]].map(([nm,ic,cl])=>(
           <div key={nm} onClick={()=>setPay(nm)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:11,border:`2px solid ${pay===nm?C.p:C.bdr}`,background:pay===nm?`${C.p}08`:"#fff",marginBottom:7,cursor:"pointer",transition:"all .15s"}}>
             <div className="jc" style={{width:38,height:38,borderRadius:9,background:cl+"22",fontSize:17,flexShrink:0}}>{ic}</div>
             <div style={{flex:1,fontSize:14,fontWeight:600}}>{nm}</div>
@@ -901,7 +901,7 @@ function GuaranteeModal({booking,onClose}){
           </div>
         ))}
         <div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={printGuarantee} style={{flex:1,padding:"12px",borderRadius:12,background:"linear-gradient(135deg,#00C170,#059669)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Download PDF":"PDF ডাউনলোড"}</button>
+          <button onClick={printGuarantee} style={{flex:1,padding:"12px",borderRadius:12,background:"linear-gradient(135deg,#00C170,#004D38)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Download PDF":"PDF ডাউনলোড"}</button>
           <button onClick={onClose} style={{padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.bdr}`,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>✕</button>
         </div>
       </div>
@@ -2031,7 +2031,7 @@ function Chat({isMobile}) {
             <div style={{maxWidth:"84%",padding:"9px 13px",borderRadius:m.from==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",background:m.from==="user"?`linear-gradient(135deg,${C.p},${C.pdk})`:"#fff",color:m.from==="user"?"#fff":C.text,fontSize:12.5,lineHeight:1.65,border:m.from==="ai"?`1px solid ${C.bdr}`:"none",boxShadow:m.from==="ai"?"0 2px 8px rgba(0,0,0,.05)":"none",position:"relative"}}>
               {m.text}{m.streaming&&<span style={{display:"inline-block",animation:"pulse 1s infinite",color:C.p,fontWeight:700,marginLeft:1}}>▋</span>}
               {m.from==="ai"&&m.source&&m.source!=="system"&&!m.streaming&&(
-                <div style={{fontSize:9,color:m.source==="llm"||m.source==="gemini"?"#059669":C.muted,marginTop:4,fontWeight:600}}>
+                <div style={{fontSize:9,color:m.source==="llm"||m.source==="gemini"?"#006A4E":C.muted,marginTop:4,fontWeight:600}}>
                   {m.source==="gemini"?"✨ Gemini":m.source==="llm"?"🤖 GPT":"📚 Smart"}
                 </div>
               )}
