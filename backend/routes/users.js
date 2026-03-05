@@ -37,6 +37,9 @@ router.get("/profile", authMiddleware, async (req, res) => {
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const { name, phone, email } = req.body;
+    if (name   && name.length   > 120) return res.status(400).json({ error: "Name too long (max 120)" });
+    if (email  && email.length  > 200) return res.status(400).json({ error: "Email too long (max 200)" });
+    if (phone  && phone.length  > 20)  return res.status(400).json({ error: "Phone too long (max 20)" });
     await pool.query(
       "UPDATE users SET name = COALESCE(?, name), phone = COALESCE(?, phone), email = COALESCE(?, email) WHERE id = ?",
       [name || null, phone || null, email || null, req.user.id]
@@ -59,6 +62,7 @@ router.put("/avatar", authMiddleware, async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar) return res.status(400).json({ error: "Avatar required" });
+    if (avatar.length > 2_700_000) return res.status(400).json({ error: "Avatar too large (max ~2 MB)" });
     await pool.query("UPDATE users SET avatar = ? WHERE id = ?", [avatar, req.user.id]);    cache.del(`user:profile:${req.user.id}`);    res.json({ success: true });
   } catch (err) {
     logger.error("update avatar:", err);

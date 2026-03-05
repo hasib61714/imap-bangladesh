@@ -4,6 +4,8 @@ import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
 import { connectSocket, joinRoom, leaveRoom, getSocket } from "../socket";
 
+const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
 export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}){
   const C  = dark ? C_DARK : C_LIGHT;
   const tr = T[lang]||T.bn;
@@ -162,7 +164,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const printEarningsReport=()=>{
     const now=new Date().toLocaleDateString("en-GB");
     const month=new Date().toLocaleString("en-GB",{month:"long",year:"numeric"});
-    const histRows=earnings.history.map(h=>`<tr><td>${h.desc||"—"}</td><td>${h.date||"—"}</td><td style='text-align:right;font-weight:700;color:${h.type==="credit"?"#004D38":"#b91c1c"}'>${h.type==="credit"?"+":"−"}\u09F3${Math.abs(h.amount||0).toLocaleString()}</td></tr>`).join("");
+    const histRows=earnings.history.map(h=>`<tr><td>${escHtml(h.desc||"—")}</td><td>${escHtml(h.date||"—")}</td><td style='text-align:right;font-weight:700;color:${h.type==="credit"?"#004D38":"#b91c1c"}'>${h.type==="credit"?"+":"−"}\u09F3${Math.abs(h.amount||0).toLocaleString()}</td></tr>`).join("");
     const w=window.open("","_blank","width=580,height=760");
     w.document.write(`<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Earnings Report</title>`+
       `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:20px}`+

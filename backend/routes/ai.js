@@ -173,7 +173,13 @@ router.get("/debug", ...adminOnly, async (req, res) => {
 
 router.post("/chat", async (req, res) => {
   try {
-    const { messages = [], lang = "bn" } = req.body;
+    let { messages = [], lang = "bn" } = req.body;
+    // Cap message history and individual message length to limit token abuse
+    if (!Array.isArray(messages)) messages = [];
+    messages = messages.slice(-20).map(m => ({
+      role:    m.role === "user" ? "user" : "assistant",
+      content: String(m.content || "").slice(0, 1000),
+    }));
     const userText = messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
 
     // 1. Try Google Gemini (free tier)
@@ -200,8 +206,14 @@ router.post("/chat", async (req, res) => {
    Client reads: data: {"text":"chunk"}\n\n  then  data: [DONE]\n\n
 ═══════════════════════════════════════════════════════════ */
 router.post("/chat/stream", async (req, res) => {
-  const { messages = [], lang = "bn" } = req.body;
+  let { messages = [], lang = "bn" } = req.body;
   const apiKey    = process.env.GEMINI_API_KEY;
+  // Cap message history and content length
+  if (!Array.isArray(messages)) messages = [];
+  messages = messages.slice(-20).map(m => ({
+    role:    m.role === "user" ? "user" : "assistant",
+    content: String(m.content || "").slice(0, 1000),
+  }));
   const userText  = messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
 
   // SSE headers

@@ -448,6 +448,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                 <label style={{ cursor: "pointer", display: "inline-block" }}>
                   <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
                     const f = e.target.files[0]; if (!f) return;
+                    if (f.size > 2 * 1024 * 1024) { setErr(lang === "bn" ? "ছবির আকার সর্বোচ্চ ২ MB" : "Image must be under 2 MB"); return; }
                     const r = new FileReader(); r.onload = ev => setAvatarB64(ev.target.result); r.readAsDataURL(f);
                   }} />
                   <Avatar size={80} src={avatarB64 || undefined} icon={!avatarB64 ? <UserOutlined /> : undefined}

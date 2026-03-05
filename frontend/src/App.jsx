@@ -15,6 +15,7 @@ import { useSocket } from "./hooks/useSocket";
 import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, setToken, auth as authApi, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
+const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 /* ── Lazy-load fallback ─────────────────────────────────── */
 const PageLoader = () => (
@@ -867,11 +868,11 @@ function GuaranteeModal({booking,onClose}){
     <div class="title">IMAP Service Guarantee</div>
     <div class="sub">সার্ভিস গ্যারান্টি সার্টিফিকেট</div>
     <div class="seal">✅ VERIFIED & GUARANTEED</div></div>
-    <div class="field"><label>Service / সেবা</label><span>${svc}</span></div>
-    <div class="field"><label>Provider / প্রদানকারী</label><span>${provider||"IMAP Provider"}</span></div>
-    <div class="field"><label>Date / তারিখ</label><span>${date}</span></div>
-    <div class="field"><label>Booking ID</label><span style="font-family:monospace">${booking.id||booking.booking_ref||"-"}</span></div>
-    <div class="field"><label>Amount / পরিমাণ</label><span>${booking.price}</span></div>
+    <div class="field"><label>Service / সেবা</label><span>${escHtml(svc)}</span></div>
+    <div class="field"><label>Provider / প্রদানকারী</label><span>${escHtml(provider)||"IMAP Provider"}</span></div>
+    <div class="field"><label>Date / তারিখ</label><span>${escHtml(date)}</span></div>
+    <div class="field"><label>Booking ID</label><span style="font-family:monospace">${escHtml(booking.id||booking.booking_ref||"-")}</span></div>
+    <div class="field"><label>Amount / পরিমাণ</label><span>${escHtml(booking.price)}</span></div>
     <div class="field"><label>Guarantee</label><span>৭ দিনের সন্তুষ্টি গ্যারান্টি · 7-day satisfaction guarantee</span></div>
     <div class="footer">Issued by IMAP Platform · imap.com.bd</div>
     </div></body></html>`);
@@ -980,13 +981,13 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
       "<div class='brand'>IMAP Bangladesh</div>"+
       "<div class='tag'>Payment Receipt &middot; \u09AA\u09C7\u09AE\u09C7\u09A8\u09CD\u099F \u09B0\u09B8\u09BF\u09A6</div>"+
       "<hr class='dv'/><div class='title'>&#x2705; Payment Successful</div>"+
-      "<div class='ab'><div class='av'>"+b.price+"</div>"+
+      "<div class='ab'><div class='av'>"+escHtml(b.price)+"</div>"+
       "<div class='al'>Amount Paid &middot; \u09AA\u09CD\u09B0\u09A6\u09A4\u09CD\u09A4 \u09AA\u09B0\u09BF\u09AE\u09BE\u09A3</div>"+
       "<div class='st'>PAID</div></div><hr class='dv'/>"+
-      "<div class='rw'><span class='lbl'>Receipt No</span><span class='val' style='font-family:monospace'>"+((b.id||b.booking_ref)||"\u2014")+"</span></div>"+
-      "<div class='rw'><span class='lbl'>Service &middot; \u09B8\u09C7\u09AC\u09BE</span><span class='val'>"+( sv||"\u2014")+"</span></div>"+
-      "<div class='rw'><span class='lbl'>Provider</span><span class='val'>"+( pr||"IMAP Provider")+"</span></div>"+
-      "<div class='rw'><span class='lbl'>Date &middot; \u09A4\u09BE\u09B0\u09BF\u0996</span><span class='val'>"+( dt||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Receipt No</span><span class='val' style='font-family:monospace'>"+escHtml((b.id||b.booking_ref)||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Service &middot; \u09B8\u09C7\u09AC\u09BE</span><span class='val'>"+escHtml(sv||"\u2014")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Provider</span><span class='val'>"+(escHtml(pr)||"IMAP Provider")+"</span></div>"+
+      "<div class='rw'><span class='lbl'>Date &middot; \u09A4\u09BE\u09B0\u09BF\u0996</span><span class='val'>"+escHtml(dt||"\u2014")+"</span></div>"+
       "<div class='rw'><span class='lbl'>Payment Method</span><span class='val'>SSLCommerz / MFS</span></div>"+
       "<div class='rw'><span class='lbl'>Status</span><span class='val' style='color:#006A4E'>Completed &#x2713;</span></div>"+
       "<hr class='dv'/><div class='ft'>IMAP Platform &middot; imap.com.bd<br/>This is an official payment receipt.</div>"+
@@ -1024,18 +1025,18 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
       "@media print{body{background:#fff;padding:0}}</style></head>"+
       "<body onload='window.print()'><div class='inv'>"+
       "<div class='hdr'><div><div class='bn'>&#x1F3F7;&#xFE0F; IMAP</div><div class='bs'>Bangladesh Home Services</div></div>"+
-      "<div class='ir'><div class='it'>INVOICE</div><div class='in'>"+invNo+"</div>"+
+      "<div class='ir'><div class='it'>INVOICE</div><div class='in'>"+escHtml(invNo)+"</div>"+
       "<div style='font-size:11px;color:#64748b;margin-top:2px'>Date: "+now+"</div></div></div>"+
       "<div class='pt2'>"+
       "<div><div class='ptl'>Billed To &middot; \u09AC\u09BF\u09B2 \u09AA\u09CD\u09B0\u09BE\u09AA\u0995</div><div class='ptn'>Customer</div><div class='pti'>IMAP Platform User</div></div>"+
-      "<div><div class='ptl'>Service Provider</div><div class='ptn'>"+( pr||"IMAP Provider")+"</div><div class='pti'>IMAP Verified Professional</div></div></div>"+
+      "<div><div class='ptl'>Service Provider</div><div class='ptn'>"+(escHtml(pr)||"IMAP Provider")+"</div><div class='pti'>IMAP Verified Professional</div></div></div>"+
       "<table><thead><tr><th>Description</th><th>Date</th><th style='text-align:right'>Amount</th></tr></thead>"+
-      "<tbody><tr><td>"+( sv||"Home Service")+"</td><td>"+( dt||"\u2014")+"</td><td style='text-align:right;font-weight:700'>\u09F3"+sub.toLocaleString()+"</td></tr></tbody></table>"+
+      "<tbody><tr><td>"+escHtml(sv||"Home Service")+"</td><td>"+escHtml(dt||"\u2014")+"</td><td style='text-align:right;font-weight:700'>\u09F3"+sub.toLocaleString()+"</td></tr></tbody></table>"+
       "<div class='tots'>"+
       "<div class='tr2'><span>Subtotal</span><span>\u09F3"+sub.toLocaleString()+"</span></div>"+
       "<div class='tr2'><span>VAT (15%)</span><span>\u09F3"+vat.toLocaleString()+"</span></div>"+
       "<div class='tr2 trt'><span>Total</span><span>\u09F3"+raw.toLocaleString()+"</span></div></div>"+
-      "<div class='ft'>Ref: "+((b.id||b.booking_ref)||"\u2014")+" &middot; Thank you for using IMAP &middot; imap.com.bd</div>"+
+      "<div class='ft'>Ref: "+escHtml((b.id||b.booking_ref)||"\u2014")+" &middot; Thank you for using IMAP &middot; imap.com.bd</div>"+
       "</div></body></html>");
     w.document.close();
   };
@@ -3414,11 +3415,11 @@ function WalletPage() {
     <div class="header"><div class="logo">🧾</div><div class="title">IMAP Receipt</div>
     <div class="sub">পেমেন্ট রসিদ</div><div class="badge">✓ ${lang==="en"?"Successful":"সফল"}</div></div>
     <div class="amount"><div class="val">${txSign(t)}৳${Math.abs(t.amount)}</div></div>
-    <div class="row"><label>Transaction ID</label><span style="font-family:monospace">${t.id}</span></div>
-    <div class="row"><label>${lang==="en"?"Service":"সেবা"}</label><span>${lang==="en"?t.titleEn:t.titleBn}</span></div>
-    <div class="row"><label>${lang==="en"?"Method":"মাধ্যম"}</label><span>${t.method}</span></div>
-    <div class="row"><label>${lang==="en"?"Date":"তারিখ"}</label><span>${lang==="en"?t.dateEn:t.date}</span></div>
-    <div class="row"><label>${lang==="en"?"Type":"ধরন"}</label><span>${t.type}</span></div>
+    <div class="row"><label>Transaction ID</label><span style="font-family:monospace">${escHtml(t.id)}</span></div>
+    <div class="row"><label>${lang==="en"?"Service":"সেবা"}</label><span>${escHtml(lang==="en"?t.titleEn:t.titleBn)}</span></div>
+    <div class="row"><label>${lang==="en"?"Method":"মাধ্যম"}</label><span>${escHtml(t.method)}</span></div>
+    <div class="row"><label>${lang==="en"?"Date":"তারিখ"}</label><span>${escHtml(lang==="en"?t.dateEn:t.date)}</span></div>
+    <div class="row"><label>${lang==="en"?"Type":"ধরন"}</label><span>${escHtml(t.type)}</span></div>
     <div class="footer">IMAP Platform · imap.com.bd<br>This is a computer-generated receipt.</div>
     </div></body></html>`);
     w.document.close();

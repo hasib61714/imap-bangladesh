@@ -19,6 +19,8 @@ import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi,
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
+const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
 /* ─── Status Tag ─────────────────────────────────────── */
 const StatusTag = ({ status, lang }) => {
   const map = {
@@ -251,8 +253,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const printRevenueReport = () => {
     const data = monthlyRev2.length > 0 ? monthlyRev2 : monthlyRev;
     const now = new Date().toLocaleDateString("en-GB");
-    const rows = data.map(r=>`<tr><td>${r.m}</td><td style='text-align:right;font-weight:700'>\u09F3${Math.round(r.v).toLocaleString()}</td></tr>`).join("");
-    const topRows = topProviders.map((p,i)=>`<tr><td>#${i+1} ${p.name}</td><td>${p.service}</td><td style='text-align:right'>${p.jobs} jobs</td><td style='text-align:right;font-weight:700'>\u09F3${p.earned.toLocaleString()}</td></tr>`).join("");
+    const rows = data.map(r=>`<tr><td>${escHtml(r.m)}</td><td style='text-align:right;font-weight:700'>\u09F3${Math.round(r.v).toLocaleString()}</td></tr>`).join("");
+    const topRows = topProviders.map((p,i)=>`<tr><td>#${i+1} ${escHtml(p.name)}</td><td>${escHtml(p.service)}</td><td style='text-align:right'>${parseInt(p.jobs)||0} jobs</td><td style='text-align:right;font-weight:700'>\u09F3${p.earned.toLocaleString()}</td></tr>`).join("");
     const w = window.open("","_blank","width=680,height=860");
     w.document.write(`<!DOCTYPE html><html><head><meta charset='UTF-8'><title>IMAP Revenue Report</title>`+
       `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:24px}`+

@@ -39,6 +39,8 @@ router.post("/register", registerRules, async (req, res) => {
     if (!name?.trim())  return res.status(400).json({ error: "Name required" });
     if (!email && !phone && !socialId)
       return res.status(400).json({ error: "Email, phone, or social ID required" });
+    if (avatar && avatar.length > 2_700_000)
+      return res.status(400).json({ error: "Avatar too large (max ~2 MB)" });
 
     // Duplicate check
     if (email) {
