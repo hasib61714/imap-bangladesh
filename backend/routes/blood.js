@@ -103,7 +103,10 @@ router.post("/register", authMiddleware, async (req, res) => {
     const validGroups = ["A+","A-","B+","B-","AB+","AB-","O+","O-"];
     if (!blood_group || !validGroups.includes(blood_group))
       return res.status(400).json({ error: "Valid blood group required (A+, A-, B+, B-, AB+, AB-, O+, O-)" });
-    if (!phone) return res.status(400).json({ error: "Phone is required" });
+    if (!phone || typeof phone !== "string" || !/^[0-9+\-\s]{7,20}$/.test(phone.trim()))
+      return res.status(400).json({ error: "Valid phone number required" });
+    if (area_bn && area_bn.length > 100) return res.status(400).json({ error: "area_bn max 100 chars" });
+    if (area_en && area_en.length > 100) return res.status(400).json({ error: "area_en max 100 chars" });
     const user = req.user;
     // upsert
     const [[exists]] = await pool.query("SELECT id FROM blood_donors WHERE user_id = ?", [user.id]);

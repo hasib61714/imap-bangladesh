@@ -57,6 +57,7 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
     const { bookingId } = req.params;
     const { message } = req.body;
     if (!message?.trim()) return res.status(400).json({ error: "Empty message" });
+    if (message.length > 2000) return res.status(400).json({ error: "Message max 2000 chars" });
     const user = req.user;
     const role = user.role || "customer";
 

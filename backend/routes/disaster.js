@@ -52,7 +52,11 @@ router.get("/alerts", async (_req, res) => {
 router.post("/report", async (req, res) => {
   try {
     const { type, description, area, severity, reporter_name } = req.body;
-    if (!type) return res.status(400).json({ error: "Missing disaster type" });
+    if (!type || typeof type !== "string" || type.trim().length > 60)
+      return res.status(400).json({ error: "Disaster type required (max 60 chars)" });
+    if (description && description.length > 1000) return res.status(400).json({ error: "description max 1000 chars" });
+    if (area && area.length > 120) return res.status(400).json({ error: "area max 120 chars" });
+    if (reporter_name && reporter_name.length > 120) return res.status(400).json({ error: "reporter_name max 120 chars" });
     const sev = ['low','medium','high','critical'].includes(severity) ? severity : 'medium';
     const [result] = await pool.query(
       "INSERT INTO disaster_reports (user_id,reporter_name,type,description,area,severity) VALUES (?,?,?,?,?,?)",
