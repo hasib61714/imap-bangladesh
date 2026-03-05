@@ -73,8 +73,9 @@ io.on("connection", (socket) => {
   const uid = socket.user?.id || "guest";
   logger.debug(`Socket connected: ${uid}`);
 
-  // Join a booking chat room
+  // Join a booking chat room — authenticated users only
   socket.on("join_room", (bookingId) => {
+    if (!socket.user) return; // guests cannot join private booking rooms
     socket.join(`booking_${bookingId}`);
     logger.debug(`${uid} joined room: booking_${bookingId}`);
   });
@@ -84,9 +85,10 @@ io.on("connection", (socket) => {
     socket.leave(`booking_${bookingId}`);
   });
 
-  // User typing indicator
-  socket.on("typing", ({ bookingId, name }) => {
-    socket.to(`booking_${bookingId}`).emit("user_typing", { name });
+  // User typing indicator — use server-side name, not client-supplied
+  socket.on("typing", ({ bookingId }) => {
+    if (!socket.user) return;
+    socket.to(`booking_${bookingId}`).emit("user_typing", { name: socket.user.name || "User" });
   });
 
   socket.on("stop_typing", ({ bookingId }) => {
@@ -96,12 +98,17 @@ io.on("connection", (socket) => {
   // Provider location update (live tracking) — authenticated users only
   socket.on("location_update", ({ bookingId, lat, lng }) => {
     if (!socket.user) return; // reject unauthenticated location spoofing
-    io.to(`booking_${bookingId}`).emit("provider_location", { lat, lng });
+    const safeLat = parseFloat(lat);
+    const safeLng = parseFloat(lng);
+    if (isNaN(safeLat) || isNaN(safeLng) || safeLat < -90 || safeLat > 90 || safeLng < -180 || safeLng > 180) return;
+    io.to(`booking_${bookingId}`).emit("provider_location", { lat: safeLat, lng: safeLng });
   });
 
   // Booking status update broadcast — authenticated users only
+  const VALID_BOOKING_STATUSES = ["pending", "confirmed", "ongoing", "completed", "cancelled"];
   socket.on("booking_status", ({ bookingId, status }) => {
     if (!socket.user) return; // reject unauthenticated spoofing
+    if (!VALID_BOOKING_STATUSES.includes(status)) return; // reject invalid status
     io.to(`booking_${bookingId}`).emit("booking_updated", { bookingId, status });
   });
 

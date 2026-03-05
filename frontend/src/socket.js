@@ -63,9 +63,9 @@ export const leaveRoom = (bookingId) => {
   if (socket) socket.emit("leave_room", bookingId);
 };
 
-// ✅ Send typing indicator
-export const sendTyping = (bookingId, name) => {
-  if (socket) socket.emit("typing", { bookingId, name });
+// ✅ Send typing indicator (name comes from server-side JWT, not sent by client)
+export const sendTyping = (bookingId) => {
+  if (socket) socket.emit("typing", { bookingId });
 };
 
 // ✅ Stop typing
