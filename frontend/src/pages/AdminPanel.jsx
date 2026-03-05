@@ -259,9 +259,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
       `.rpt{background:#fff;border-radius:12px;padding:32px;max-width:620px;margin:0 auto;border:1px solid #e2e8f0}`+
       `.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #f1f5f9}`+
       `.brand{font-size:22px;font-weight:900;color:#1e293b}.sub{font-size:12px;color:#64748b;margin-top:2px}`+
-      `.rtitle{text-align:right;font-size:16px;font-weight:700;color:#059669}.rdate{font-size:11px;color:#64748b;margin-top:2px}`+
+      `.rtitle{text-align:right;font-size:16px;font-weight:700;color:#006A4E}.rdate{font-size:11px;color:#64748b;margin-top:2px}`+
       `.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}`+
-      `.stat{background:#f8fafc;border-radius:10px;padding:14px;text-align:center}.sv{font-size:20px;font-weight:900;color:#059669}.sl{font-size:11px;color:#64748b;margin-top:2px}`+
+      `.stat{background:#f8fafc;border-radius:10px;padding:14px;text-align:center}.sv{font-size:20px;font-weight:900;color:#006A4E}.sl{font-size:11px;color:#64748b;margin-top:2px}`+
       `h3{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;margin-top:20px}`+
       `table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:13px}`+
       `th{background:#f8fafc;padding:9px 12px;font-size:11px;font-weight:700;color:#64748b;text-align:left;border-bottom:2px solid #e2e8f0}`+
@@ -528,7 +528,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { title:lang==="bn"?"প্রদানকারী":"Provider", dataIndex:"provider",  key:"provider"  },
     { title:lang==="bn"?"সেবা":"Service",         dataIndex:"service",   key:"service"   },
     { title:lang==="bn"?"অবস্থা":"Status",        dataIndex:"status",    key:"status",   render:s=><StatusTag status={s} lang={lang}/> },
-    { title:lang==="bn"?"পরিমাণ":"Amount",         dataIndex:"amount",    key:"amount",   render:v=>v>0?<Text strong style={{color:"#10B981"}}>৳{v}</Text>:"—" },
+    { title:lang==="bn"?"পরিমাণ":"Amount",         dataIndex:"amount",    key:"amount",   render:v=>v>0?<Text strong style={{color:"#00C170"}}>৳{v}</Text>:"—" },
     { title:lang==="bn"?"তারিখ":"Date",            dataIndex:"date",      key:"date"      },
   ];
 
@@ -562,7 +562,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     <ConfigProvider theme={{
       algorithm: dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
       token: {
-        colorPrimary: "#059669",
+        colorPrimary: "#006A4E",
         borderRadius: 10,
         fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif",
       },
@@ -578,7 +578,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             <div style={{padding:collapsed?"16px 8px":"16px 20px", marginBottom:8}}>
               <Space>
                 <span style={{fontSize:22}}>🌿</span>
-                {!collapsed && <Text strong style={{color:"#059669",fontSize:15}}>IMAP Admin</Text>}
+                {!collapsed && <Text strong style={{color:"#006A4E",fontSize:15}}>IMAP Admin</Text>}
               </Space>
             </div>
             <Menu mode="inline" selectedKeys={[tab]} onClick={({key})=>setTab(key)}
@@ -605,12 +605,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Button type="text" onClick={()=>setCollapsed(!collapsed)}
                   icon={collapsed?<MenuUnfoldOutlined/>:<MenuFoldOutlined/>} />
               )}
-              {isMobile && <><span style={{fontSize:20}}>🌿</span><Text strong style={{color:"#059669"}}>IMAP Admin</Text></>}
+              {isMobile && <><span style={{fontSize:20}}>🌿</span><Text strong style={{color:"#006A4E"}}>IMAP Admin</Text></>}
             </Space>
             <Space size={8}>
               <Button size="small" onClick={()=>setLang(lang==="bn"?"en":"bn")}>{lang==="bn"?"EN":"বাং"}</Button>
               <Button size="small" icon={dark?<SunOutlined/>:<MoonOutlined/>} onClick={()=>setDark(!dark)} />
-              <Avatar style={{background:"#059669"}}>{user?.name?.[0]||"A"}</Avatar>
+              <Avatar style={{background:"#006A4E"}}>{user?.name?.[0]||"A"}</Avatar>
               <Text strong style={{fontSize:13}}>{user?.name}</Text>
               <Button danger size="small" icon={<LogoutOutlined/>} onClick={onLogout}>
                 {lang==="bn"?"বের":"Logout"}
@@ -631,8 +631,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               {menuItems.map(item=>(
                 <button key={item.key} onClick={()=>setTab(item.key)} style={{
                   flex:"0 0 auto",padding:"10px 14px",border:"none",
-                  borderBottom:`2.5px solid ${tab===item.key?"#059669":"transparent"}`,
-                  background:"transparent", color:tab===item.key?"#059669":"#888",
+                  borderBottom:`2.5px solid ${tab===item.key?"#006A4E":"transparent"}`,
+                  background:"transparent", color:tab===item.key?"#006A4E":"#888",
                   fontWeight:tab===item.key?700:500, fontSize:12, cursor:"pointer",
                   fontFamily:"inherit", whiteSpace:"nowrap",
                 }}>
@@ -652,11 +652,11 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Row gutter={[16,16]} style={{marginBottom:24}}>
                   {[
                     {title:lang==="bn"?"মোট ব্যবহারকারী":"Total Users",  value:realStats?.users??users.length+providers.length, color:"#3B82F6"},
-                    {title:lang==="bn"?"প্রদানকারী":"Providers",           value:realStats?.providers??providers.length,              color:"#059669"},
+                    {title:lang==="bn"?"প্রদানকারী":"Providers",           value:realStats?.providers??providers.length,              color:"#006A4E"},
                     {title:lang==="bn"?"মোট বুকিং":"Total Bookings",      value:realStats?.bookings??bookings.length,               color:"#F59E0B"},
                     {title:lang==="bn"?"KYC অপেক্ষায়":"KYC Pending",      value:realStats?.kycPending??providers.filter(p=>p.status==="pending").length, color:"#EF4444"},
                     {title:lang==="bn"?"চলমান বুকিং":"Today's Bookings",  value:realStats?.todayBookings??bookings.filter(b=>b.status==="ongoing").length, color:"#8B5CF6"},
-                    {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",       value:`৳${Math.round(realStats?.revenue??3100).toLocaleString()}`, color:"#10B981"},
+                    {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",       value:`৳${Math.round(realStats?.revenue??3100).toLocaleString()}`, color:"#00C170"},
                   ].map((s,i)=>(
                     <Col xs={12} sm={8} lg={4} key={i}>
                       <Card bordered bodyStyle={{padding:16}} style={{borderTop:`3px solid ${s.color}`}}>
@@ -775,7 +775,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   summary={()=>(
                     <Table.Summary.Row>
                       <Table.Summary.Cell colSpan={5}><Text strong>{lang==="bn"?"মোট রাজস্ব":"Total Revenue"}</Text></Table.Summary.Cell>
-                      <Table.Summary.Cell><Text strong style={{color:"#10B981"}}>৳{displayBookings.reduce((a,b)=>a+(b.amount||0),0).toLocaleString()}</Text></Table.Summary.Cell>
+                      <Table.Summary.Cell><Text strong style={{color:"#00C170"}}>৳{displayBookings.reduce((a,b)=>a+(b.amount||0),0).toLocaleString()}</Text></Table.Summary.Cell>
                       <Table.Summary.Cell/>
                     </Table.Summary.Row>
                   )}
@@ -801,7 +801,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Row gutter={[12,12]}>
                   {kycList.filter(k=>kycFilter==="all"||k.status===kycFilter).map(kyc=>{
                     const docIcons={nid:"🪪",driving:"🚗",passport:"📘",birth:"📜"};
-                    const borderColor=kyc.status==="verified"?"#10B981":kyc.status==="pending"?"#F59E0B":"#EF4444";
+                    const borderColor=kyc.status==="verified"?"#00C170":kyc.status==="pending"?"#F59E0B":"#EF4444";
                     return (
                       <Col xs={24} md={12} key={kyc.id}>
                         <Card bordered style={{borderLeft:`4px solid ${borderColor}`}} bodyStyle={{padding:16}}>
@@ -883,12 +883,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     const rev   = realStats?.revenue   ?? 0;
                     const lastM = monthlyRev2.length>0 ? (monthlyRev2[monthlyRev2.length-1]?.v??0) : 47800;
                     return [
-                      {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",       value:`৳${Math.round(rev).toLocaleString()||" ২,৪০,৫০০"}`, color:"#059669"},
+                      {title:lang==="bn"?"মোট রাজস্ব":"Total Revenue",       value:`৳${Math.round(rev).toLocaleString()||" ২,৪০,৫০০"}`, color:"#006A4E"},
                       {title:lang==="bn"?"এই মাস":"This Month",              value:`৳${Math.round(lastM).toLocaleString()}`,            color:"#3B82F6"},
                       {title:lang==="bn"?"মোট বুকিং":"Total Bookings",       value:realStats?.bookings??0,                              color:"#F59E0B"},
                       {title:lang==="bn"?"KYC অপেক্ষায়":"KYC Pending",       value:realStats?.kycPending??0,                           color:"#EF4444"},
                       {title:lang==="bn"?"সক্রিয় Provider":"Active Providers",value:realStats?.providers??0,                           color:"#8B5CF6"},
-                      {title:lang==="bn"?"মোট ব্যবহারকারী":"Total Users",    value:realStats?.users??0,                                color:"#10B981"},
+                      {title:lang==="bn"?"মোট ব্যবহারকারী":"Total Users",    value:realStats?.users??0,                                color:"#00C170"},
                     ];
                   })().map((s,i)=>(
                     <Col xs={12} sm={8} lg={4} key={i}>
@@ -905,8 +905,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       <div style={{display:"flex",alignItems:"flex-end",gap:10,height:140,paddingTop:8}}>
                         {(monthlyRev2.length>0?monthlyRev2:monthlyRev).map((m,i,arr)=>(
                           <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                            <Text style={{fontSize:10,color:"#059669",fontWeight:700}}>{(m.v/1000).toFixed(0)}k</Text>
-                            <div style={{width:"100%",background:i===arr.length-1?"#059669":"#D1FAE5",
+                            <Text style={{fontSize:10,color:"#006A4E",fontWeight:700}}>{(m.v/1000).toFixed(0)}k</Text>
+                            <div style={{width:"100%",background:i===arr.length-1?"#006A4E":"#D1FAE5",
                               borderRadius:"6px 6px 0 0",height:`${(m.v/Math.max(...arr.map(x=>x.v),1))*110}px`,minHeight:8}} />
                             <Text type="secondary" style={{fontSize:9}}>{m.m}</Text>
                           </div>
@@ -920,13 +920,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:"10px 0",borderBottom:i<2?"1px solid rgba(0,0,0,0.06)":"none"}}>
                           <Space>
-                            <Avatar style={{background:"#059669",fontWeight:900}}>#{i+1}</Avatar>
+                            <Avatar style={{background:"#006A4E",fontWeight:900}}>#{i+1}</Avatar>
                             <div>
                               <Text strong>{p.name}</Text><br/>
                               <Text type="secondary" style={{fontSize:11}}>{p.service} · {p.jobs} {lang==="bn"?"কাজ":"jobs"}</Text>
                             </div>
                           </Space>
-                          <Text strong style={{color:"#059669"}}>৳{p.earned.toLocaleString()}</Text>
+                          <Text strong style={{color:"#006A4E"}}>৳{p.earned.toLocaleString()}</Text>
                         </div>
                       ))}
                     </Card>
@@ -954,7 +954,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     return (
                       <Col xs={24} md={12} key={t.id}>
                         <Card bordered bodyStyle={{padding:16}}
-                          style={{borderLeft:`4px solid ${t.priority==="high"?"#EF4444":t.priority==="medium"?"#F59E0B":"#10B981"}`}}>
+                          style={{borderLeft:`4px solid ${t.priority==="high"?"#EF4444":t.priority==="medium"?"#F59E0B":"#00C170"}`}}>
                           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                             <div>
                               <Space style={{marginBottom:6}}>
@@ -998,7 +998,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               <Row gutter={[16,16]}>
                 <Col xs={24} lg={12}>
                   <Card title={`✍️ ${lang==="bn"?"নতুন বিজ্ঞপ্তি":"Compose Announcement"}`}
-                    bordered style={{borderTop:"3px solid #059669"}}>
+                    bordered style={{borderTop:"3px solid #006A4E"}}>
                     <Form layout="vertical" size="middle">
                       <Form.Item label={lang==="bn"?"প্রাপক":"Recipients"}>
                         <Select value={notifTarget} onChange={setNotifTarget}>
@@ -1049,7 +1049,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="promos" && (
               <>
                 <Title level={4}>🎁 {lang==="bn"?"প্রোমো কোড":"Promo Codes"}</Title>
-                <Card title={`➕ ${lang==="bn"?"নতুন প্রোমো":"New Promo"}`} bordered style={{marginBottom:20,borderTop:"3px solid #059669"}}>
+                <Card title={`➕ ${lang==="bn"?"নতুন প্রোমো":"New Promo"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Row gutter={[12,12]} align="middle">
                     <Col xs={12} sm={6}>
                       <Input value={promoForm.code} onChange={e=>setPromoForm(f=>({...f,code:e.target.value.toUpperCase()}))}
@@ -1174,7 +1174,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           </>}
                           {l.status==="approved"&&(
                             <Popconfirm title={lang==="bn"?"ওয়ালেটে বিতরণ করবেন?":"Disburse to wallet?"} onConfirm={()=>updateLoan(l.id,"disbursed","")} okText="Yes" cancelText="No">
-                              <Button size="small" type="primary" style={{background:"#059669",borderColor:"#059669"}}>{lang==="bn"?"বিতরণ":"Disburse"}</Button>
+                              <Button size="small" type="primary" style={{background:"#006A4E",borderColor:"#006A4E"}}>{lang==="bn"?"বিতরণ":"Disburse"}</Button>
                             </Popconfirm>
                           )}
                         </Space>
@@ -1188,7 +1188,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="categories" && (
               <>
                 <Title level={4}>🗂️ {lang==="bn"?"সেবা বিভাগ":"Service Categories"}</Title>
-                <Card title={`➕ ${lang==="bn"?"নতুন বিভাগ":"New Category"}`} bordered style={{marginBottom:20,borderTop:"3px solid #059669"}}>
+                <Card title={`➕ ${lang==="bn"?"নতুন বিভাগ":"New Category"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Space wrap>
                     <Input value={newCat.icon} onChange={e=>setNewCat(c=>({...c,icon:e.target.value}))}
                       placeholder="🔧" style={{width:60,textAlign:"center",fontSize:20}} />
@@ -1233,13 +1233,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 {/* Revenue Forecast */}
                 <Row gutter={[14,14]} style={{marginBottom:16}}>
                   <Col xs={24} lg={12}>
-                    <Card title={`📈 ${lang==="bn"?"রাজস্ব পূর্বাভাস":"Revenue Forecast"}`} bordered style={{borderTop:"3px solid #059669"}}>
+                    <Card title={`📈 ${lang==="bn"?"রাজস্ব পূর্বাভাস":"Revenue Forecast"}`} bordered style={{borderTop:"3px solid #006A4E"}}>
                       {aiForecast?.forecastRevenue?.length ? (
                         <div style={{display:"flex",gap:16,marginBottom:10}}>
                           {aiForecast.forecastRevenue.map((f,i)=>(
                             <div key={i} style={{flex:1,textAlign:"center",padding:"12px 6px",background:`rgba(5,150,105,${0.08*(i+1)})`,borderRadius:10}}>
                               <div style={{fontSize:12,color:"#666",marginBottom:4}}>{f.label}</div>
-                              <div style={{fontSize:18,fontWeight:700,color:"#059669"}}>৳{(f.value/1000).toFixed(1)}k</div>
+                              <div style={{fontSize:18,fontWeight:700,color:"#006A4E"}}>৳{(f.value/1000).toFixed(1)}k</div>
                               <Tag color="green" style={{marginTop:4}}>↑{f.growth}</Tag>
                             </div>
                           ))}
@@ -1260,7 +1260,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                             <div style={{display:"flex",gap:5,alignItems:"flex-end",height:60}}>
                               {chartData.map((m,i)=>(
                                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                                  <div style={{width:"100%",background:"#059669",borderRadius:"4px 4px 0 0",height:Math.round((m.v/chartMax)*52),minHeight:4,transition:"height .3s"}} />
+                                  <div style={{width:"100%",background:"#006A4E",borderRadius:"4px 4px 0 0",height:Math.round((m.v/chartMax)*52),minHeight:4,transition:"height .3s"}} />
                                   <div style={{fontSize:9,color:"#888"}}>{m.m}</div>
                                 </div>
                               ))}
@@ -1377,13 +1377,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 {/* AI Feature Cards */}
                 <Row gutter={[14,14]}>
                   {[
-                    {ic:"🤖",lbn:"Real AI Chatbot",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#059669"},
+                    {ic:"🤖",lbn:"Real AI Chatbot",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#006A4E"},
                     {ic:"🎙️",lbn:"ভয়েস ইনপুট",len:"Voice Input",d_bn:"Web Speech API — বাংলা ও ইংরেজি সাপোর্ট",d_en:"Web Speech API — Bangla & English supported",color:"#6366F1"},
                     {ic:"🎯",lbn:"স্মার্ট ম্যাচিং",len:"Smart Matching",d_bn:"AI স্কোর দিয়ে provider র‍্যাংকিং",d_en:"AI-scored provider ranking",color:"#F59E0B"},
                     {ic:"💰",lbn:"ডায়নামিক প্রাইসিং",len:"Dynamic Pricing",d_bn:"চাহিদা ও সময়ভিত্তিক মূল্য",d_en:"Demand & time-based pricing",color:"#EF4444"},
                     {ic:"🛡️",lbn:"ফ্রড ডিটেকশন",len:"Fraud Detection",d_bn:"সন্দেহজনক বুকিং স্বয়ংক্রিয়ভাবে ফ্ল্যাগ",d_en:"Auto-flag suspicious bookings",color:"#0EA5E9"},
                     {ic:"⭐",lbn:"ফেক রিভিউ চেক",len:"Fake Review Check",d_bn:"নকল রিভিউ AI দিয়ে শনাক্ত",d_en:"Detect fake reviews with AI",color:"#8B5CF6"},
-                    {ic:"📦",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#10B981"},
+                    {ic:"📦",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#00C170"},
                     {ic:"📉",lbn:"চার্ন প্রেডিকশন",len:"Churn Prediction",d_bn:"নিষ্ক্রিয় ব্যবহারকারী শনাক্ত",d_en:"Identify inactive users about to leave",color:"#F97316"},
                   ].map((f,i)=>(
                     <Col key={i} xs={24} sm={12} md={6}>
