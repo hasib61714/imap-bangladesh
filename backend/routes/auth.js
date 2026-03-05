@@ -24,7 +24,7 @@ const registerRules = validate([
 ]);
 
 const loginRules = validate([
-  body("identifier").trim().notEmpty().withMessage("Email or phone is required"),
+  body("identifier").trim().notEmpty().withMessage("Email or phone is required").isLength({ max: 100 }).withMessage("identifier too long"),
 ]);
 
 const otpRules = validate([
@@ -118,6 +118,8 @@ router.post("/social-login", async (req, res) => {
   try {
     const { socialId, provider, email, name, avatar } = req.body;
     if (!socialId || !provider) return res.status(400).json({ error: "socialId and provider required" });
+    if (socialId.length > 200 || provider.length > 30)
+      return res.status(400).json({ error: "Invalid socialId or provider" });
 
     const [rows] = await pool.query(
       "SELECT * FROM users WHERE social_id = ?",
@@ -162,6 +164,7 @@ router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
     if (!phone || !otp) return res.status(400).json({ error: "Phone and OTP required" });
+    if (!/^01[0-9]{9}$/.test(phone)) return res.status(400).json({ error: "Valid 11-digit phone required" });
     const result = otpStore.verifyOtp(phone, String(otp));
     if (result === "expired")  return res.status(400).json({ error: "OTP মেয়াদ শেষ। নতুন OTP নিন।" });
     if (result === "blocked")  return res.status(429).json({ error: "অনেকবার ভুল হয়েছে। নতুন OTP নিন।" });
@@ -184,8 +187,8 @@ router.post("/google", async (req, res) => {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ error: "Google credential required" });
 
-    // Verify token with Google's tokeninfo endpoint
-    const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    // Verify token with Google's tokeninfo endpoint (credential is encoded to prevent URL injection)
+    const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
     if (!gRes.ok) return res.status(401).json({ error: "Invalid Google token" });
     const gUser = await gRes.json();
 
