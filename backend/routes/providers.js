@@ -108,7 +108,7 @@ router.get("/:id", async (req, res) => {
   try {
     const data = await cache.getOrSet(`provider:detail:${req.params.id}`, async () => {
       const [rows] = await pool.query(
-        `SELECT p.*, u.name, u.avatar, u.phone, u.email, u.kyc_status,
+        `SELECT p.*, u.name, u.avatar, u.phone, u.kyc_status,
                 c.name_bn AS cat_bn, c.name_en AS cat_en, c.icon AS cat_icon
          FROM providers p
          LEFT JOIN users u ON u.id = p.user_id

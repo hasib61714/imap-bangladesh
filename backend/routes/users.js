@@ -125,11 +125,13 @@ router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
     if (parseFloat(amount) < 50) return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
     if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
 
-    const [b] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-    if (b[0].balance < amount) return res.status(400).json({ error: "Insufficient balance" });
-
-    await pool.query("UPDATE users SET balance = balance - ? WHERE id = ?", [amount, req.user.id]);
-    const [nb] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+    // Atomic deduction — prevents concurrent double-spend (balance >= amount is checked atomically)
+    const [result] = await pool.query(
+      "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+      [amount, req.user.id, amount]
+    );
+    if (result.affectedRows === 0) return res.status(400).json({ error: "Insufficient balance" });
+    const [[nb]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
     await pool.query(
       "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
       [req.user.id, "debit", amount, "উত্তোলন", "Withdrawal", method, nb[0].balance]
@@ -246,10 +248,15 @@ router.get("/referral", authMiddleware, async (req, res) => {
 router.post("/complaints", authMiddleware, async (req, res) => {
   try {
     const { booking_id, subject, description, priority = "medium" } = req.body;
-    if (!description) return res.status(400).json({ error: "Description required" });
+    if (!description || description.length > 2000)
+      return res.status(400).json({ error: "Description required (max 2000 chars)" });
+    if (subject && subject.length > 200)
+      return res.status(400).json({ error: "Subject max 200 chars" });
+    const VALID_PRIORITIES = ["low", "medium", "high"];
+    const safePriority = VALID_PRIORITIES.includes(priority) ? priority : "medium";
     const [result] = await pool.query(
       "INSERT INTO complaints (user_id, booking_id, subject, description, priority) VALUES (?,?,?,?,?)",
-      [req.user.id, booking_id || null, subject || "Service Complaint", description, priority]
+      [req.user.id, booking_id || null, subject || "Service Complaint", description, safePriority]
     );
     const refId = `DSP-${String(result.insertId).padStart(5, "0")}`;
     cache.del("admin:stats"); // open-complaint count changes
@@ -281,20 +288,18 @@ router.post("/loyalty/redeem", authMiddleware, async (req, res) => {
     const { pts, code } = req.body;
     if (!pts || pts <= 0) return res.status(400).json({ error: "Invalid points" });
 
-    const [[user]] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
-    if (!user || user.points < pts) return res.status(400).json({ error: "Insufficient points" });
-
-    // Deduct points, add small wallet credit (1 pt = ৳0.5)
+    // Deduct points atomically — prevents concurrent double-spend
     const walletCredit = Math.round(pts * 0.5);
-    await pool.query(
-      "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ?",
-      [pts, walletCredit, req.user.id]
+    const [redeemResult] = await pool.query(
+      "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ? AND points >= ?",
+      [pts, walletCredit, req.user.id, pts]
     );
+    if (redeemResult.affectedRows === 0) return res.status(400).json({ error: "Insufficient points" });
     await pool.query(
       "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en) VALUES (?,?,?,?)",
       [req.user.id, -pts, `রিডিম করা হয়েছে (${code})`, `Redeemed (${code})`]
     );
-    const [b] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
+    const [[b]] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
     cache.del(`user:loyalty:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
     cache.del(`user:wallet:${req.user.id}`);
