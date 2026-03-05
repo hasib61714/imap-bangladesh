@@ -47,9 +47,9 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 
 /* ─── Premium Glass Card ─── */
 .card{
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(16px) saturate(180%);
-  -webkit-backdrop-filter:blur(16px) saturate(180%);
+  background:rgba(255,255,255,.98);
+  backdrop-filter:blur(2px) saturate(120%);
+  -webkit-backdrop-filter:blur(2px) saturate(120%);
   border-radius:20px;
   border:1px solid rgba(255,255,255,.7);
   box-shadow:0 4px 16px rgba(21,163,96,.06),0 1px 3px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.8);
@@ -103,7 +103,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
   background:rgba(255,255,255,.8);color:#1DBF73;
   border:1.5px solid #1DBF73!important;border-radius:12px;padding:11px 18px;font-size:13px;
   box-shadow:0 2px 8px rgba(29,191,115,.12),inset 0 1px 0 rgba(255,255,255,.9);
-  backdrop-filter:blur(8px);
+  backdrop-filter:blur(2px);
 }
 .btn-o:hover{
   background:linear-gradient(135deg,#E8FBF2,#F0FDF4);
@@ -114,7 +114,7 @@ html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:
 /* Ghost Button */
 .btn-gh{
   background:rgba(244,249,246,.6);color:#4A6358;border-radius:10px;padding:7px 12px;font-size:13px;
-  backdrop-filter:blur(4px);border:1px solid rgba(214,236,227,.5)!important;
+  backdrop-filter:blur(2px);border:1px solid rgba(214,236,227,.5)!important;
 }
 .btn-gh:hover{
   background:rgba(232,251,242,.8);color:#1DBF73;
@@ -178,13 +178,13 @@ input:focus,textarea:focus,select:focus{
 .ov{
   position:fixed;inset:0;
   background:rgba(8,20,12,.65);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
   z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;
   animation:fadeIn .2s ease;
 }
 .modal{
   background:rgba(255,255,255,.96);
-  backdrop-filter:blur(24px) saturate(200%);-webkit-backdrop-filter:blur(24px) saturate(200%);
+  backdrop-filter:blur(6px) saturate(130%);-webkit-backdrop-filter:blur(6px) saturate(130%);
   border-radius:26px;max-height:90vh;overflow-y:auto;width:100%;
   box-shadow:0 32px 80px rgba(0,0,0,.2),0 8px 24px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
   border:1px solid rgba(255,255,255,.7);
@@ -211,8 +211,8 @@ input:focus,textarea:focus,select:focus{
   .wp{padding:0 14px;}.sp{padding:20px 0 88px;}
   .mnav{
     display:flex;position:fixed;bottom:0;left:0;right:0;
-    background:rgba(255,255,255,.92);
-    backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+    background:rgba(255,255,255,.98);
+    backdrop-filter:blur(5px) saturate(120%);-webkit-backdrop-filter:blur(5px) saturate(120%);
     border-top:1px solid rgba(214,236,227,.8);z-index:800;height:62px;
     box-shadow:0 -8px 32px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
   }
@@ -238,9 +238,9 @@ export const CSS_DARK = `
 
   /* Dark Glass Cards */
   .card{
-    background:rgba(14,31,24,.85)!important;
-    backdrop-filter:blur(20px) saturate(180%)!important;
-    -webkit-backdrop-filter:blur(20px) saturate(180%)!important;
+    background:rgba(14,31,24,.97)!important;
+    backdrop-filter:blur(5px) saturate(120%)!important;
+    -webkit-backdrop-filter:blur(5px) saturate(120%)!important;
     border-color:rgba(30,69,53,.8)!important;
     box-shadow:0 4px 20px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.2),inset 0 1px 0 rgba(34,212,127,.06)!important;
   }
@@ -254,7 +254,7 @@ export const CSS_DARK = `
     background:rgba(14,31,24,.8)!important;
     border-color:#22D47F!important;
     box-shadow:0 2px 12px rgba(34,212,127,.15),inset 0 1px 0 rgba(255,255,255,.05)!important;
-    backdrop-filter:blur(8px)!important;
+    backdrop-filter:blur(2px)!important;
   }
   .btn-o:hover{background:rgba(34,212,127,.12)!important;}
   .btn-gh{
@@ -286,7 +286,7 @@ export const CSS_DARK = `
   input,textarea,select{
     background:rgba(8,15,11,.8)!important;color:#D4EDE4!important;
     border-color:rgba(30,69,53,.8)!important;
-    backdrop-filter:blur(8px)!important;
+    backdrop-filter:blur(2px)!important;
   }
   input:focus,textarea:focus,select:focus{
     border-color:#22D47F!important;

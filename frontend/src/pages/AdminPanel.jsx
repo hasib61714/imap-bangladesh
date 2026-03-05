@@ -592,8 +592,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             padding:"0 20px", display:"flex", alignItems:"center",
             justifyContent:"space-between", position:"sticky", top:0, zIndex:100,
             background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
-            backdropFilter:"blur(20px) saturate(200%)",
-            WebkitBackdropFilter:"blur(20px) saturate(200%)",
+            backdropFilter:"blur(6px) saturate(130%)",
+            WebkitBackdropFilter:"blur(6px) saturate(130%)",
             borderBottom:dark?"1px solid rgba(30,69,53,.5)":"1px solid rgba(255,255,255,.6)",
             boxShadow:dark
               ?"0 2px 20px rgba(0,0,0,.3),inset 0 -1px 0 rgba(5,150,105,.06)"
@@ -623,7 +623,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             <div style={{
               display:"flex",overflowX:"auto",
               background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
-              backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",
+              backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",
               borderBottom:`1px solid ${dark?"rgba(30,69,53,.4)":"rgba(0,0,0,0.06)"}`,
               scrollbarWidth:"none",
               boxShadow:dark?"0 2px 12px rgba(0,0,0,.2)":"0 2px 8px rgba(0,0,0,.04)"

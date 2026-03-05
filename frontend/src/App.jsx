@@ -109,12 +109,12 @@ function LiveMap({tracking,setTracking}) {
       const d=L.DomUtil.create("button");
       d.innerHTML="🛰️";
       d.title="Toggle satellite";
-      Object.assign(d.style,{background:"rgba(255,255,255,.92)",backdropFilter:"blur(10px)",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",border:"1.5px solid rgba(255,255,255,.6)",boxShadow:"0 4px 14px rgba(0,0,0,.15)"});
+      Object.assign(d.style,{background:"rgba(255,255,255,.98)",backdropFilter:"blur(3px)",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",border:"1.5px solid rgba(255,255,255,.6)",boxShadow:"0 4px 14px rgba(0,0,0,.15)"});
       L.DomEvent.on(d,"click",L.DomEvent.stopPropagation);
       L.DomEvent.on(d,"click",()=>{
         satMode=!satMode;
         if(satMode){map.removeLayer(roadLayer);satLayer.addTo(map);d.style.background="#1DBF73";d.style.color="#fff";}
-        else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="rgba(255,255,255,.92)";d.style.color="#000";}
+        else{map.removeLayer(satLayer);roadLayer.addTo(map);d.style.background="rgba(255,255,255,.98)";d.style.color="#000";}
       });
       return d;
     };
@@ -202,7 +202,7 @@ function LiveMap({tracking,setTracking}) {
 
       {/* GPS acquiring indicator */}
       {!gpsOk&&(
-        <div style={{position:"absolute",top:10,left:10,background:"rgba(255,255,255,.88)",backdropFilter:"blur(12px) saturate(180%)",WebkitBackdropFilter:"blur(12px) saturate(180%)",borderRadius:10,padding:"4px 10px",fontSize:10,color:"#888",display:"flex",alignItems:"center",gap:5,boxShadow:"0 4px 14px rgba(0,0,0,.1)",border:"1px solid rgba(255,255,255,.6)"}}>
+        <div style={{position:"absolute",top:10,left:10,background:"rgba(255,255,255,.88)",backdropFilter:"blur(2px) saturate(120%)",WebkitBackdropFilter:"blur(2px) saturate(120%)",borderRadius:10,padding:"4px 10px",fontSize:10,color:"#888",display:"flex",alignItems:"center",gap:5,boxShadow:"0 4px 14px rgba(0,0,0,.1)",border:"1px solid rgba(255,255,255,.6)"}}>
           <span>📍</span> {lang==="bn"?"লোকেশন নিচ্ছে...":"Getting location..."}
         </div>
       )}
@@ -212,7 +212,7 @@ function LiveMap({tracking,setTracking}) {
         <div style={{
           position:"absolute",bottom:0,left:0,right:0,
           background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
-          backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",
+          backdropFilter:"blur(5px) saturate(120%)",WebkitBackdropFilter:"blur(5px) saturate(120%)",
           borderRadius:"22px 22px 0 0",padding:"16px 16px 20px",
           boxShadow:"0 -8px 32px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)",
           border:"1px solid rgba(255,255,255,.2)"
@@ -274,7 +274,7 @@ function LiveMap({tracking,setTracking}) {
             📍 {lang==="bn"?"লাইভ ট্র্যাকিং শুরু করুন":"Start Live Tracking"}
           </button>
           {gpsOk&&(
-            <div style={{width:42,height:42,background:"rgba(255,255,255,.9)",backdropFilter:"blur(10px) saturate(180%)",WebkitBackdropFilter:"blur(10px) saturate(180%)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:C.p,boxShadow:`0 4px 14px rgba(0,0,0,.1),0 0 0 1px ${C.p}22`,border:`1px solid ${C.p}22`,flexDirection:"column",gap:1}}>
+            <div style={{width:42,height:42,background:"rgba(255,255,255,.9)",backdropFilter:"blur(3px) saturate(120%)",WebkitBackdropFilter:"blur(3px) saturate(120%)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:C.p,boxShadow:`0 4px 14px rgba(0,0,0,.1),0 0 0 1px ${C.p}22`,border:`1px solid ${C.p}22`,flexDirection:"column",gap:1}}>
               <span style={{fontSize:15}}>📡</span><span>GPS</span>
             </div>
           )}
@@ -2041,8 +2041,8 @@ function Chat({isMobile}) {
         {typing&&(
           <div style={{
             display:"flex",gap:4,padding:"10px 13px",
-            background:dark?"rgba(15,30,22,.85)":"rgba(255,255,255,.92)",
-            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            background:dark?"rgba(15,30,22,.85)":"rgba(255,255,255,.98)",
+            backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
             border:`1px solid ${C.bdr}`,borderRadius:"14px 14px 14px 4px",width:58,
             boxShadow:"0 4px 14px rgba(0,0,0,.08)"
           }}>
@@ -2111,7 +2111,7 @@ function Onboarding({onDone}) {
       </div>
       {/* Button */}
       <div style={{padding:"0 24px 44px"}}>
-        <button onClick={()=>slide<SLIDES.length-1?setSlide(s=>s+1):onDone()} style={{width:"100%",padding:"16px",background:"rgba(255,255,255,.18)",border:"2px solid rgba(255,255,255,.4)",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",backdropFilter:"blur(8px)",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.28)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.18)"}>
+        <button onClick={()=>slide<SLIDES.length-1?setSlide(s=>s+1):onDone()} style={{width:"100%",padding:"16px",background:"rgba(255,255,255,.18)",border:"2px solid rgba(255,255,255,.4)",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",backdropFilter:"blur(2px)",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.28)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.18)"}>
           {slide<SLIDES.length-1?tr.obNext:tr.obStart}
         </button>
       </div>
@@ -2788,7 +2788,7 @@ function ReferralPage(){
           <button onClick={doShare} style={{
             padding:"10px 20px",borderRadius:10,
             background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.4)",
-            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
             color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",
             boxShadow:"0 4px 14px rgba(0,0,0,.15)"
           }}>
@@ -3640,7 +3640,7 @@ function DisasterPage() {
           <a href="tel:999" style={{
             padding:"7px 14px",borderRadius:10,
             background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.5)",
-            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
             color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",
             fontFamily:"'Hind Siliguri',sans-serif",textDecoration:"none",
             display:"flex",alignItems:"center",gap:5,
@@ -4065,7 +4065,7 @@ function NearbyPage({onBook,onView}) {
           <button onClick={detect} style={{
             background:"rgba(255,255,255,.18)",color:"#fff",
             border:"1.5px solid rgba(255,255,255,.5)",
-            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
             borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:14,
             cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",
             display:"flex",alignItems:"center",gap:7,
@@ -4239,7 +4239,7 @@ function LiveChatPage({provider, onBack}) {
       <div style={{
         display:"flex",alignItems:"center",gap:12,padding:"14px 18px",
         background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
-        backdropFilter:"blur(20px) saturate(200%)",WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
         borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
         position:"sticky",top:0,zIndex:50,
         boxShadow:dark?"0 2px 20px rgba(0,0,0,.3)":"0 2px 12px rgba(21,163,96,.05)"
@@ -4590,8 +4590,8 @@ export default function IMAP() {
   const Nav = ()=>(
     <nav style={{
       background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
-      backdropFilter:"blur(20px) saturate(200%)",
-      WebkitBackdropFilter:"blur(20px) saturate(200%)",
+      backdropFilter:"blur(6px) saturate(130%)",
+      WebkitBackdropFilter:"blur(6px) saturate(130%)",
       borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
       position:"sticky",top:0,zIndex:600,
       boxShadow:dark
@@ -4623,7 +4623,7 @@ export default function IMAP() {
             width:"100%",padding:"10px 14px 10px 38px",
             border:`1.5px solid ${C.bdr}`,borderRadius:12,fontSize:13,
             color:C.text,background:dark?"rgba(8,15,11,.6)":"rgba(248,252,250,.8)",
-            cursor:"pointer",backdropFilter:"blur(8px)",
+            cursor:"pointer",backdropFilter:"blur(2px)",
             transition:"all .2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,.04)"
           }} onFocus={e=>{e.target.style.borderColor=C.p;e.target.style.boxShadow=`0 0 0 3px ${C.p}18`;}} onBlur={e=>{e.target.style.borderColor=C.bdr;e.target.style.boxShadow="inset 0 1px 3px rgba(0,0,0,.04)";}}/>
         </div>
@@ -4644,7 +4644,7 @@ export default function IMAP() {
             <button key={title} title={title} className="htab" onClick={fn} style={{
               width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,
               background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)",
-              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"
             }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>{ic}</button>
@@ -4655,7 +4655,7 @@ export default function IMAP() {
               width:36,height:36,
               border:`1px solid ${C.bdr}`,borderRadius:9,
               background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)",
-              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,position:"relative",transition:"all .2s",
               boxShadow:"0 2px 8px rgba(0,0,0,.06)"
@@ -4667,7 +4667,7 @@ export default function IMAP() {
               <div style={{
                 position:"absolute",right:0,top:46,width:320,
                 background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
-                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
                 borderRadius:18,
                 boxShadow:`0 20px 60px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
                 border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
@@ -4706,7 +4706,7 @@ export default function IMAP() {
               <div style={{
                 position:"absolute",right:0,top:46,width:240,
                 background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
-                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
                 borderRadius:18,
                 boxShadow:`0 20px 60px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
                 border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
@@ -4790,7 +4790,7 @@ export default function IMAP() {
             <button onClick={()=>{setNavDotMenu(o=>!o);setProfDrop(false);setNotifDrop(false);}} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:C.text,fontWeight:700}}>⋮</button>
             {navDotMenu&&(<>
               <div onClick={()=>setNavDotMenu(false)} style={{position:"fixed",inset:0,zIndex:599}}/>
-              <div style={{position:"absolute",right:0,top:42,width:200,background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",borderRadius:16,boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s cubic-bezier(.16,1,.3,1)"}}>
+              <div style={{position:"absolute",right:0,top:42,width:200,background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",borderRadius:16,boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s cubic-bezier(.16,1,.3,1)"}}>
                 {/* User info */}
                 <div style={{padding:"11px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:9}}>
                   <div className="jc" style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{authUser?.name?.[0]||"আ"}</div>
@@ -4863,7 +4863,7 @@ export default function IMAP() {
         <div className="wp">
           <div className="hl">
             <div style={{opacity:anim?1:0,transform:anim?"none":"translateY(18px)",transition:"all .7s ease"}}>
-              <div className="row" style={{display:"inline-flex",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(8px)",borderRadius:99,padding:"6px 14px",marginBottom:20,border:"1px solid rgba(255,255,255,.12)"}}>
+              <div className="row" style={{display:"inline-flex",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(2px)",borderRadius:99,padding:"6px 14px",marginBottom:20,border:"1px solid rgba(255,255,255,.12)"}}>
                 {/* Bangladesh Flag Icon */}
                 <div style={{width:22,height:15,borderRadius:3,background:"#006A4E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}>
                   <div style={{width:8,height:8,borderRadius:"50%",background:"#F42A41"}}/>
@@ -4879,7 +4879,7 @@ export default function IMAP() {
               <p style={{fontSize:15,color:"rgba(255,255,255,.72)",lineHeight:1.75,marginBottom:26,maxWidth:440}}>{tr.heroDesc}</p>
               <div className="hsw row" style={{
                 background:"rgba(255,255,255,.95)",
-                backdropFilter:"blur(20px) saturate(180%)",WebkitBackdropFilter:"blur(20px) saturate(180%)",
+                backdropFilter:"blur(5px) saturate(120%)",WebkitBackdropFilter:"blur(5px) saturate(120%)",
                 borderRadius:14,padding:"7px 7px 7px 16px",gap:7,maxWidth:510,
                 boxShadow:"0 10px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.9)",
                 border:"1px solid rgba(255,255,255,.6)"
@@ -4899,7 +4899,7 @@ export default function IMAP() {
             {/* Hero stats (desktop) */}
             <div className="sb" style={{opacity:anim?1:0,transition:"opacity .8s ease .2s"}}>
               {[{ic:"✅",vBn:"৪৮,২৩৫+",vEn:"48,235+",l:tr.statDone,g:"+12%",d:.3},{ic:"🛡️",vBn:"৮,৪৯২",vEn:"8,492",l:tr.statVerified,g:"+8%",d:.4},{ic:"⭐",vBn:"২,১৫,৮৬৩",vEn:"215,863",l:tr.statHappy,g:"+23%",d:.5},{ic:"🗺️",vBn:"৬৪ জেলা",vEn:"64 Districts",l:tr.statNation,g:"100%",d:.6}].map((s,i)=>(
-                <div key={i} style={{background:"rgba(255,255,255,.07)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:20,animation:`fadeUp .5s ease ${s.d}s both`}}>
+                <div key={i} style={{background:"rgba(255,255,255,.07)",backdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:20,animation:`fadeUp .5s ease ${s.d}s both`}}>
                   <div style={{fontSize:27,marginBottom:8}}>{s.ic}</div>
                   <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:24,fontWeight:800,color:"#fff"}}>{lang==="en"?s.vEn:s.vBn}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:3}}>{s.l}</div>
@@ -4909,7 +4909,7 @@ export default function IMAP() {
             </div>
           </div>
           {/* Emergency banner */}
-          <div className="eb" style={{marginTop:36,background:"rgba(220,38,38,.82)",backdropFilter:"blur(8px)",borderRadius:14,padding:"15px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,border:"1px solid rgba(255,255,255,.14)"}}>
+          <div className="eb" style={{marginTop:36,background:"rgba(220,38,38,.82)",backdropFilter:"blur(2px)",borderRadius:14,padding:"15px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,border:"1px solid rgba(255,255,255,.14)"}}>
             <div className="row" style={{gap:12}}>
               <span style={{fontSize:26,animation:"pulse 1.5s infinite"}}>🚨</span>
               <div>
@@ -4917,7 +4917,7 @@ export default function IMAP() {
                 <div style={{fontSize:12,color:"rgba(255,255,255,.78)"}}>{tr.emergencyDesc}</div>
               </div>
             </div>
-            <button className="btn" style={{padding:"11px 22px",background:"rgba(255,255,255,.15)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
+            <button className="btn" style={{padding:"11px 22px",background:"rgba(255,255,255,.15)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
           </div>
         </div>
       </section>
@@ -5162,7 +5162,7 @@ export default function IMAP() {
             value={svcSearch}
             onChange={e=>setSvcSearch(e.target.value)}
             placeholder={lang==="en"?"Search services, e.g. plumber, nurse…":"সেবা খুঁজুন, যেমন প্লাম্বার, নার্স…"}
-            style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.92)",color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
+            style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.98)",color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
           />
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
           {svcSearch&&<span onClick={()=>setSvcSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:"#555"}}>✕</span>}
@@ -5268,7 +5268,7 @@ export default function IMAP() {
               padding:"7px 13px",borderRadius:99,
               border:`1.5px solid ${C.bdr}`,
               background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.85)",
-              backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+              backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
               color:C.sub,fontSize:12,fontWeight:600,
               boxShadow:"0 2px 8px rgba(0,0,0,.05)"
             }}>{f}</button>
@@ -5340,7 +5340,7 @@ export default function IMAP() {
           <div style={{
             position:"sticky",top:0,zIndex:999,
             background:"linear-gradient(90deg,#1F2937,#111827,#1F2937)",
-            backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
+            backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",
             color:"#F9FAFB",textAlign:"center",padding:"8px 14px",fontSize:12.5,fontWeight:600,
             display:"flex",alignItems:"center",justifyContent:"center",gap:8,
             boxShadow:"0 2px 12px rgba(0,0,0,.3)",

@@ -192,7 +192,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         .lp-btn-o{
           background:${dark?"rgba(14,31,24,.7)":"rgba(255,255,255,.8)"};
           color:${G};border:2px solid ${G};padding:12px 28px;
-          backdrop-filter:blur(8px);
+          backdrop-filter:blur(2px);
           box-shadow:0 2px 10px ${G}22,inset 0 1px 0 rgba(255,255,255,.6);
         }
         .lp-btn-o:hover{
@@ -215,8 +215,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           padding:20px 16px;border-radius:20px;
           border:1px solid ${dark?"rgba(30,69,53,.7)":"rgba(255,255,255,.8)"};
           background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
-          backdrop-filter:blur(16px) saturate(180%);
-          -webkit-backdrop-filter:blur(16px) saturate(180%);
+          backdrop-filter:blur(2px) saturate(120%);
+          -webkit-backdrop-filter:blur(2px) saturate(120%);
           cursor:pointer;transition:all .28s cubic-bezier(.16,1,.3,1);text-align:center;
           box-shadow:0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.7);
         }
@@ -231,7 +231,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           padding:22px;border-radius:18px;
           background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
           border:1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"};
-          backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+          backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
           box-shadow:0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.6);
           transition:all .25s cubic-bezier(.16,1,.3,1);
         }
@@ -262,7 +262,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           border-radius:16px;
           border:1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"};
           background:${dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)"};
-          backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+          backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
           cursor:pointer;transition:all .22s cubic-bezier(.16,1,.3,1);
           text-decoration:none;color:${txt};
           box-shadow:0 2px 10px rgba(0,0,0,.05),inset 0 1px 0 rgba(255,255,255,.6);
@@ -278,7 +278,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         .lp-faq-item{
           border-radius:16px;border:1px solid ${dark?"rgba(30,69,53,.5)":"rgba(214,236,227,.8)"};
           background:${dark?"rgba(14,31,24,.7)":"rgba(255,255,255,.8)"};
-          backdrop-filter:blur(12px);overflow:hidden;
+          backdrop-filter:blur(3px);overflow:hidden;
           transition:all .2s;
           box-shadow:0 2px 8px rgba(0,0,0,.04);
         }
@@ -299,8 +299,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ── TOP NAV ── */}
       <nav style={{
         background: dark ? "rgba(8,15,11,.88)" : "rgba(255,255,255,.88)",
-        backdropFilter:"blur(20px) saturate(200%)",
-        WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        backdropFilter:"blur(6px) saturate(130%)",
+        WebkitBackdropFilter:"blur(6px) saturate(130%)",
         borderBottom:`1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.7)"}`,
         position:"sticky", top:0, zIndex:900,
         boxShadow: dark
@@ -363,7 +363,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           <div style={{
             display:"inline-flex", alignItems:"center", gap:8,
             background:"rgba(255,255,255,.1)",
-            backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+            backdropFilter:"blur(3px)", WebkitBackdropFilter:"blur(3px)",
             borderRadius:30, padding:"7px 20px", fontSize:12, color:"#86efac",
             marginBottom:24, border:"1px solid rgba(255,255,255,.18)",
             boxShadow:"0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15)"
@@ -404,7 +404,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             <button className="lp-btn" style={{
               background:"rgba(255,255,255,.1)", color:WH, border:"1.5px solid rgba(255,255,255,.35)",
               fontSize:15, padding:"14px 36px", borderRadius:14, fontWeight:700,
-              backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
               boxShadow:"0 4px 20px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15)"
             }} onClick={onRegisterProvider}>
               👷 {tr.provBtn}
@@ -412,7 +412,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             <button className="lp-btn" style={{
               background:"rgba(255,255,255,.08)", color:WH, fontSize:14, padding:"13px 28px",
               borderRadius:14, border:"1px solid rgba(255,255,255,.18)",
-              backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)"
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)"
             }} onClick={() => setAiOpen(true)}>
               🤖 {lang === "en" ? "Ask AI" : "AI-কে জিজ্ঞেস করুন"}
             </button>
@@ -423,7 +423,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {["✅ KYC Verified", "🔒 Secure Payment", "🆘 SOS Protected", "⚖️ Legal Shield"].map(b => (
               <div key={b} style={{
                 fontSize:11, color:"rgba(255,255,255,.8)", display:"flex", alignItems:"center", gap:6,
-                background:"rgba(255,255,255,.08)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+                background:"rgba(255,255,255,.08)", backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
                 border:"1px solid rgba(255,255,255,.14)", borderRadius:30,
                 padding:"5px 14px", fontWeight:600,
                 boxShadow:"inset 0 1px 0 rgba(255,255,255,.1)"
@@ -502,7 +502,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 textAlign:"center", padding:"28px 18px 22px", position:"relative",
                 borderRadius:20,
                 background: dark?"rgba(14,31,24,.8)":"rgba(255,255,255,.85)",
-                backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
                 border:`1px solid ${dark?"rgba(30,69,53,.6)":"rgba(255,255,255,.8)"}`,
                 boxShadow:`0 4px 20px rgba(0,0,0,.06),0 0 0 1px ${G}11,inset 0 1px 0 rgba(255,255,255,.7)`,
                 transition:"all .25s cubic-bezier(.16,1,.3,1)"
@@ -582,7 +582,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* SOS Card */}
             <div style={{
               background: dark?"rgba(45,21,21,.85)":"rgba(254,242,242,.9)",
-              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
               border:"1.5px solid rgba(252,165,165,.5)", borderRadius:20, padding:28,
               boxShadow:"0 8px 32px rgba(239,68,68,.1),inset 0 1px 0 rgba(255,255,255,.15)"
             }}>
@@ -599,7 +599,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* Anti-fraud Card */}
             <div style={{
               background: dark?"rgba(26,26,48,.85)":"rgba(238,242,255,.9)",
-              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
               border:"1.5px solid rgba(165,180,252,.45)", borderRadius:20, padding:28,
               boxShadow:"0 8px 32px rgba(99,102,241,.1),inset 0 1px 0 rgba(255,255,255,.12)"
             }}>
@@ -620,7 +620,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* Verification Card */}
             <div style={{
               background: dark?"rgba(13,32,24,.85)":"rgba(220,252,231,.9)",
-              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
               border:"1.5px solid rgba(134,239,172,.4)", borderRadius:20, padding:28,
               boxShadow:"0 8px 32px rgba(21,128,61,.1),inset 0 1px 0 rgba(255,255,255,.15)"
             }}>
@@ -638,7 +638,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* Privacy Card */}
             <div style={{
               background: dark?"rgba(26,21,32,.85)":"rgba(250,245,255,.9)",
-              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              backdropFilter:"blur(2px)", WebkitBackdropFilter:"blur(2px)",
               border:"1.5px solid rgba(216,180,254,.4)", borderRadius:20, padding:28,
               boxShadow:"0 8px 32px rgba(124,58,237,.1),inset 0 1px 0 rgba(255,255,255,.12)"
             }}>
@@ -714,7 +714,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             marginTop:24, padding:"18px 24px",
             borderRadius:18,
             background: dark?"rgba(26,10,10,.85)":"rgba(255,241,242,.9)",
-            backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+            backdropFilter:"blur(3px)", WebkitBackdropFilter:"blur(3px)",
             border:"1.5px solid rgba(252,165,165,.4)",
             display:"flex", alignItems:"center", gap:16,
             boxShadow:"0 4px 20px rgba(239,68,68,.08),inset 0 1px 0 rgba(255,255,255,.2)"
@@ -811,7 +811,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         <div style={{
           position:"fixed", bottom:18, right:18, width:348, height:488,
           background: dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
-          backdropFilter:"blur(24px) saturate(200%)", WebkitBackdropFilter:"blur(24px) saturate(200%)",
+          backdropFilter:"blur(6px) saturate(130%)", WebkitBackdropFilter:"blur(6px) saturate(130%)",
           borderRadius:24,
           boxShadow:`0 32px 80px rgba(0,0,0,.28),0 8px 24px rgba(0,0,0,.14),0 0 0 1px ${G}22,inset 0 1px 0 rgba(255,255,255,.15)`,
           border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
@@ -829,7 +829,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               <div style={{
                 width:36, height:36, borderRadius:12,
                 background:"rgba(255,255,255,.18)",
-                backdropFilter:"blur(8px)",
+                backdropFilter:"blur(2px)",
                 display:"flex", alignItems:"center", justifyContent:"center", fontSize:19,
                 border:"1px solid rgba(255,255,255,.25)"
               }}>🤖</div>
@@ -843,7 +843,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.2)",
                 borderRadius:10, width:32, height:32,
                 cursor:"pointer", color:WH, fontSize:16,
-                backdropFilter:"blur(4px)",
+                backdropFilter:"blur(2px)",
                 display:"flex", alignItems:"center", justifyContent:"center"
               }}>✕</button>
           </div>
@@ -900,7 +900,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 borderRadius:12, padding:"9px 14px", fontSize:13,
                 background: dark?"rgba(8,15,11,.8)":"rgba(255,255,255,.9)",
                 color:txt, outline:"none", fontFamily:"inherit",
-                backdropFilter:"blur(8px)"
+                backdropFilter:"blur(2px)"
               }}
             />
             <button onClick={sendAi}
@@ -920,7 +920,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         <div style={{
           position:"fixed", bottom:0, left:0, right:0, zIndex:800,
           background: dark?"rgba(8,15,11,.94)":"rgba(255,255,255,.94)",
-          backdropFilter:"blur(20px) saturate(180%)", WebkitBackdropFilter:"blur(20px) saturate(180%)",
+          backdropFilter:"blur(5px) saturate(120%)", WebkitBackdropFilter:"blur(5px) saturate(120%)",
           borderTop:`2px solid ${G}44`,
           borderRadius:"20px 20px 0 0",
           padding:"12px 16px", display:"flex", gap:10,

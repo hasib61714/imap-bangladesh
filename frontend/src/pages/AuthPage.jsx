@@ -251,7 +251,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
 
   const antToken = { colorPrimary: "#16A34A", borderRadius: 12, fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" };
   const bg     = dark ? "#080F0B" : "#f0fdf4";
-  const cardBg = dark ? "rgba(14,31,24,.92)" : "rgba(255,255,255,.92)";
+  const cardBg = dark ? "rgba(14,31,24,.92)" : "rgba(255,255,255,.98)";
 
   return (
     <ConfigProvider theme={{ algorithm: dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm, token: antToken }}>
@@ -260,7 +260,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
         @keyframes authFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
         .auth-page{animation:authFade .35s ease;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;background:${bg};font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif}
         .auth-card .ant-card-body{padding:28px 28px 24px}
-        .auth-card{backdrop-filter:blur(20px) saturate(200%)!important;-webkit-backdrop-filter:blur(20px) saturate(200%)!important;border:1px solid ${dark?'rgba(30,69,53,.5)':'rgba(255,255,255,.7)'}!important;}
+        .auth-card{backdrop-filter:blur(6px) saturate(130%)!important;-webkit-backdrop-filter:blur(6px) saturate(130%)!important;border:1px solid ${dark?'rgba(30,69,53,.5)':'rgba(255,255,255,.7)'}!important;}
         .auth-top{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:99}
         .s-btn{display:flex!important;align-items:center;justify-content:flex-start;gap:10px;width:100%;height:46px;border-radius:12px!important;font-size:14px;font-weight:600!important;margin-bottom:10px!important}
         .otp-input input{font-size:26px!important;letter-spacing:10px;text-align:center;font-family:monospace}

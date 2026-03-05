@@ -265,7 +265,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Hind Siliguri','Noto Sans Bengali',sans-serif",color:C.text}}>
       <div style={{
         background:dark?"rgba(8,15,11,.9)":"rgba(255,255,255,.9)",
-        backdropFilter:"blur(20px) saturate(200%)",WebkitBackdropFilter:"blur(20px) saturate(200%)",
+        backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
         borderBottom:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.6)"}`,
         padding:"0 20px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",
         position:"sticky",top:0,zIndex:100,
@@ -314,7 +314,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
               <div style={{
                 position:"absolute",right:0,top:40,width:190,
                 background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",
-                backdropFilter:"blur(24px) saturate(200%)",WebkitBackdropFilter:"blur(24px) saturate(200%)",
+                backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",
                 borderRadius:16,
                 boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,
                 border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,
@@ -770,7 +770,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
       {toast&&<div style={{
         position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
         background:"rgba(10,22,16,.92)",
-        backdropFilter:"blur(16px) saturate(200%)",WebkitBackdropFilter:"blur(16px) saturate(200%)",
+        backdropFilter:"blur(2px) saturate(200%)",WebkitBackdropFilter:"blur(2px) saturate(200%)",
         color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,
         boxShadow:"0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(34,212,127,.12),inset 0 1px 0 rgba(255,255,255,.08)",
         border:"1px solid rgba(34,212,127,.15)",pointerEvents:"none",whiteSpace:"nowrap"

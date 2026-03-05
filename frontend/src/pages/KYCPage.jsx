@@ -237,7 +237,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
       {toast&&<div style={{
         position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
         background:"rgba(8,15,11,.92)",
-        backdropFilter:"blur(16px) saturate(200%)",WebkitBackdropFilter:"blur(16px) saturate(200%)",
+        backdropFilter:"blur(2px) saturate(200%)",WebkitBackdropFilter:"blur(2px) saturate(200%)",
         color:"#fff",padding:"12px 22px",borderRadius:30,fontSize:13,fontWeight:700,zIndex:9999,
         boxShadow:"0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(34,212,127,.12),inset 0 1px 0 rgba(255,255,255,.08)",
         border:"1px solid rgba(34,212,127,.15)",whiteSpace:"nowrap"
