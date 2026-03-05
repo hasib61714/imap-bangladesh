@@ -265,7 +265,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
         <div style={{
           pointerEvents: "none",
           background: feedback.ok ? "#D1FAE5" : "#FEE2E2",
-          border: `1px solid ${feedback.ok ? "#6EE7B7" : "#FCA5A5"}`,
+          border: `1px solid ${feedback.ok ? "#5DD4A0" : "#FCA5A5"}`,  
           borderRadius: 13,
           padding: "8px 13px",
           maxWidth: 210,

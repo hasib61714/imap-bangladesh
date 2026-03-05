@@ -448,7 +448,7 @@ function PDetail({p,onClose,onBook,onChat}) {
         {!revLoading&&(realRevs!==null?realRevs:REVS).map((rv,i)=>(
           <div key={rv.id||i} style={{padding:12,border:`1px solid ${C.bdr}`,borderRadius:12}}>
             <div className="row" style={{gap:9,marginBottom:6}}>
-              <div className="jc" style={{width:34,height:34,borderRadius:9,background:`linear-gradient(135deg,${C.p},#6EE7B7)`,color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{rv.customer_name?rv.customer_name[0]:(rv.av||"?")}</div>
+              <div className="jc" style={{width:34,height:34,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.plt||"#E6F4EF"})`,color:dark?"#fff":C.p,fontWeight:700,fontSize:13,flexShrink:0}}>{rv.customer_name?rv.customer_name[0]:(rv.av||"?")}</div>
               <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{rv.customer_name||rv.name}</div><Stars r={rv.rating||rv.r} size={11}/></div>
               <div style={{fontSize:11,color:C.muted}}>{rv.created_at?new Date(rv.created_at).toLocaleDateString():rv.d}</div>
             </div>
