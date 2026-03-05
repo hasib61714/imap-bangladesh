@@ -162,7 +162,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const printEarningsReport=()=>{
     const now=new Date().toLocaleDateString("en-GB");
     const month=new Date().toLocaleString("en-GB",{month:"long",year:"numeric"});
-    const histRows=earnings.history.map(h=>`<tr><td>${h.desc||"—"}</td><td>${h.date||"—"}</td><td style='text-align:right;font-weight:700;color:${h.type==="credit"?"#166534":"#b91c1c"}'>${h.type==="credit"?"+":"−"}\u09F3${Math.abs(h.amount||0).toLocaleString()}</td></tr>`).join("");
+    const histRows=earnings.history.map(h=>`<tr><td>${h.desc||"—"}</td><td>${h.date||"—"}</td><td style='text-align:right;font-weight:700;color:${h.type==="credit"?"#004D38":"#b91c1c"}'>${h.type==="credit"?"+":"−"}\u09F3${Math.abs(h.amount||0).toLocaleString()}</td></tr>`).join("");
     const w=window.open("","_blank","width=580,height=760");
     w.document.write(`<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Earnings Report</title>`+
       `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:20px}`+
@@ -184,7 +184,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
       `<div><div class='rt'>\uD83D\uDCC8 Earnings Report</div><div class='rd'>Generated: ${now}</div></div></div>`+
       `<div class='stats'>`+
       `<div class='stat'><span class='si'>\uD83D\uDCB3</span><div><div class='sv' style='color:#8b5cf6'>\u09F3${earnings.balance.toLocaleString()}</div><div class='sl'>Balance</div></div></div>`+
-      `<div class='stat'><span class='si'>\uD83D\uDCC8</span><div><div class='sv' style='color:#10b981'>\u09F3${earnings.thisWeek.toLocaleString()}</div><div class='sl'>This Week</div></div></div>`+
+      `<div class='stat'><span class='si'>\uD83D\uDCC8</span><div><div class='sv' style='color:#00C170'>\u09F3${earnings.thisWeek.toLocaleString()}</div><div class='sl'>This Week</div></div></div>`+
       `<div class='stat'><span class='si'>\uD83D\uDCCA</span><div><div class='sv' style='color:#f59e0b'>\u09F3${earnings.thisMonth.toLocaleString()}</div><div class='sl'>This Month</div></div></div>`+
       `<div class='stat'><span class='si'>\uD83C\uDFC6</span><div><div class='sv' style='color:#3b82f6'>\u09F3${earnings.total.toLocaleString()}</div><div class='sl'>All Time</div></div></div>`+
       `</div>`+
@@ -255,7 +255,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
   const statCards=[
     {icon:"💼",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
     {icon:"🔄",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
-    {icon:"✅",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#10B981"},
+    {icon:"✅",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
     {icon:"💰",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
     {icon:"⭐",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
     {icon:"📋",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
@@ -409,7 +409,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
             <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"💼 কাজের তালিকা":"💼 Job List"}</div>
             {["incoming","active","completed"].map(status=>{
               const list=jobs.filter(j=>j.status===status);
-              const statusLabel={incoming:{bn:"নতুন অনুরোধ",en:"Incoming Requests",col:"#3B82F6"},active:{bn:"সক্রিয় কাজ",en:"Active Jobs",col:C.p},completed:{bn:"সম্পন্ড",en:"Completed",col:"#10B981"}};
+              const statusLabel={incoming:{bn:"নতুন অনুরোধ",en:"Incoming Requests",col:"#3B82F6"},active:{bn:"সক্রিয় কাজ",en:"Active Jobs",col:C.p},completed:{bn:"সম্পন্ড",en:"Completed",col:"#00C170"}};
               const sl=statusLabel[status];
               if(list.length===0) return null;
               return(
@@ -438,7 +438,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
                       )}
                       {status==="active"&&(
                         <div style={{marginTop:12,display:"flex",gap:8}}>
-                          <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"rgba(22,163,74,.12)":"rgba(59,130,246,.1)",color:gpsTracking[j.id]!=null?"#15803D":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"rgba(22,163,74,.5)":"rgba(59,130,246,.4)"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                          <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"rgba(0,106,78,.12)":"rgba(59,130,246,.1)",color:gpsTracking[j.id]!=null?"#006A4E":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"rgba(0,106,78,.5)":"rgba(59,130,246,.4)"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
                             {gpsTracking[j.id]!=null?(lang==="bn"?"📍 লাইভ: চালু":"📍 GPS: ON"):(lang==="bn"?"📍 লোকেশন দিন":"📍 Share GPS")}
                           </button>
                           <button onClick={()=>completeJob(j.id)} style={{flex:2,padding:"10px",background:"rgba(16,185,129,.12)",color:"#065F46",border:"1px solid rgba(16,185,129,.35)",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
@@ -498,7 +498,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
               {[
                 {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"💳",col:C.p},
-                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"📈",col:"#10B981"},
+                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"📈",col:"#00C170"},
                 {lbn:"মাসিক",len:"Monthly",val:earnings.thisMonth,icon:"📊",col:"#F59E0B"},
                 {lbn:"সর্বমোট",len:"All Time",val:earnings.total,icon:"🏆",col:"#8B5CF6"},
               ].map((e,i)=>(

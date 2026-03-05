@@ -249,7 +249,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
     }
   };
 
-  const antToken = { colorPrimary: "#16A34A", borderRadius: 12, fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" };
+  const antToken = { colorPrimary: "#006A4E", borderRadius: 12, fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" };
   const bg     = dark ? "#080F0B" : "#f0fdf4";
   const cardBg = dark ? "rgba(14,31,24,.92)" : "rgba(255,255,255,.98)";
 
@@ -358,7 +358,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                     style={{ borderRadius: 12, marginBottom: 12 }}
                   />
                   {mode === "login" && (
-                    <div style={{ textAlign: "right", fontSize: 12, color: "#16A34A", cursor: "pointer", marginBottom: 10, fontWeight: 600 }}>
+                    <div style={{ textAlign: "right", fontSize: 12, color: "#006A4E", cursor: "pointer", marginBottom: 10, fontWeight: 600 }}>
                       {tr.authForgot}
                     </div>
                   )}
@@ -374,7 +374,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
               ) : (
                 <Button className="s-btn" onClick={() => { setMethod("email"); setErr(""); }}
                   style={{ border: "1.5px solid #e5e7eb", background: dark ? "#1e293b" : "#fff", color: dark ? "#fff" : "#374151", marginBottom: 10 }}>
-                  <MailOutlined style={{ color: "#16A34A", fontSize: 18 }} /> {tr.authEmail}
+                  <MailOutlined style={{ color: "#006A4E", fontSize: 18 }} /> {tr.authEmail}
                 </Button>
               )}
 
@@ -394,9 +394,9 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                     </>
                   ) : (
                     <>
-                      <div style={{ background: dark ? "#0f3a28" : "#f0fdf4", borderRadius: 12, padding: "12px 16px", marginBottom: 14, textAlign: "center", border: "1.5px solid #16A34A" }}>
-                        <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 700 }}>{lang === "bn" ? "পরীক্ষার OTP" : "Demo OTP"}</div>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: "#16A34A", letterSpacing: 6 }}>{mockOtp}</div>
+                      <div style={{ background: dark ? "#002918" : "#f0fdf4", borderRadius: 12, padding: "12px 16px", marginBottom: 14, textAlign: "center", border: "1.5px solid #006A4E" }}>
+                        <div style={{ fontSize: 11, color: "#006A4E", fontWeight: 700 }}>{lang === "bn" ? "পরীক্ষার OTP" : "Demo OTP"}</div>
+                        <div style={{ fontSize: 28, fontWeight: 900, color: "#006A4E", letterSpacing: 6 }}>{mockOtp}</div>
                       </div>
                       <Input className="otp-input" maxLength={6} placeholder="• • • • • •"
                         value={otp} onChange={e => setOtp(e.target.value)} onPressEnter={verifyOtp}
@@ -409,7 +409,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                       <div style={{ textAlign: "center", fontSize: 12, color: "#6b7280" }}>
                         {otpTimer > 0
                           ? <span>⏳ {otpTimer} {tr.authTimer}</span>
-                          : <span onClick={() => { setOtpSent(false); setOtp(""); }} style={{ color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>{tr.authResend}</span>
+                          : <span onClick={() => { setOtpSent(false); setOtp(""); }} style={{ color: "#006A4E", cursor: "pointer", fontWeight: 600 }}>{tr.authResend}</span>
                         }
                       </div>
                     </>
@@ -423,13 +423,13 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                 !method && (
                   <Button className="s-btn" onClick={() => { setMethod("mobile"); setErr(""); }}
                     style={{ border: "1.5px solid #e5e7eb", background: dark ? "#1e293b" : "#fff", color: dark ? "#fff" : "#374151" }}>
-                    <MobileOutlined style={{ color: "#16A34A", fontSize: 18 }} /> {tr.authMobile}
+                    <MobileOutlined style={{ color: "#006A4E", fontSize: 18 }} /> {tr.authMobile}
                   </Button>
                 )
               )}
 
               {!method && (
-                <div style={{ marginTop: 14, padding: "10px 14px", background: dark ? "#0f2a1a" : "#f0fdf4", borderRadius: 10, fontSize: 11, color: "#16A34A", textAlign: "center", border: "1px solid #bbf7d0" }}>
+                <div style={{ marginTop: 14, padding: "10px 14px", background: dark ? "#001810" : "#f0fdf4", borderRadius: 10, fontSize: 11, color: "#006A4E", textAlign: "center", border: "1px solid #bbf7d0" }}>
                   {tr.authSocialNote}
                 </div>
               )}
@@ -451,8 +451,8 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                     const r = new FileReader(); r.onload = ev => setAvatarB64(ev.target.result); r.readAsDataURL(f);
                   }} />
                   <Avatar size={80} src={avatarB64 || undefined} icon={!avatarB64 ? <UserOutlined /> : undefined}
-                    style={{ border: "3px solid #16A34A", cursor: "pointer", background: avatarB64 ? "transparent" : "#dcfce7" }} />
-                  <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 600, marginTop: 6 }}>
+                    style={{ border: "3px solid #006A4E", cursor: "pointer", background: avatarB64 ? "transparent" : "#dcfce7" }} />
+                  <div style={{ fontSize: 11, color: "#006A4E", fontWeight: 600, marginTop: 6 }}>
                     {lang === "bn" ? "📷 ছবি আপলোড করুন" : "📷 Upload photo"}
                   </div>
                 </label>
@@ -475,12 +475,12 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                     <div key={r.v} className="role-card" onClick={() => setRole(r.v)}
                       style={{
                         flex: 1, textAlign: "center", padding: "14px 10px", cursor: "pointer",
-                        borderRadius: 14, border: `2px solid ${role === r.v ? "#16A34A" : "#e5e7eb"}`,
+                        borderRadius: 14, border: `2px solid ${role === r.v ? "#006A4E" : "#e5e7eb"}`,
                         background: role === r.v ? "#f0fdf4" : (dark ? "#1e293b" : "#fff"),
                         boxShadow: role === r.v ? "0 0 0 3px #bbf7d044" : "none", transition: "all .2s",
                       }}>
                       <div style={{ fontSize: 28, marginBottom: 4 }}>{r.icon}</div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: role === r.v ? "#16A34A" : "#374151" }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: role === r.v ? "#006A4E" : "#374151" }}>
                         {lang === "bn" ? r.bn : r.en}
                       </div>
                       <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{r.desc}</div>
@@ -505,7 +505,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
         {logoTaps < 3 && (
           <div style={{ display: "flex", gap: 8, marginTop: 20, alignItems: "center" }}>
             {["method", "profile"].map(s => (
-              <div key={s} style={{ width: step === s ? 28 : 8, height: 8, borderRadius: 4, background: step === s ? "#16A34A" : "#d1d5db", transition: "all .3s" }} />
+              <div key={s} style={{ width: step === s ? 28 : 8, height: 8, borderRadius: 4, background: step === s ? "#006A4E" : "#d1d5db", transition: "all .3s" }} />
             ))}
           </div>
         )}

@@ -44,7 +44,7 @@ const toUiProv = p => ({
   ok:       p.nid_verified!==undefined?!!p.nid_verified:(p.ok!==undefined?p.ok:true),
   top:      p.top||false,
   av:       p.av||(p.name?.[0]||"P"),
-  col:      p.col||"#10B981",
+  col:      p.col||"#00C170",
   score:    p.trust_score||p.score||80,
   jobs:     p.total_jobs||p.jobs||0,
   badge:    p.badge||"",
@@ -810,9 +810,9 @@ function DisputeModal({booking,onClose}){
             <div style={{fontSize:13,color:"#6B7280",marginBottom:20}}>{lang==="en"?"We'll review and respond within 24–48 hours.":"আমরা ২৪–৪৮ ঘণ্টার মধ্যে পর্যালোচনা করব।"}</div>
             <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:20,textAlign:"left",border:"1px solid rgba(16,185,129,.3)"}}>
               <div style={{fontSize:12,fontWeight:700,color:"#065F46",marginBottom:4}}>{lang==="en"?"Reference ID":"রেফারেন্স আইডি"}</div>
-              <div style={{fontSize:15,fontWeight:800,color:"#10B981",fontFamily:"monospace"}}>{refId}</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#00C170",fontFamily:"monospace"}}>{refId}</div>
             </div>
-            <button onClick={onClose} style={{background:"#10B981",border:"none",borderRadius:12,color:"#fff",padding:"12px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Close":"বন্ধ করুন"}</button>
+            <button onClick={onClose} style={{background:"#00C170",border:"none",borderRadius:12,color:"#fff",padding:"12px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Close":"বন্ধ করুন"}</button>
           </div>
         ):(
           <>
@@ -853,10 +853,10 @@ function GuaranteeModal({booking,onClose}){
     const w=window.open("","_blank","width=520,height=680");
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>IMAP Guarantee</title>
     <style>body{font-family:'Segoe UI',sans-serif;background:#f0fdf4;margin:0;padding:24px}
-    .cert{background:#fff;border-radius:16px;padding:32px;max-width:440px;margin:0 auto;border:3px solid #10B981}
+    .cert{background:#fff;border-radius:16px;padding:32px;max-width:440px;margin:0 auto;border:3px solid #00C170}
     .header{text-align:center;margin-bottom:24px}.logo{font-size:40px;margin-bottom:8px}
     .title{font-size:20px;font-weight:800;color:#065F46}.sub{font-size:13px;color:#6B7280;margin-top:4px}
-    .seal{display:inline-block;background:#10B981;color:#fff;padding:6px 18px;border-radius:99px;font-size:12px;font-weight:700;margin:12px 0}
+    .seal{display:inline-block;background:#00C170;color:#fff;padding:6px 18px;border-radius:99px;font-size:12px;font-weight:700;margin:12px 0}
     .field{background:#F0FDF4;border-radius:10px;padding:12px 16px;margin:8px 0}
     .field label{font-size:11px;color:#6B7280;display:block;margin-bottom:4px}
     .field span{font-size:14px;font-weight:700;color:#064E3B}
@@ -889,7 +889,7 @@ function GuaranteeModal({booking,onClose}){
           <div style={{fontSize:16,fontWeight:700}}>🛡️ {lang==="en"?"Service Guarantee":"সার্ভিস গ্যারান্টি"}</div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}>✕</button>
         </div>
-        <div style={{background:"linear-gradient(135deg,#D1FAE5,#A7F3D0)",borderRadius:14,padding:18,marginBottom:16,border:"2px solid #10B981",textAlign:"center"}}>
+        <div style={{background:"linear-gradient(135deg,#D1FAE5,#A7F3D0)",borderRadius:14,padding:18,marginBottom:16,border:"2px solid #00C170",textAlign:"center"}}>
           <div style={{fontSize:36,marginBottom:8}}>🛡️</div>
           <div style={{fontSize:16,fontWeight:800,color:"#065F46",marginBottom:4}}>{lang==="en"?"7-Day Satisfaction Guarantee":"৭ দিনের সন্তুষ্টি গ্যারান্টি"}</div>
           <div style={{fontSize:12,color:"#047857"}}>{lang==="en"?"Not satisfied? We'll fix it or refund — no questions asked.":"সন্তুষ্ট না হলে বিনামূল্যে সমাধান বা সম্পূর্ণ রিফান্ড।"}</div>
@@ -901,7 +901,7 @@ function GuaranteeModal({booking,onClose}){
           </div>
         ))}
         <div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={printGuarantee} style={{flex:1,padding:"12px",borderRadius:12,background:"linear-gradient(135deg,#10B981,#059669)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Download PDF":"PDF ডাউনলোড"}</button>
+          <button onClick={printGuarantee} style={{flex:1,padding:"12px",borderRadius:12,background:"linear-gradient(135deg,#00C170,#059669)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Download PDF":"PDF ডাউনলোড"}</button>
           <button onClick={onClose} style={{padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.bdr}`,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>✕</button>
         </div>
       </div>
@@ -969,8 +969,8 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
       ".dv{border:none;border-top:2px dashed #e2e8f0;margin:12px 0}"+
       ".title{text-align:center;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px}"+
       ".ab{background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;margin:14px 0}"+
-      ".av{font-size:26px;font-weight:900;color:#166534}.al{font-size:11px;color:#4ade80;margin-top:2px}"+
-      ".st{display:inline-block;background:#dcfce7;color:#166534;padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-top:4px}"+
+      ".av{font-size:26px;font-weight:900;color:#004D38}.al{font-size:11px;color:#00C170;margin-top:2px}"+
+      ".st{display:inline-block;background:#dcfce7;color:#004D38;padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-top:4px}"+
       ".rw{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9}"+
       ".lbl{font-size:12px;color:#64748b}.val{font-size:13px;font-weight:600;color:#0f172a;text-align:right}"+
       ".ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:16px}"+
@@ -988,7 +988,7 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
       "<div class='rw'><span class='lbl'>Provider</span><span class='val'>"+( pr||"IMAP Provider")+"</span></div>"+
       "<div class='rw'><span class='lbl'>Date &middot; \u09A4\u09BE\u09B0\u09BF\u0996</span><span class='val'>"+( dt||"\u2014")+"</span></div>"+
       "<div class='rw'><span class='lbl'>Payment Method</span><span class='val'>SSLCommerz / MFS</span></div>"+
-      "<div class='rw'><span class='lbl'>Status</span><span class='val' style='color:#16a34a'>Completed &#x2713;</span></div>"+
+      "<div class='rw'><span class='lbl'>Status</span><span class='val' style='color:#006A4E'>Completed &#x2713;</span></div>"+
       "<hr class='dv'/><div class='ft'>IMAP Platform &middot; imap.com.bd<br/>This is an official payment receipt.</div>"+
       "</div></body></html>");
     w.document.close();
@@ -1019,7 +1019,7 @@ function MyBookings({onRate,onBook,onPay,onRefresh}) {
       "td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f1f5f9}"+
       ".tots{margin-left:auto;width:220px}"+
       ".tr2{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #f1f5f9}"+
-      ".trt{border-bottom:none!important;font-weight:900;font-size:15px;color:#166534;padding-top:10px!important;margin-top:4px}"+
+      ".trt{border-bottom:none!important;font-weight:900;font-size:15px;color:#004D38;padding-top:10px!important;margin-top:4px}"+
       ".ft{text-align:center;font-size:10px;color:#94a3b8;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:12px}"+
       "@media print{body{background:#fff;padding:0}}</style></head>"+
       "<body onload='window.print()'><div class='inv'>"+
@@ -1170,7 +1170,7 @@ function LoanScore() {
       <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="en"?"We will review and contact you within 2–3 business days.":"আমরা ২–৩ কার্যদিবসের মধ্যে আপনার সাথে যোগাযোগ করব।"}</div>
       <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"14px 18px",marginBottom:20,display:"inline-block",border:"1px solid rgba(16,185,129,.3)"}}>
         <div style={{fontSize:12,color:"#065F46",fontWeight:700,marginBottom:4}}>{lang==="en"?"Application ID":"আবেদন আইডি"}</div>
-        <div style={{fontSize:18,fontWeight:800,color:"#10B981",fontFamily:"monospace"}}>{loanRef}</div>
+        <div style={{fontSize:18,fontWeight:800,color:"#00C170",fontFamily:"monospace"}}>{loanRef}</div>
       </div>
       <br/>
       <button onClick={()=>{setLoanDone(false);setApplyOffer(null);}} style={{padding:"11px 28px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Close":"বন্ধ করুন"}</button>
@@ -1675,7 +1675,7 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
   const lang=tr===T.en?"en":"bn";
   const { balance: ctxBalance, bookings: ctxBookings } = useLiveData();
   const u=user||{name:"অতিথি",email:"guest@example.com",role:"customer",kycStatus:"pending",points:320};
-  const kycColor={verified:"#10B981",pending:"#F59E0B",rejected:"#EF4444"};
+  const kycColor={verified:"#00C170",pending:"#F59E0B",rejected:"#EF4444"};
   const kycLabel=lang==="bn"?{verified:"✅ যাচাইকৃত",pending:"⏳ অপেক্ষায়",rejected:"❌ প্রত্যাখ্যাত"}:{verified:"✅ Verified",pending:"⏳ Pending",rejected:"❌ Rejected"};
   const statusBg={completed:["#D1FAE5","#065F46"],cancelled:["#FEE2E2","#B91C1C"],pending:["#FEF9C3","#7C5800"]};
   const statusLabel=lang==="bn"?{completed:"সম্পন্ন",cancelled:"বাতিল",pending:"অপেক্ষায়"}:{completed:"Completed",cancelled:"Cancelled",pending:"Pending"};
@@ -2316,7 +2316,7 @@ function CalendarPage({onBook}) {
 /* ─── Analytics Dashboard ───────────────────────────── */
 const AN_MONTHS=["Jul","Aug","Sep","Oct","Nov","Dec","Jan"];
 const AN_DATA=[2,3,1,4,3,5,4];
-const AN_SERVICES=[{icon:"⚡",name:"Electrical",nameBn:"ইলেকট্রিক",pct:32,color:"#F59E0B"},{icon:"🧹",name:"Cleaning",nameBn:"পরিষ্কার",pct:24,color:"#10B981"},{icon:"🔧",name:"Plumber",nameBn:"প্লাম্বার",pct:18,color:"#3B82F6"},{icon:"🏥",name:"Medical",nameBn:"চিকিৎসা",pct:15,color:"#EF4444"},{icon:"📚",name:"Tutoring",nameBn:"শিক্ষা",pct:11,color:"#8B5CF6"}];
+const AN_SERVICES=[{icon:"⚡",name:"Electrical",nameBn:"ইলেকট্রিক",pct:32,color:"#F59E0B"},{icon:"🧹",name:"Cleaning",nameBn:"পরিষ্কার",pct:24,color:"#00C170"},{icon:"🔧",name:"Plumber",nameBn:"প্লাম্বার",pct:18,color:"#3B82F6"},{icon:"🏥",name:"Medical",nameBn:"চিকিৎসা",pct:15,color:"#EF4444"},{icon:"📚",name:"Tutoring",nameBn:"শিক্ষা",pct:11,color:"#8B5CF6"}];
 const AN_ACTIVITY=[{icon:"⚡",title:"Electrician booked",titleBn:"ইলেকট্রিশিয়ান বুক",date:"Today, 10:30 AM",amt:-385},{icon:"⭐",title:"Rated Farzana 5★",titleBn:"ফারজানাকে ৫★ দিলেন",date:"Yesterday",amt:0},{icon:"💳",title:"Wallet topped up",titleBn:"ওয়ালেট টপআপ",date:"2 days ago",amt:1000},{icon:"🔧",title:"Plumber booking",titleBn:"প্লাম্বার বুকিং",date:"3 days ago",amt:-280}];
 
 function AnalyticsPage(){
@@ -2332,7 +2332,7 @@ function AnalyticsPage(){
   const stats=[
     [tr.anBookings,"📋",totalBookings||AN_DATA.reduce((a,v)=>a+v,0),thisMonthBk?`+${thisMonthBk} ${lang==="en"?"this month":"এই মাসে"}`:"↑12%",C.p],
     [tr.anSpent,"💸",totalSpent?`৳${Math.round(totalSpent).toLocaleString()}`:"৳3,820",totalSpent?"":"↑8%","#F59E0B"],
-    [tr.anSaved,"🎁",savedAmt?`৳${savedAmt.toLocaleString()}`:"৳640",savedAmt?"":"↑23%","#10B981"],
+    [tr.anSaved,"🎁",savedAmt?`৳${savedAmt.toLocaleString()}`:"৳640",savedAmt?"":"↑23%","#00C170"],
     [tr.anRating,"⭐","4.8","→0%","#8B5CF6"],
   ];
 
@@ -2350,7 +2350,7 @@ function AnalyticsPage(){
   const svcMap={};
   ctxBk.forEach(b=>{const s=b.service_name_en||b.service_type||"Other";svcMap[s]=(svcMap[s]||0)+1;});
   const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const SCOLS=["#F59E0B","#10B981","#3B82F6","#EF4444","#8B5CF6"],SICONS=["🔧","🧹","⚡","🏥","📚"];
+  const SCOLS=["#F59E0B","#00C170","#3B82F6","#EF4444","#8B5CF6"],SICONS=["🔧","🧹","⚡","🏥","📚"];
   const sTot=svcEntries.reduce((s,[,c])=>s+c,0)||1;
   const serviceData=svcEntries.length?svcEntries.map(([name,cnt],i)=>({icon:SICONS[i]||"🔧",name,nameBn:name,pct:Math.round(cnt/sTot*100),color:SCOLS[i]||"#6B7280"})):AN_SERVICES;
 
@@ -2365,7 +2365,7 @@ function AnalyticsPage(){
             <div style={{fontSize:22,marginBottom:6}}>{ic}</div>
             <div style={{fontSize:22,fontWeight:800,color:col}}>{val}</div>
             <div style={{fontSize:12,color:C.sub,marginTop:2}}>{lbl}</div>
-            {chg&&<div style={{fontSize:11,color:"#16A34A",marginTop:4,fontWeight:700}}>{chg}</div>}
+            {chg&&<div style={{fontSize:11,color:"#006A4E",marginTop:4,fontWeight:700}}>{chg}</div>}
           </div>
         ))}
       </div>
@@ -2404,7 +2404,7 @@ function AnalyticsPage(){
               <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?a.title:a.titleBn}</div>
               <div style={{fontSize:11,color:C.muted}}>{a.date}</div>
             </div>
-            {a.amt!==0&&<div style={{fontSize:13,fontWeight:700,color:a.amt>0?"#16A34A":"#DC2626"}}>{a.amt>0?"+":""}{a.amt>0?"৳"+a.amt:"৳"+Math.abs(a.amt)}</div>}
+            {a.amt!==0&&<div style={{fontSize:13,fontWeight:700,color:a.amt>0?"#006A4E":"#DC2626"}}>{a.amt>0?"+":""}{a.amt>0?"৳"+a.amt:"৳"+Math.abs(a.amt)}</div>}
           </div>
         ))}
       </div>
@@ -2701,7 +2701,7 @@ function LoyaltyPage(){
                   <div style={{fontSize:28}}>{r.icon}</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.text}}>{lang==="en"?r.titleEn:r.titleBn}</div>
-                    <div style={{fontSize:11,color:canRedeem?"#16A34A":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`✅ ${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
+                    <div style={{fontSize:11,color:canRedeem?"#006A4E":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`✅ ${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
                   </div>
                   <button onClick={async()=>{
                     if(!canRedeem||isRedeemed||redeemingCode)return;
@@ -2736,7 +2736,7 @@ function LoyaltyPage(){
                 <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?h.reason_en:h.reason_bn}</div>
                 <div style={{fontSize:11,color:C.muted}}>{new Date(h.created_at).toLocaleDateString("bn-BD")}</div>
               </div>
-              <div style={{fontSize:14,fontWeight:800,color:h.points>0?"#16A34A":"#DC2626"}}>{h.points>0?"+":""}{h.points}</div>
+              <div style={{fontSize:14,fontWeight:800,color:h.points>0?"#006A4E":"#DC2626"}}>{h.points>0?"+":""}{h.points}</div>
             </div>
           ))}
           {history.length===0&&<div/>}
@@ -2832,7 +2832,7 @@ function ReferralPage(){
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:11,fontWeight:700,background:f.status==="active"?"#D1FAE5":"#FEF3C7",color:f.status==="active"?"#065F46":"#92400E",padding:"2px 8px",borderRadius:6}}>{f.status}</div>
-              {f.earned>0&&<div style={{fontSize:12,fontWeight:700,color:"#16A34A",marginTop:3}}>+৳{f.earned}</div>}
+              {f.earned>0&&<div style={{fontSize:12,fontWeight:700,color:"#006A4E",marginTop:3}}>+৳{f.earned}</div>}
             </div>
           </div>
         ))}
@@ -3101,7 +3101,7 @@ function SkillCertPage(){
     setTimeout(()=>setEnrollFlash(null),2000);
   };
 
-  const levelColor={Beginner:"#10B981",Intermediate:"#F59E0B",Advanced:"#EF4444"};
+  const levelColor={Beginner:"#00C170",Intermediate:"#F59E0B",Advanced:"#EF4444"};
 
   return(
     <div>
@@ -3391,7 +3391,7 @@ function WalletPage() {
     finally{ setTopping(false); }
   };
 
-  const txColor=t=>t.amount>0?"#16A34A":"#DC2626";
+  const txColor=t=>t.amount>0?"#006A4E":"#DC2626";
   const txSign=t=>t.amount>0?"+":"";
 
   const printReceipt=t=>{
@@ -3479,7 +3479,7 @@ function WalletPage() {
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontSize:15,fontWeight:800,color:txColor(t)}}>{txSign(t)}৳{Math.abs(t.amount)}</div>
                   <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end",marginTop:4}}>
-                    <div style={{fontSize:10,color:"#16A34A"}}>✓ {lang==="en"?"Success":"সফল"}</div>
+                    <div style={{fontSize:10,color:"#006A4E"}}>✓ {lang==="en"?"Success":"সফল"}</div>
                     <button onClick={()=>printReceipt(t)} title={lang==="en"?"Download Receipt":"রসিদ ডাউনলোড"}
                       style={{background:"none",border:"none",cursor:"pointer",fontSize:13,padding:0,color:C.p,lineHeight:1}}>📄</button>
                   </div>
@@ -3575,7 +3575,7 @@ function DisasterPage() {
             id:a.id,
             icon:a.type==="flood"?"🌊":a.type==="cyclone"?"🌀":a.type==="fire"?"🔥":a.type==="earthquake"?"🏚️":"⚠️",
             level:a.severity==="critical"?"extreme":a.severity==="high"?"high":"moderate",
-            color:a.severity==="critical"?"#DC2626":a.severity==="high"?"#D97706":"#16A34A",
+            color:a.severity==="critical"?"#DC2626":a.severity==="high"?"#D97706":"#006A4E",
             bg:a.severity==="critical"?"#FEF2F2":a.severity==="high"?"#FFFBEB":"#F0FDF4",
             titleBn:a.type+" – "+a.area,
             titleEn:a.type+" – "+a.area,
@@ -3616,7 +3616,7 @@ function DisasterPage() {
   ];
   const TIPS=lang==="en"?TIPS_EN:TIPS_BN;
 
-  const LEVEL_COL={high:"#D97706",extreme:"#DC2626",moderate:"#16A34A"};
+  const LEVEL_COL={high:"#D97706",extreme:"#DC2626",moderate:"#006A4E"};
   const LEVEL_LBL={high:lang==="en"?"HIGH":"তীব্র",extreme:lang==="en"?"EXTREME":"জরুরি",moderate:lang==="en"?"MODERATE":"মাধ্যম"};
 
   const REPORT_TYPES=lang==="en"
@@ -3706,7 +3706,7 @@ function DisasterPage() {
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {SHELTERS.map((s,i)=>(
             <div key={i} className="card fu" style={{animationDelay:`${i*.07}s`,padding:"16px",display:"flex",gap:14,alignItems:"center"}}>
-              <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#16A34A,#166534)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🏕️</div>
+              <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🏕️</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
                 <div style={{fontSize:12,color:C.muted,marginTop:3}}>👥 {s.cap.toLocaleString()} {lang==="en"?"capacity":"জন’র ধারণ ক্ষমতা"} · 📍 {s.dist} km</div>
@@ -4870,7 +4870,7 @@ export default function IMAP() {
                 </div>
                 <span style={{fontSize:12,fontWeight:700}}>
                   <span style={{color:"#F42A41"}}>{lang==="bn"?"বাংলাদেশের":"Bangladesh's"}</span>
-                  <span style={{color:"#4ADE80"}}>{lang==="bn"?" নম্বর ১ সেবা মার্কেটপ্লেস":" Number 1 Service Marketplace"}</span>
+                  <span style={{color:"#00C170"}}>{lang==="bn"?" নম্বর ১ সেবা মার্কেটপ্লেস":" Number 1 Service Marketplace"}</span>
                 </span>
               </div>
               <h1 className="hh" style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:50,fontWeight:800,color:"#fff",lineHeight:1.15,marginBottom:16}}>
@@ -5213,7 +5213,7 @@ export default function IMAP() {
                   <div style={{fontSize:15,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>
                     {liveCount>0
-                      ? <span style={{color:"#16A34A",fontWeight:600}}>✓ {liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
+                      ? <span style={{color:"#006A4E",fontWeight:600}}>✓ {liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
                       : <span>{s.count} {tr.available}</span>
                     }
                   </div>
@@ -5416,7 +5416,7 @@ export default function IMAP() {
             <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,padding:28,textAlign:"center"}}>
               {payResult==="success"?(<>
                 <div style={{fontSize:64,marginBottom:8}}>✅</div>
-                <div style={{fontSize:19,fontWeight:700,color:"#16A34A",marginBottom:6}}>{lang==="bn"?"পেমেন্ট সফল!":"Payment Successful!"}</div>
+                <div style={{fontSize:19,fontWeight:700,color:"#006A4E",marginBottom:6}}>{lang==="bn"?"পেমেন্ট সফল!":"Payment Successful!"}</div>
                 <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="bn"?"আপনার বুকিং নিশ্চিত হয়েছে।":"Your booking has been confirmed."}</div>
                 {payResultTranId&&<div style={{fontSize:11,color:C.muted,marginBottom:20}}>TXN: {payResultTranId}</div>}
                 <button className="btn btn-g" onClick={()=>{setShowPayment(false);setPayResult(null);setPayBookingId(null);setPage("bookings");}} style={{padding:"10px 32px"}}>{lang==="bn"?"বুকিং দেখুন":"View Bookings"}</button>
@@ -5477,7 +5477,7 @@ export default function IMAP() {
               {sosDone ? (
                 <>
                   <div style={{fontSize:60,marginBottom:12}}>✅</div>
-                  <div style={{fontSize:18,fontWeight:700,color:"#16A34A",marginBottom:8}}>{lang==="bn"?"উর্ধ্বতন কর্তৃপক্ষকে জানানো হয়েছে":"Admin & Call Center Notified"}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"#006A4E",marginBottom:8}}>{lang==="bn"?"উর্ধ্বতন কর্তৃপক্ষকে জানানো হয়েছে":"Admin & Call Center Notified"}</div>
                   <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="bn"?"আমাদের টিম শীঘ্রই যোগাযোগ করবে। জরুরি নম্বর: ৯৯৯":"Our team will contact you shortly. Emergency: 999"}</div>
                   <button className="btn btn-g" onClick={()=>setShowSos(false)} style={{padding:"10px 28px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
                 </>

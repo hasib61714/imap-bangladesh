@@ -1407,7 +1407,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   <Button onClick={loadSos} loading={sosLoading}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
                 </div>
                 <Row gutter={[12,12]} style={{marginBottom:20}}>
-                  {[["open","#EF4444",lang==="bn"?"খোলা":"Open"],["in_progress","#F59E0B",lang==="bn"?"প্রক্রিয়াধীন":"In Progress"],["resolved","#16A34A",lang==="bn"?"সমাধান":"Resolved"]].map(([s,c,l])=>(
+                  {[["open","#EF4444",lang==="bn"?"খোলা":"Open"],["in_progress","#F59E0B",lang==="bn"?"প্রক্রিয়াধীন":"In Progress"],["resolved","#006A4E",lang==="bn"?"সমাধান":"Resolved"]].map(([s,c,l])=>(
                     <Col xs={8} key={s}>
                       <Card style={{borderTop:`3px solid ${c}`,textAlign:"center",padding:"12px 0"}}>
                         <div style={{fontSize:22,fontWeight:800,color:c}}>{sosAlerts.filter(a=>a.status===s).length}</div>
@@ -1435,7 +1435,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           onClick={async()=>{await sosApi?.update(r.id,"in_progress","Admin investigating");loadSos();}}>
                           {lang==="bn"?"তদন্ত":"Investigate"}
                         </Button>}
-                        {r.status!=="resolved"&&<Button size="small" style={{background:"#16A34A",borderColor:"#16A34A",color:"#fff"}}
+                        {r.status!=="resolved"&&<Button size="small" style={{background:"#006A4E",borderColor:"#006A4E",color:"#fff"}}
                           onClick={async()=>{await sosApi?.update(r.id,"resolved","Resolved by admin");loadSos();}}>
                           {lang==="bn"?"সমাধান":"Resolve"}
                         </Button>}
@@ -1466,7 +1466,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 </div>
                 <Row gutter={[12,12]} style={{marginBottom:20}}>
                   {[
-                    ["success",  "#16A34A", lang==="bn"?"সফল":"Success"],
+                    ["success",  "#006A4E", lang==="bn"?"সফল":"Success"],
                     ["pending",  "#F59E0B", lang==="bn"?"অপেক্ষায়":"Pending"],
                     ["failed",   "#EF4444", lang==="bn"?"ব্যর্থ":"Failed"],
                     ["cancelled","#6B7280", lang==="bn"?"বাতিল":"Cancelled"],
