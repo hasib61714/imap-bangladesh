@@ -1,225 +1,141 @@
-# IMAP Bangladesh – Intelligent Multi-Service Assistance Platform
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:6E40C9,50:A855F7,100:06B6D4&height=200&section=header&text=IMAP%20Bangladesh&fontSize=48&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=AI-Powered%20Multi-Service%20Marketplace%20for%20Bangladesh&descAlignY=58&descSize=18" width="100%" />
+</p>
 
-> **Live:** https://hasib61714.github.io/imap-bangladesh/  |  **API:** https://imap-backend-mghb.onrender.com
-
-IMAP is an AI-powered multi-service marketplace designed to simplify daily life in Bangladesh by connecting users with verified service providers through a secure and intelligent platform.
-
-This platform integrates emergency support, household services, professional assistance, and smart AI-based provider matching.
-
----
-
-## 🌟 Key Features
-
-### 🔹 User Features
-- Phone OTP authentication
-- Smart service search & filtering
-- AI-based provider recommendations
-- Live provider tracking (GPS)
-- Real-time chat & communication
-- Secure online payments (bKash/Nagad/Card)
-- Digital receipts & service history
-- Ratings & reviews
-- Emergency service booking
-- Bengali-friendly interface
-
-### 🔹 Provider Features
-- Provider registration & document verification
-- Booking management (accept/reject)
-- Earnings dashboard & analytics
-- Service & pricing management
-- Real-time notifications
-- Verified provider badge
-
-### 🔹 Admin Features
-- Provider approval & KYC verification
-- Platform monitoring & analytics
-- Dispute resolution system
-- Category & content management
-
-### 🔹 Emergency Services
-- Ambulance & medical assistance
-- Emergency electrician & plumbing
-- Oxygen & blood donor support
-- 🚗 Emergency car mechanic & roadside assistance
+<p align="center">
+  <a href="https://github.com/hasib61714/imap-bangladesh/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT" />
+  </a>
+  <a href="https://github.com/hasib61714/imap-bangladesh/stargazers">
+    <img src="https://img.shields.io/github/stars/hasib61714/imap-bangladesh?style=for-the-badge&color=A855F7" alt="Stars" />
+  </a>
+  <a href="https://github.com/hasib61714/imap-bangladesh/network/members">
+    <img src="https://img.shields.io/github/forks/hasib61714/imap-bangladesh?style=for-the-badge&color=06B6D4" alt="Forks" />
+  </a>
+</p>
 
 ---
 
-## 🧠 AI & Smart Modules
-- Intelligent provider ranking
-- Smart suggestions & recommendations
-- Emergency priority dispatch
-- Disaster & blood donor support
+## About
+
+**IMAP Bangladesh** is an AI-powered multi-service marketplace that connects citizens across all **64 districts of Bangladesh** with verified local service providers. Whether you need emergency assistance, household repairs, or professional services, IMAP intelligently matches you with the right provider nearby. The platform features live GPS tracking, real-time chat, and AI-driven recommendations — all secured through phone OTP authentication.
 
 ---
 
-## 🛠 Tech Stack
+## Features
 
-### Frontend
-- React.js + Vite
-- Progressive Web App (PWA)
-- Responsive mobile-first UI (Bengali + English)
-- Ant Design (Admin Panel)
-
-### Backend
-- Node.js + Express.js
-- REST API + Socket.io (real-time chat & tracking)
-- JWT Authentication
-- Helmet (security headers) + express-rate-limit
-
-### Database
-- MySQL 8+ (InnoDB, utf8mb4)
+- **Multi-Category Services** — Emergency, household, and professional service categories under one roof
+- **Verified Provider Network** — All service providers go through a verification process before listing
+- **Phone OTP Authentication** — Frictionless, passwordless login via SMS one-time password
+- **Live GPS Tracking** — Real-time map view of service provider location while en route
+- **Real-Time Chat** — Instant messaging between users and providers powered by Socket.io
+- **AI Service Recommendations** — Smart suggestions based on location, history, and service type
+- **Nationwide Coverage** — Supports all 64 districts of Bangladesh
+- **Provider Dashboard** — Providers can manage availability, bookings, and earnings
 
 ---
 
-## 📁 Project Structure
-```
-imap-app/
-├── backend/
-│   ├── routes/          # All API route files
-│   ├── middleware/       # auth.js JWT middleware
-│   ├── scripts/          # initDb.js, checkLogin.js
-│   ├── server.js         # Express + Socket.io entry
-│   ├── db.js             # MySQL pool
-│   ├── schema.sql        # Full database schema
-│   └── .env.example      # Environment template
-└── frontend/
-    ├── src/
-    │   ├── App.jsx        # Main app (all user pages)
-    │   ├── api.js         # API client
-    │   ├── pages/         # AdminPanel, ProviderPortal, KYCPage, AuthPage
-    │   └── constants/     # theme, translations, data
-    ├── public/            # PWA manifest, service worker, icons
-    └── .env.example       # Frontend environment template
-```
+## Tech Stack
+
+<p align="center">
+  <a href="https://skillicons.dev">
+    <img src="https://skillicons.dev/icons?i=javascript,nodejs,express,mongodb&theme=dark" />
+  </a>
+</p>
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | MongoDB (Mongoose) |
+| Real-Time | Socket.io |
+| Maps & GPS | Google Maps API |
+| Auth | Phone OTP (SMS Gateway) |
+| Language | JavaScript (ES2022) |
 
 ---
 
-## ⚙️ Local Development Setup
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- MySQL 8+
-- XAMPP / MySQL server running
 
-### 1. Database Setup
-```bash
-mysql -u root -p < backend/schema.sql
-```
+- Node.js >= 18 & npm
+- MongoDB >= 6.0 (local or Atlas)
+- Google Maps API key
+- SMS gateway credentials (for OTP)
 
-### 2. Backend Setup
+### Installation
+
 ```bash
-cd backend
+# Clone the repository
+git clone https://github.com/hasib61714/imap-bangladesh.git
+cd imap-bangladesh
+
+# Install dependencies
 npm install
+
+# Configure environment
 cp .env.example .env
-# Edit .env — set DB_PASSWORD, JWT_SECRET, etc.
-npm run dev       # nodemon (hot reload)
-# or
-npm start         # plain node
+# Fill in: MONGO_URI, GOOGLE_MAPS_KEY, SMS_API_KEY, JWT_SECRET
 ```
 
-### 3. Frontend Setup
+### Usage
+
 ```bash
-cd frontend
-npm install
-npm run dev       # http://localhost:5173
+# Run in development mode
+npm run dev
+
+# Run in production mode
+npm start
 ```
 
-### Create Admin Account
-```bash
-cd backend
-node scripts/initDb.js
+Server starts at [http://localhost:5000](http://localhost:5000). Socket.io connects on the same port.
+
+---
+
+## Project Structure
+
+```
+imap-bangladesh/
+├── controllers/
+│   ├── authController.js
+│   ├── serviceController.js
+│   └── chatController.js
+├── models/
+│   ├── User.js
+│   ├── Provider.js
+│   └── Booking.js
+├── routes/
+├── socket/
+│   └── chatHandler.js
+├── middleware/
+└── server.js
 ```
 
 ---
 
-## 🚀 Production Deployment
+## Contributing
 
-### 1. Set Environment Variables
-Edit `backend/.env`:
-```env
-NODE_ENV=production
-PORT=5000
-DB_HOST=localhost
-DB_USER=your_db_user
-DB_PASSWORD=your_strong_password
-DB_NAME=imap_db
-JWT_SECRET=<64-char random hex — run: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
-JWT_EXPIRES_IN=7d
-FRONTEND_URL=https://yourdomain.com
-GEMINI_API_KEY=optional
-```
+Contributions are welcome! Please follow these steps:
 
-### 2. Build Frontend
-```bash
-cd frontend
-cp .env.example .env.production
-# Edit .env.production — set VITE_API_URL=https://api.yourdomain.com/api
-npm run build     # outputs to frontend/dist/
-```
-
-### 3. Serve with Nginx (recommended)
-```nginx
-# Backend API
-server {
-    listen 443 ssl;
-    server_name api.yourdomain.com;
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-    }
-}
-# Frontend static files
-server {
-    listen 443 ssl;
-    server_name yourdomain.com;
-    root /var/www/imap/frontend/dist;
-    index index.html;
-    location / { try_files $uri $uri/ /index.html; }
-}
-```
-
-### 4. Run Backend with PM2
-```bash
-npm install -g pm2
-cd backend
-pm2 start server.js --name imap-backend
-pm2 save
-pm2 startup
-```
-
-### 5. SSL/HTTPS
-```bash
-# Free SSL with Certbot
-sudo certbot --nginx -d yourdomain.com -d api.yourdomain.com
-```
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'feat: add your feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
 
 ---
 
-## 🔐 Security Checklist
+## License
 
-- [x] `.env` is in `.gitignore` — never committed to git
-- [x] JWT authentication on all protected routes
-- [x] bcrypt password hashing
-- [x] Helmet security headers (HSTS, X-Frame-Options, etc.)
-- [x] Rate limiting: 200 req/15min general, 20 req/15min for auth
-- [x] CORS restricted to `FRONTEND_URL` in production
-- [x] Input validation with express-validator
-- [x] SQL injection protection via parameterized queries
-- [x] HTTPS in production (Render TLS on backend, GitHub Pages TLS on frontend)
-- [x] Strong random JWT_SECRET configured in Render environment
-- [x] Admin-only auth on AI analytics endpoints (`/forecast`, `/churn`, `/heatmap`, `/debug`)
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🌐 Deployed Infrastructure
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:06B6D4,50:A855F7,100:6E40C9&height=120&section=footer" width="100%" />
+</p>
 
-| Layer | Platform | URL |
-|-------|----------|-----|
-| Frontend | GitHub Pages | https://hasib61714.github.io/imap-bangladesh/ |
-| Backend API | Render (Node.js) | https://imap-backend-mghb.onrender.com |
-| Database | TiDB Serverless (MySQL-compatible) | Render env vars |
-
-> **Note:** The Render free tier spins down after inactivity. The frontend automatically wakes the backend on first load (`wakeBackend()` in `main.jsx`).
+<p align="center">
+  Made with dedication by <a href="https://github.com/hasib61714">Md. Hasibul Hasan</a>
+</p>
