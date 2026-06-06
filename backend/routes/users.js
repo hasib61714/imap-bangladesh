@@ -387,11 +387,12 @@ async function ensurePushTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
+      user_id VARCHAR(36) NOT NULL,
       endpoint VARCHAR(600) NOT NULL,
       keys JSON,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_ep (endpoint(255))
+      UNIQUE KEY uniq_ep (endpoint(255)),
+      INDEX idx_ps_user (user_id)
     )
   `);
   pushTableReady = true;
@@ -413,6 +414,32 @@ router.post("/push-subscribe", authMiddleware, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     logger.error("push-subscribe:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// DELETE /api/users/push-subscribe — unsubscribe (own subscriptions only)
+// Body { endpoint } removes that one; with no endpoint, removes all of the user's.
+router.delete("/push-subscribe", authMiddleware, async (req, res) => {
+  try {
+    await ensurePushTable();
+    const { endpoint } = req.body || {};
+    let result;
+    if (endpoint) {
+      // Own-only: scoped by user_id so a user can never delete another's subscription
+      [result] = await pool.query(
+        "DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?",
+        [req.user.id, endpoint]
+      );
+    } else {
+      [result] = await pool.query(
+        "DELETE FROM push_subscriptions WHERE user_id = ?",
+        [req.user.id]
+      );
+    }
+    res.json({ success: true, removed: result.affectedRows });
+  } catch (err) {
+    logger.error("push-unsubscribe:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
