@@ -81,12 +81,15 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
     const [[msg]] = await pool.query("SELECT * FROM chat_messages WHERE id = ?", [result.insertId]);
 
     // ✅ Emit via Socket.io to booking room (real-time delivery)
+    // Avatar is fetched lazily here (only on send) instead of on every
+    // authenticated request — see middleware/auth.js.
     const io = req.app.get("io");
     if (io) {
+      const [[me]] = await pool.query("SELECT avatar FROM users WHERE id = ?", [user.id]).catch(() => [[]]);
       io.to(`booking_${bookingId}`).emit("new_message", {
         ...msg,
         sender_name: user.name,
-        sender_avatar: user.avatar || null,
+        sender_avatar: me?.avatar || null,
       });
     }
 
