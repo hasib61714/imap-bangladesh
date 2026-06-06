@@ -350,6 +350,14 @@ server.listen(PORT, "0.0.0.0", async () => {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_ref (referrer_id, referred_id)
   ) ENGINE=InnoDB`).catch(e => logger.warn("referrals DDL:", e.message));
+
+  // ── Background workers ────────────────────────────────────
+  const jobs = require("./jobs");
+  jobs.startWorkers();
+  // Periodic housekeeping (expired tokens, old notifications)
+  jobs.enqueue("cleanup", {});
+  setInterval(() => jobs.enqueue("cleanup", {}), 6 * 60 * 60 * 1000).unref();
+  logger.info("Background workers started");
 });
 
 // ── Graceful shutdown ─────────────────────────────────────
