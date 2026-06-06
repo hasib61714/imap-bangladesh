@@ -6,13 +6,24 @@ const { v4: uuidv4 } = require("uuid");
 const pool     = require("../db");
 const sms      = require("../utils/sms");
 const otpStore = require("../utils/otp-store");
+const refreshTokens = require("../utils/refreshTokens");
 const { validate, body } = require("../middleware/validate");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+// Access token — short-lived in spirit; TTL is configurable. Default keeps the
+// existing 7d for backward compatibility with the current client; set
+// ACCESS_TOKEN_TTL (e.g. "15m") once the client auto-refreshes.
 const makeToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    expiresIn: process.env.ACCESS_TOKEN_TTL || process.env.JWT_EXPIRES_IN || "7d",
   });
+
+// Best-effort: issue a rotating refresh token. Never breaks auth if the
+// refresh_tokens table isn't migrated yet (returns undefined → field omitted).
+async function issueRefresh(userId) {
+  try { return (await refreshTokens.issue(pool, userId)).token; }
+  catch (e) { logger.warn("issueRefresh failed", { err: e.message }); return undefined; }
+}
 
 // ── Validation schemas ──────────────────────────────────
 const registerRules = validate([
@@ -81,7 +92,7 @@ router.post("/register", registerRules, async (req, res) => {
       [id]
     );
 
-    res.status(201).json({ user: rows[0], token: makeToken(rows[0]) });
+    res.status(201).json({ user: rows[0], token: makeToken(rows[0]), refresh_token: await issueRefresh(id) });
   } catch (err) {
     logger.error("register:", err);
     res.status(500).json({ error: "Server error" });
@@ -108,7 +119,7 @@ router.post("/login", loginRules, async (req, res) => {
     }
 
     const { password_hash, ...safeUser } = user;
-    res.json({ user: safeUser, token: makeToken(user) });
+    res.json({ user: safeUser, token: makeToken(user), refresh_token: await issueRefresh(user.id) });
   } catch (err) {
     logger.error("login:", err);
     res.status(500).json({ error: "Server error" });
@@ -174,7 +185,7 @@ router.post("/verify-otp", async (req, res) => {
     const [rows] = await pool.query("SELECT * FROM users WHERE phone = ?", [phone]);
     if (rows.length) {
       const { password_hash, ...safeUser } = rows[0];
-      return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
+      return res.json({ user: safeUser, token: makeToken(rows[0]), refresh_token: await issueRefresh(rows[0].id), isNew: false });
     }
     res.json({ isNew: true, verified: true });
   } catch (err) {
@@ -221,6 +232,7 @@ router.post("/google", async (req, res) => {
       return res.json({
         user: { ...safeUser, social_id: googleId, avatar: user.avatar || picture },
         token: makeToken(user),
+        refresh_token: await issueRefresh(user.id),
         isNew: false,
       });
     }
@@ -239,20 +251,57 @@ router.get("/me", authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
 // ── POST /api/auth/refresh ─────────────────────────────────────
-// Exchange a still-valid JWT for a fresh one with a new expiry.
-// Requires: Authorization: Bearer <token>
-router.post("/refresh", authMiddleware, async (req, res) => {
+// Two modes:
+//  1. Rotation (preferred): body { refresh_token } → verifies + ROTATES the
+//     refresh token (old one revoked). Reuse of a rotated token revokes the
+//     whole family and forces re-login.
+//  2. Legacy: a still-valid access token in the Authorization header is
+//     exchanged for a fresh one (kept for backward compatibility).
+const SAFE_USER_COLS = "id, name, email, phone, role, avatar, kyc_status, verified, balance, points";
+router.post("/refresh", async (req, res) => {
   try {
+    const presented = req.body?.refresh_token;
+
+    if (presented) {
+      const result = await refreshTokens.rotate(pool, presented);
+      if (result.reuse)
+        return res.status(401).json({ error: "Refresh token reuse detected — please log in again.", reuse: true });
+      if (!result.ok)
+        return res.status(401).json({ error: "Invalid or expired refresh token" });
+      const [rows] = await pool.query(
+        `SELECT ${SAFE_USER_COLS} FROM users WHERE id = ? AND is_active = 1`, [result.userId]
+      );
+      if (!rows.length) return res.status(401).json({ error: "User not found or inactive" });
+      return res.json({ token: makeToken(rows[0]), refresh_token: result.token, user: rows[0] });
+    }
+
+    // Legacy: reissue using a valid access token.
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith("Bearer "))
+      return res.status(401).json({ error: "No token provided" });
+    let decoded;
+    try { decoded = jwt.verify(header.split(" ")[1], process.env.JWT_SECRET); }
+    catch { return res.status(401).json({ error: "Invalid or expired token" }); }
     const [rows] = await pool.query(
-      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points FROM users WHERE id = ? AND is_active = 1",
-      [req.user.id]
+      `SELECT ${SAFE_USER_COLS} FROM users WHERE id = ? AND is_active = 1`, [decoded.id]
     );
     if (!rows.length) return res.status(401).json({ error: "User not found or inactive" });
-    const token = makeToken(rows[0]);
-    res.json({ token, user: rows[0] });
+    res.json({ token: makeToken(rows[0]), user: rows[0] });
   } catch (err) {
     logger.error("token refresh:", err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── POST /api/auth/logout ──────────────────────────────────────
+// Revokes the presented refresh token's family. Best-effort & idempotent.
+router.post("/logout", async (req, res) => {
+  try {
+    await refreshTokens.revoke(pool, req.body?.refresh_token).catch(() => {});
+    res.json({ success: true });
+  } catch (err) {
+    logger.error("logout:", err);
+    res.json({ success: true });
   }
 });
 module.exports = router;

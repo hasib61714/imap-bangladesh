@@ -250,13 +250,20 @@ CREATE TABLE IF NOT EXISTS complaints (
 
 -- ── REFRESH TOKENS ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS refresh_tokens (
-  id         INT AUTO_INCREMENT PRIMARY KEY,
-  user_id    VARCHAR(36) NOT NULL,
-  token      VARCHAR(512) NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  user_id     VARCHAR(36) NOT NULL,
+  token       VARCHAR(512) NULL,          -- legacy column (unused; hash is canonical)
+  token_hash  VARCHAR(64),               -- SHA-256 of the opaque token (only this is stored)
+  family_id   VARCHAR(36),               -- rotation family (reuse → revoke whole family)
+  revoked     TINYINT(1) DEFAULT 0,
+  replaced_by VARCHAR(64),               -- token_hash that superseded this one
+  used_at     TIMESTAMP NULL,
+  expires_at  TIMESTAMP NOT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user (user_id)
+  INDEX idx_user (user_id),
+  INDEX idx_rt_token_hash (token_hash),
+  INDEX idx_rt_family (family_id)
 ) ENGINE=InnoDB;
 
 -- ══════════════════════════════════════════════════════════
