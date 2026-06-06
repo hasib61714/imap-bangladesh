@@ -21,14 +21,16 @@ const pool = mysql.createPool({
   ssl:                sslConfig || undefined,
 });
 
+const logger = require("./utils/logger");
+
 // Test connection on startup
 pool.getConnection()
   .then(conn => {
-    console.log("✅ MySQL connected — DB:", process.env.DB_NAME);
+    logger.info("MySQL connected", { db: process.env.DB_NAME });
     conn.release();
   })
   .catch(err => {
-    console.error("❌ MySQL connection failed:", err.message);
+    logger.error("MySQL connection failed", { err: err.message });
   });
 
 module.exports = pool;

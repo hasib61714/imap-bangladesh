@@ -225,12 +225,19 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// ── Metrics (non-sensitive aggregate counters) ────────────
+const metrics = require("./utils/metrics");
+app.get("/api/metrics", (_req, res) => res.json(metrics.snapshot()));
+
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
 
 // ── Global error handler ──────────────────────────────────
+const errorTracker = require("./utils/errorTracker");
 app.use((err, req, res, _next) => {
-  logger.error("Unhandled error", { method: req.method, url: req.originalUrl, err: err.message, stack: err.stack });
+  // Report to the error tracker (Sentry if configured) + structured log.
+  // Response shape is unchanged.
+  errorTracker.captureException(err, { method: req.method, url: req.originalUrl, requestId: req.requestId });
   res.status(err.status || 500).json({ success: false, error: isProd ? "Internal server error" : err.message });
 });
 
@@ -384,7 +391,7 @@ const shutdown = async (signal) => {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("uncaughtException", (err) => {
-  logger.error("Uncaught exception", { err: err.message, stack: err.stack });
+  errorTracker.captureException(err, { source: "uncaughtException" });
   shutdown("uncaughtException");
 });
 process.on("unhandledRejection", (reason) => {

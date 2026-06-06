@@ -4,7 +4,8 @@
 //  Mount BEFORE routes in server.js:
 //    app.use(require('./middleware/requestLogger'));
 // ─────────────────────────────────────────────────────────────
-const logger = require("../utils/logger");
+const logger  = require("../utils/logger");
+const metrics = require("../utils/metrics");
 
 const requestLogger = (req, res, next) => {
   const start = Date.now();
@@ -17,11 +18,14 @@ const requestLogger = (req, res, next) => {
     const method  = req.method;
     const url     = req.originalUrl;
 
+    metrics.record({ status, ms });
+
     const level = status >= 500 ? "error"
                 : status >= 400 ? "warn"
                 : "info";
 
-    logger[level](`${method} ${url}`, { status, ms, ip, userId });
+    // requestId ties this log line to the X-Request-ID response header (tracing)
+    logger[level](`${method} ${url}`, { status, ms, ip, userId, requestId: req.requestId });
   });
 
   next();
