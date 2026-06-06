@@ -2,21 +2,18 @@
  * SSLCommerz Payment Utility — IMAP Bangladesh
  * Supports: bKash, Nagad, Rocket, uPay, CelFin, SureCash, Visa, MasterCard, etc.
  *
- * Required .env:
- *   SSLCOMMERZ_STORE_ID       = your_store_id
- *   SSLCOMMERZ_STORE_PASSWORD = your_store_password
- *   BACKEND_URL               = https://imap-backend-mghb.onrender.com
- *   FRONTEND_URL              = https://hasib61714.github.io/imap-bangladesh
+ * Credentials/mode are resolved by config/payment.js (canonical: SSL_STORE_ID,
+ * SSL_STORE_PASSWORD, SSL_IS_SANDBOX; legacy SSLCOMMERZ_* accepted). Other .env:
+ *   BACKEND_URL      = https://imap-backend-mghb.onrender.com
+ *   FRONTEND_APP_URL = https://hasib61714.github.io/imap-bangladesh
  */
 const SSLCommerz = require("sslcommerz-lts");
-
-const storeId   = process.env.SSLCOMMERZ_STORE_ID;
-const storePass = process.env.SSLCOMMERZ_STORE_PASSWORD;
-const isSandbox = process.env.NODE_ENV !== "production";
+const cfg        = require("../config/payment");
 
 async function initiatePayment({ orderId, amount, currency = "BDT", customer, product, successUrl, failUrl, cancelUrl }) {
+  const storeId = cfg.storeId, storePass = cfg.storePass;
   if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");
-  const sslcz      = new SSLCommerz(storeId, storePass, isSandbox);
+  const sslcz      = new SSLCommerz(storeId, storePass, cfg.isSandbox);
   const backendUrl  = process.env.BACKEND_URL  || "http://localhost:5000";
   const frontendUrl = process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || "http://localhost:5173";
   const data = {
@@ -38,11 +35,13 @@ async function initiatePayment({ orderId, amount, currency = "BDT", customer, pr
 }
 
 async function validatePayment(valId) {
+  const storeId = cfg.storeId, storePass = cfg.storePass;
   if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");
-  const sslcz = new SSLCommerz(storeId, storePass, isSandbox);
+  const sslcz = new SSLCommerz(storeId, storePass, cfg.isSandbox);
   return await sslcz.validate({ val_id: valId });
 }
 
-function isConfigured() { return !!(storeId && storePass); }
+function isConfigured() { return cfg.isConfigured(); }
+function allowMock()   { return cfg.allowMock(); }
 
-module.exports = { initiatePayment, validatePayment, isConfigured };
+module.exports = { initiatePayment, validatePayment, isConfigured, allowMock };

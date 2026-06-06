@@ -52,13 +52,20 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false
 
-      # ── SSLCommerz Payment ────────────────────────────
-      - key: SSLCOMMERZ_STORE_ID
+      # ── SSLCommerz Payment (canonical env names) ──────
+      # config/payment.js reads SSL_STORE_ID / SSL_STORE_PASSWORD / SSL_IS_SANDBOX.
+      # In production these MUST be set, or paid flows are rejected (no mock).
+      - key: SSL_STORE_ID
         sync: false
-      - key: SSLCOMMERZ_STORE_PASSWORD
+      - key: SSL_STORE_PASSWORD
         sync: false
       - key: SSL_IS_SANDBOX
         value: "false"
+
+      # ── Pricing ───────────────────────────────────────
+      # Platform commission as a fraction of the service amount (server-authoritative)
+      - key: PLATFORM_FEE_PCT
+        value: "0.10"
 
       # ── SMS (mock by default) ─────────────────────────
       - key: SMS_PROVIDER
