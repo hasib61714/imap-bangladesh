@@ -54,61 +54,69 @@ const io = new Server(server, {
   },
 });
 
-// JWT auth middleware for Socket.io
-io.use((socket, next) => {
-  try {
-    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-    if (!token) return next(new Error("No token"));
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
-    next();
-  } catch {
-    // Allow connection without token (read-only)
-    socket.user = null;
-    next();
-  }
-});
+// ── Socket.io authentication (strict) ─────────────────────
+// Reject missing / invalid / expired tokens and inactive users at connect time.
+const socketPool = require("./db");
+const { authenticateSocket, canAccessBooking, createRateLimiter, isValidBookingId } = require("./utils/socketSecurity");
+const socketEventLimiter = createRateLimiter({ points: 40, windowMs: 10_000 });
+
+io.use((socket, next) => authenticateSocket(socketPool, socket, next));
 
 io.on("connection", (socket) => {
-  const uid = socket.user?.id || "guest";
+  const uid = socket.user.id; // guaranteed by io.use
   logger.debug(`Socket connected: ${uid}`);
 
-  // Join a booking chat room — authenticated users only
-  socket.on("join_room", (bookingId) => {
-    if (!socket.user) return; // guests cannot join private booking rooms
-    socket.join(`booking_${bookingId}`);
-    logger.debug(`${uid} joined room: booking_${bookingId}`);
+  // Join a booking room — ONLY the booking's customer, assigned provider, or admin.
+  socket.on("join_room", async (bookingId, ack) => {
+    const reply = (o) => { if (typeof ack === "function") ack(o); };
+    if (!isValidBookingId(bookingId))   return reply({ ok: false, error: "invalid_booking" });
+    if (!socketEventLimiter(socket))    return reply({ ok: false, error: "rate_limited" });
+    try {
+      if (!(await canAccessBooking(socketPool, socket.user, bookingId))) {
+        logger.warn(`Socket ${uid} denied join booking_${bookingId}`);
+        return reply({ ok: false, error: "forbidden" });
+      }
+      socket.join(`booking_${bookingId}`);
+      logger.debug(`${uid} joined room: booking_${bookingId}`);
+      reply({ ok: true });
+    } catch (e) {
+      logger.error("join_room error", { err: e.message });
+      reply({ ok: false, error: "server_error" });
+    }
   });
 
-  // Leave a booking chat room
   socket.on("leave_room", (bookingId) => {
-    socket.leave(`booking_${bookingId}`);
+    if (isValidBookingId(bookingId)) socket.leave(`booking_${bookingId}`);
   });
 
-  // User typing indicator — use server-side name, not client-supplied
-  socket.on("typing", ({ bookingId }) => {
-    if (!socket.user) return;
+  // An event is only honoured if the socket has JOINED (=was authorized for) the room.
+  // This binds every realtime action to the booking-access check above (spoof prevention).
+  const inRoom = (bookingId) => isValidBookingId(bookingId) && socket.rooms.has(`booking_${bookingId}`);
+
+  // Typing — server-supplied name, never client-supplied
+  socket.on("typing", ({ bookingId } = {}) => {
+    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
     socket.to(`booking_${bookingId}`).emit("user_typing", { name: socket.user.name || "User" });
   });
-
-  socket.on("stop_typing", ({ bookingId }) => {
+  socket.on("stop_typing", ({ bookingId } = {}) => {
+    if (!inRoom(bookingId)) return;
     socket.to(`booking_${bookingId}`).emit("user_stop_typing");
   });
 
-  // Provider location update (live tracking) — authenticated users only
-  socket.on("location_update", ({ bookingId, lat, lng }) => {
-    if (!socket.user) return; // reject unauthenticated location spoofing
-    const safeLat = parseFloat(lat);
-    const safeLng = parseFloat(lng);
-    if (isNaN(safeLat) || isNaN(safeLng) || safeLat < -90 || safeLat > 90 || safeLng < -180 || safeLng > 180) return;
+  // Live location — participant-only, validated coordinates
+  socket.on("location_update", ({ bookingId, lat, lng } = {}) => {
+    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
+    const safeLat = parseFloat(lat), safeLng = parseFloat(lng);
+    if (Number.isNaN(safeLat) || Number.isNaN(safeLng) ||
+        safeLat < -90 || safeLat > 90 || safeLng < -180 || safeLng > 180) return;
     io.to(`booking_${bookingId}`).emit("provider_location", { lat: safeLat, lng: safeLng });
   });
 
-  // Booking status update broadcast — authenticated users only
-  const VALID_BOOKING_STATUSES = ["pending", "confirmed", "ongoing", "completed", "cancelled"];
-  socket.on("booking_status", ({ bookingId, status }) => {
-    if (!socket.user) return; // reject unauthenticated spoofing
-    if (!VALID_BOOKING_STATUSES.includes(status)) return; // reject invalid status
+  // Booking status broadcast — participant-only, validated status
+  const VALID_BOOKING_STATUSES = ["pending", "confirmed", "active", "ongoing", "completed", "cancelled"];
+  socket.on("booking_status", ({ bookingId, status } = {}) => {
+    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
+    if (!VALID_BOOKING_STATUSES.includes(status)) return;
     io.to(`booking_${bookingId}`).emit("booking_updated", { bookingId, status });
   });
 
