@@ -10,32 +10,38 @@ const { ipKeyGenerator } = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
 const requestLogger = require("./middleware/requestLogger");
+const redis        = require("./utils/redis");
 
 const isProd = process.env.NODE_ENV === "production";
 
 // ── Rate limiters ─────────────────────────────────────────
-const generalLimiter = rateLimit({
+// Backed by Redis when available (shared across instances); otherwise the
+// default in-process memory store (identical single-instance behavior).
+const rlStore = redis.createRateLimitStore();
+const withStore = (cfg) => (rlStore ? { ...cfg, store: rlStore } : cfg);
+
+const generalLimiter = rateLimit(withStore({
   windowMs: 15 * 60 * 1000,   // 15 minutes
   max: isProd ? 200 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
-});
-const authLimiter = rateLimit({
+}));
+const authLimiter = rateLimit(withStore({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 20 : 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please wait." },
-});
-const aiLimiter = rateLimit({
+}));
+const aiLimiter = rateLimit(withStore({
   windowMs: 60 * 1000,           // 1-minute sliding window
   max: isProd ? 20 : 200,        // 20 AI calls / minute in prod
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests, please wait a moment." },
   keyGenerator: (req) => req.headers["authorization"] || ipKeyGenerator(req),
-});
+}));
 
 const app    = express();
 const server = http.createServer(app);
@@ -53,6 +59,9 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+// Multi-instance fan-out via Redis adapter (no-op single-instance / no Redis)
+redis.attachSocketAdapter(io).catch(() => {});
 
 // ── Socket.io authentication (strict) ─────────────────────
 // Reject missing / invalid / expired tokens and inactive users at connect time.
@@ -226,6 +235,11 @@ app.use((err, req, res, _next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────
+// Enforce Redis only when explicitly required (REQUIRE_REDIS=true); otherwise
+// the in-memory fallback keeps single-instance deployments working unchanged.
+try { redis.assertReady(); }
+catch (e) { logger.error(e.message); process.exit(1); }
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", async () => {
   logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
