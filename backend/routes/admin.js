@@ -3,6 +3,7 @@ const router = require("express").Router();
 const pool   = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware, requireRole } = require("../middleware/auth");
+const { audit, reqIp } = require("../utils/audit");
 const auth = [authMiddleware, requireRole("admin")];
 
 // ── GET /api/admin/stats ──────────────────────────────────
@@ -445,6 +446,54 @@ router.patch("/settings", ...auth, async (req, res) => {
   } catch (err) {
     logger.error("admin settings patch:", err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── POST /api/admin/wallet/adjust ────────────────────────
+// Deliberate, audited manual wallet adjustment (credit or debit) by an admin.
+// Kept SEPARATE from user-facing top-up so the only non-gateway balance change
+// in the system is admin-initiated and recorded in audit_log + wallet_transactions.
+router.post("/wallet/adjust", ...auth, async (req, res) => {
+  const { user_id, amount, direction, reason } = req.body;
+  const amt = parseFloat(amount);
+  if (!user_id)                          return res.status(400).json({ error: "user_id required" });
+  if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "amount must be positive" });
+  if (!["credit", "debit"].includes(direction)) return res.status(400).json({ error: "direction must be credit or debit" });
+  if (!reason || !String(reason).trim()) return res.status(400).json({ error: "reason required (audit)" });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[u]] = await conn.query("SELECT balance FROM users WHERE id = ? FOR UPDATE", [user_id]);
+    if (!u) { await conn.rollback(); return res.status(404).json({ error: "User not found" }); }
+    const cur = parseFloat(u.balance);
+    if (direction === "debit" && cur < amt) {
+      await conn.rollback();
+      return res.status(400).json({ error: "Insufficient balance for debit" });
+    }
+    const newBal = direction === "credit" ? cur + amt : cur - amt;
+    await conn.query("UPDATE users SET balance = ? WHERE id = ?", [newBal, user_id]);
+    await conn.query(
+      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+      [user_id, direction, amt, "অ্যাডমিন সমন্বয়", `Admin adjustment: ${String(reason).slice(0, 160)}`, "admin", newBal]
+    );
+    await conn.commit();
+
+    await audit({
+      actor_id: req.user.id, actor_role: req.user.role, action: "admin.wallet.adjust",
+      target_type: "user", target_id: user_id, ip: reqIp(req),
+      meta: { direction, amount: amt, balance_after: newBal, reason: String(reason).slice(0, 200) },
+    });
+
+    cache.del(`user:wallet:${user_id}`);
+    cache.del(`user:profile:${user_id}`);
+    res.json({ success: true, balance: newBal });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    logger.error("admin wallet adjust:", err);
+    res.status(500).json({ error: "Server error" });
+  } finally {
+    conn.release();
   }
 });
 
