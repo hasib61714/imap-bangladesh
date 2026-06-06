@@ -5,11 +5,12 @@ const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const { validate, body } = require("../middleware/validate");
 const cache = require('../utils/cache');
+const { DOC_TYPES, isValidDocType, normalizeDocType } = require("../config/kyc");
 
 const kycRules = validate([
   body("doc_type")
-    .isIn(["nid","passport","birth_cert","driving_license"])
-    .withMessage("doc_type must be nid, passport, birth_cert, or driving_license"),
+    .custom(isValidDocType)
+    .withMessage(`doc_type must be one of: ${DOC_TYPES.join(", ")}`),
   body("doc_number")
     .trim().isLength({ min: 5 })
     .withMessage("doc_number must be at least 5 characters"),
@@ -42,7 +43,8 @@ router.get("/", authMiddleware, async (req, res) => {
 // ── POST /api/kyc ─────────────────────────────────────────
 router.post("/", authMiddleware, kycRules, async (req, res) => {
   try {
-    const { doc_type, doc_number } = req.body;
+    const doc_type = normalizeDocType(req.body.doc_type);   // canonical form for storage
+    const { doc_number } = req.body;
     // Accept both field name conventions
     const front_image = req.body.img_front || req.body.front_image;
     const back_image  = req.body.img_back  || req.body.back_image  || null;

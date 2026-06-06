@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS kyc_docs (
   id               VARCHAR(36) PRIMARY KEY,
   user_id          VARCHAR(36) NOT NULL,
-  doc_type         ENUM('nid','driving','passport','birth') NOT NULL,
+  doc_type         VARCHAR(30) NOT NULL,  -- canonical: nid, passport, birth_certificate, driving_license (config/kyc.js)
   doc_number       VARCHAR(80) NOT NULL,
   front_image      LONGTEXT,
   back_image       LONGTEXT,

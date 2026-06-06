@@ -271,6 +271,10 @@ server.listen(PORT, "0.0.0.0", async () => {
   await _pool.query("CREATE INDEX idx_rt_token_hash ON refresh_tokens (token_hash)").catch(() => {});
   await _pool.query("CREATE INDEX idx_rt_family ON refresh_tokens (family_id)").catch(() => {});
 
+  // KYC: widen doc_type from a rigid ENUM to VARCHAR (canonical set in config/kyc.js)
+  await _pool.query("ALTER TABLE kyc_docs MODIFY COLUMN doc_type VARCHAR(30) NOT NULL")
+    .catch(e => logger.warn("kyc doc_type migration:", e.message));
+
   await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
