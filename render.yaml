@@ -67,6 +67,11 @@ services:
       - key: PLATFORM_FEE_PCT
         value: "0.10"
 
+      # ── Redis (optional; enables shared rate-limit/OTP + socket scaling) ──
+      # Leave unset for in-memory fallback. Requires `npm i ioredis`.
+      - key: REDIS_URL
+        sync: false
+
       # ── SMS (mock by default) ─────────────────────────
       - key: SMS_PROVIDER
         value: mock
