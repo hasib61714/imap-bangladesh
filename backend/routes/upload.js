@@ -32,6 +32,17 @@ router.get("/status", (req, res) => {
   });
 });
 
+// Record object-storage metadata (object_key, cdn_url, mime_type, size).
+// Best-effort — never blocks the upload response.
+async function recordMedia(owner_id, kind, { key, url, mimetype, size }) {
+  try {
+    await pool.query(
+      "INSERT INTO media_assets (id, owner_id, kind, object_key, cdn_url, mime_type, size) VALUES (?,?,?,?,?,?,?)",
+      [uuidv4(), owner_id, kind, key, url || null, mimetype || null, size || null]
+    );
+  } catch (e) { logger.warn("media_assets record:", e.message); }
+}
+
 /* ── Avatar upload ── */
 router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) => {
   try {
@@ -39,8 +50,9 @@ router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) =
     if (req.file.size > 2 * 1024 * 1024) return res.status(400).json({ error: "Avatar সর্বোচ্চ 2MB হতে পারে।" });
 
     if (storage.isConfigured()) {
-      const { url } = await storage.uploadFile({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname: req.file.originalname, folder: "avatars" });
+      const { key, url } = await storage.uploadFile({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname: req.file.originalname, folder: "avatars" });
       await pool.query("UPDATE users SET avatar=? WHERE id=?", [url, req.user.id]);
+      await recordMedia(req.user.id, "avatar", { key, url, mimetype: req.file.mimetype, size: req.file.size });
       return res.json({ url, message: "প্রোফাইল ছবি আপডেট হয়েছে।" });
     }
 
@@ -70,6 +82,7 @@ router.post("/kyc", authMiddleware, upload.fields([
       if (storage.isConfigured()) {
         const up = await storage.uploadFile({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname, folder: `kyc/${req.user.id}` });
         url = up.url;
+        await recordMedia(req.user.id, "kyc", { key: up.key, url: up.url, mimetype: f.mimetype, size: f.size });
       } else {
         url = `data:${f.mimetype};base64,${f.buffer.toString("base64")}`;
       }
@@ -123,6 +136,7 @@ router.post("/proof", authMiddleware, upload.single("file"), async (req, res) =>
     if (storage.isConfigured()) {
       const r = await storage.uploadFile({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname: req.file.originalname, folder: "proof" });
       url = r.url;
+      await recordMedia(req.user.id, "proof", { key: r.key, url: r.url, mimetype: req.file.mimetype, size: req.file.size });
     } else {
       url = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }

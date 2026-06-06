@@ -10,6 +10,7 @@
     "test": "node --test",
     "db:init": "node scripts/initDb.js",
     "create-admin": "node scripts/createAdmin.js",
+    "migrate-media": "node scripts/migrate-media.js",
     "admin:reset": "node scripts/resetAdmin.js"
   },
   "dependencies": {

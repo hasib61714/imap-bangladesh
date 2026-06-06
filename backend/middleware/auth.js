@@ -10,9 +10,12 @@ async function authMiddleware(req, res, next) {
   const token = header.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Fetch fresh user from DB
+    // Fetch fresh user from DB.
+    // NOTE: `avatar` is intentionally NOT selected here — it can be a large
+    // base64 LONGTEXT blob and this runs on EVERY authenticated request.
+    // Consumers that need the avatar fetch it explicitly (e.g. /users/profile).
     const [rows] = await pool.query(
-      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
+      "SELECT id, name, email, phone, role, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
       [decoded.id]
     );
     if (!rows.length || !rows[0].is_active) {

@@ -279,6 +279,21 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   INDEX idx_ps_user (user_id)
 ) ENGINE=InnoDB;
 
+-- ── MEDIA ASSETS (object-storage metadata) ───────────────
+-- New uploads store object_key + cdn_url here instead of base64 in-row.
+CREATE TABLE IF NOT EXISTS media_assets (
+  id         VARCHAR(36) PRIMARY KEY,
+  owner_id   VARCHAR(36) NOT NULL,
+  kind       VARCHAR(30) NOT NULL,   -- avatar | kyc | proof
+  object_key VARCHAR(512) NOT NULL,
+  cdn_url    VARCHAR(800),
+  mime_type  VARCHAR(100),
+  size       INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ma_owner (owner_id),
+  INDEX idx_ma_kind (kind)
+) ENGINE=InnoDB;
+
 -- ══════════════════════════════════════════════════════════
 --  SEED DATA
 -- ══════════════════════════════════════════════════════════

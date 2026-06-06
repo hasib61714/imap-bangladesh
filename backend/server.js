@@ -288,6 +288,20 @@ server.listen(PORT, "0.0.0.0", async () => {
   await _pool.query("ALTER TABLE push_subscriptions MODIFY COLUMN user_id VARCHAR(36) NOT NULL")
     .catch(e => logger.warn("push_subscriptions user_id migration:", e.message));
 
+  // Object-storage media metadata (object_key / cdn_url / mime_type / size)
+  await _pool.query(`CREATE TABLE IF NOT EXISTS media_assets (
+    id         VARCHAR(36) PRIMARY KEY,
+    owner_id   VARCHAR(36) NOT NULL,
+    kind       VARCHAR(30) NOT NULL,
+    object_key VARCHAR(512) NOT NULL,
+    cdn_url    VARCHAR(800),
+    mime_type  VARCHAR(100),
+    size       INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ma_owner (owner_id),
+    INDEX idx_ma_kind (kind)
+  ) ENGINE=InnoDB`).catch(e => logger.warn("media_assets DDL:", e.message));
+
   // Validate Web-Push (VAPID) configuration — warn if partially/incorrectly set
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
