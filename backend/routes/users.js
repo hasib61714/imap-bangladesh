@@ -1,8 +1,11 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
+const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
+const payment = require("../utils/payment");
+const { finalizePayment } = require("../utils/ledger");
 
 // ── GET /api/users/profile ────────────────────────────────
 router.get("/profile", authMiddleware, async (req, res) => {
@@ -89,32 +92,57 @@ router.get("/wallet", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/users/wallet/topup ──────────────────────────
-// NOTE: In production (payment gateway configured) wallet top-up must go through
-// POST /api/payments/initiate with { type: "wallet_topup", topup_amount }.
-// This endpoint is only allowed in dev/mock mode.
-const paymentGateway = require("../utils/payment");
+// SECURITY: this endpoint NEVER credits the wallet directly. It creates a
+// pending wallet-topup payment request; the balance is credited only after a
+// verified SSLCommerz callback settles the payment (see utils/ledger.js).
+// When a gateway is configured it returns the hosted payment URL; in
+// development (no gateway) a clearly-labelled mock settlement is allowed; in
+// production a missing gateway fails safely so no API call can mint money.
+// (A gateway-routed top-up is also available via POST /api/payments/initiate
+//  with { type: "wallet_topup", topup_amount }.)
 router.post("/wallet/topup", authMiddleware, async (req, res) => {
-  if (paymentGateway.isConfigured()) {
-    return res.status(400).json({
-      error: "Use the payment gateway for wallet top-up.",
-      useGateway: true,
-      hint: "POST /api/payments/initiate with { type: 'wallet_topup', topup_amount }",
-    });
-  }
   try {
-    const { amount, method = "bKash" } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum top-up is ৳1,00,000" });
+    const { method = "bKash" } = req.body;
+    const amt = parseFloat(req.body.amount);
+    if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "Invalid amount" });
+    if (amt < 10)      return res.status(400).json({ error: "Minimum top-up is ৳10" });
+    if (amt > 100000)  return res.status(400).json({ error: "Maximum top-up is ৳1,00,000" });
 
-    await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [amount, req.user.id]);
-    const [b] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+    const payId = uuidv4();
     await pool.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-      [req.user.id, "credit", amount, "টপআপ", "Top-up", method, b[0].balance]
+      "INSERT INTO payments (id, booking_id, user_id, amount, method, purpose, status, gateway_tran_id) VALUES (?,?,?,?,?,'wallet_topup','pending',?)",
+      [payId, null, req.user.id, amt, method, payId]
     );
+
+    // Real gateway → return hosted payment URL; credit happens on callback
+    if (payment.isConfigured()) {
+      const [[u]] = await pool.query("SELECT name, email, phone FROM users WHERE id = ?", [req.user.id]);
+      const resp = await payment.initiatePayment({
+        orderId: payId, amount: amt,
+        customer: { name: u?.name, email: u?.email, phone: u?.phone, address: "Dhaka, Bangladesh" },
+        product:  { name: "Wallet Top-up", category: "Wallet" },
+      });
+      if (resp?.GatewayPageURL) {
+        await pool.query("UPDATE payments SET gateway_session_key = ? WHERE id = ?", [resp.sessionkey, payId]);
+        return res.json({ url: resp.GatewayPageURL, paymentId: payId });
+      }
+      await pool.query("UPDATE payments SET status='failed' WHERE id=?", [payId]).catch(() => {});
+      return res.status(502).json({ error: "Payment gateway error. Try again." });
+    }
+
+    // No gateway configured — production must not mint money
+    if (!payment.allowMock()) {
+      await pool.query("UPDATE payments SET status='failed' WHERE id=?", [payId]).catch(() => {});
+      logger.error("wallet-topup: gateway not configured in production", { payId, user: req.user.id });
+      return res.status(503).json({ error: "Wallet top-up is temporarily unavailable." });
+    }
+
+    // Dev-only mock: settle via the idempotent ledger (credits wallet + writes tx)
+    await finalizePayment(payId, "MOCK-" + payId);
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    res.json({ success: true, balance: b[0].balance });
+    const [[b]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+    res.json({ success: true, mock: true, paymentId: payId, balance: b.balance, note: "DEV mock top-up — no gateway configured" });
   } catch (err) {
     logger.error("topup:", err);
     res.status(500).json({ error: "Server error" });
@@ -122,30 +150,40 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/users/wallet/withdraw ───────────────────────
+// Atomic: locks the balance row, verifies funds, debits and records the
+// transaction in a single committed unit.
 router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
-  try {
-    const { amount, method = "bKash" } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (parseFloat(amount) < 50) return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
-    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
+  const { method = "bKash" } = req.body;
+  const amt = parseFloat(req.body.amount);
+  if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "Invalid amount" });
+  if (amt < 50)     return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
+  if (amt > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
 
-    // Atomic deduction — prevents concurrent double-spend (balance >= amount is checked atomically)
-    const [result] = await pool.query(
-      "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
-      [amount, req.user.id, amount]
-    );
-    if (result.affectedRows === 0) return res.status(400).json({ error: "Insufficient balance" });
-    const [[nb]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-    await pool.query(
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[u]] = await conn.query("SELECT balance FROM users WHERE id = ? FOR UPDATE", [req.user.id]);
+    if (!u) { await conn.rollback(); return res.status(404).json({ error: "User not found" }); }
+    if (parseFloat(u.balance) < amt) {
+      await conn.rollback();
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+    const newBal = parseFloat(u.balance) - amt;
+    await conn.query("UPDATE users SET balance = ? WHERE id = ?", [newBal, req.user.id]);
+    await conn.query(
       "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-      [req.user.id, "debit", amount, "উত্তোলন", "Withdrawal", method, nb[0].balance]
+      [req.user.id, "debit", amt, "উত্তোলন", "Withdrawal", method, newBal]
     );
+    await conn.commit();
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    res.json({ success: true, balance: nb[0].balance });
+    res.json({ success: true, balance: newBal });
   } catch (err) {
+    await conn.rollback().catch(() => {});
     logger.error("withdraw:", err);
     res.status(500).json({ error: "Server error" });
+  } finally {
+    conn.release();
   }
 });
 
