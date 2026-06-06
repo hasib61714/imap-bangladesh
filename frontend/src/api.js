@@ -128,6 +128,7 @@ export const users = {
   submitComplaint:  (data)=> post("/users/complaints", data),
   saveSettings:     (data)=> put("/users/settings", data),
   pushSubscribe:    (subscription) => post("/users/push-subscribe", { subscription }),
+  pushUnsubscribe:  ()             => del("/users/push-subscribe"),
   testPush:         ()             => post("/users/test-push", {}),
   vapidPublicKey:   ()             => get("/users/vapid-public-key"),
 };

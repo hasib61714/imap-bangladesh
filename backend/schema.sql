@@ -266,6 +266,19 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   INDEX idx_rt_family (family_id)
 ) ENGINE=InnoDB;
 
+-- ── PUSH SUBSCRIPTIONS (Web-Push) ─────────────────────────
+-- user_id is a UUID (VARCHAR) to match users.id — an earlier INT definition
+-- silently broke delivery.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    VARCHAR(36) NOT NULL,
+  endpoint   VARCHAR(600) NOT NULL,
+  keys       JSON,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_ep (endpoint(255)),
+  INDEX idx_ps_user (user_id)
+) ENGINE=InnoDB;
+
 -- ══════════════════════════════════════════════════════════
 --  SEED DATA
 -- ══════════════════════════════════════════════════════════

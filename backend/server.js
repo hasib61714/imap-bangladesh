@@ -275,6 +275,35 @@ server.listen(PORT, "0.0.0.0", async () => {
   await _pool.query("ALTER TABLE kyc_docs MODIFY COLUMN doc_type VARCHAR(30) NOT NULL")
     .catch(e => logger.warn("kyc doc_type migration:", e.message));
 
+  // Push subscriptions: user_id must be a UUID (VARCHAR), not INT (mismatch broke delivery)
+  await _pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    endpoint VARCHAR(600) NOT NULL,
+    keys JSON,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_ep (endpoint(255)),
+    INDEX idx_ps_user (user_id)
+  ) ENGINE=InnoDB`).catch(e => logger.warn("push_subscriptions DDL:", e.message));
+  await _pool.query("ALTER TABLE push_subscriptions MODIFY COLUMN user_id VARCHAR(36) NOT NULL")
+    .catch(e => logger.warn("push_subscriptions user_id migration:", e.message));
+
+  // Validate Web-Push (VAPID) configuration — warn if partially/incorrectly set
+  const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    logger.warn("Web-Push disabled: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set");
+  } else {
+    try {
+      require("web-push").setVapidDetails(
+        process.env.VAPID_MAILTO || "mailto:admin@imap.com.bd",
+        VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
+      );
+      logger.info("Web-Push configured", { publicKeyPresent: true });
+    } catch (e) {
+      logger.warn("Web-Push VAPID config invalid:", e.message);
+    }
+  }
+
   await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
