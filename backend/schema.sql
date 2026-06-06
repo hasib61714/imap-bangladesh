@@ -367,8 +367,6 @@ ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AF
 -- Distinguishes booking payments from wallet top-ups (server-authoritative crediting)
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking' AFTER method;
 
--- Demo Admin user (password: admin123)
-INSERT IGNORE INTO users (id,name,email,phone,password_hash,role,kyc_status,verified,balance,points,referral_code) VALUES
-('admin-001','Admin User','admin@imap.bd','01700000000',
- '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
- 'admin','verified',1,0,0,'ADMIN001');
+-- No default admin is seeded (removed admin123 backdoor).
+-- Create the first admin securely with:  npm run create-admin
+--   (requires ADMIN_EMAIL and ADMIN_PASSWORD env vars; see scripts/createAdmin.js)

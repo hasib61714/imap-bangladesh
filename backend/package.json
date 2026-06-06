@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "test": "node --test",
     "db:init": "node scripts/initDb.js",
+    "create-admin": "node scripts/createAdmin.js",
     "admin:reset": "node scripts/resetAdmin.js"
   },
   "dependencies": {
