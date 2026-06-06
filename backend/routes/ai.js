@@ -16,7 +16,17 @@ const router  = express.Router();
 const db      = require("../db");
 const cache   = require('../utils/cache');
 const { authMiddleware, requireRole } = require("../middleware/auth");
+const { audit, reqIp } = require("../utils/audit");
+
+// Business-analytics endpoints are admin-only and audited.
 const adminOnly = [authMiddleware, requireRole("admin")];
+const auditAnalytics = (name) => (req, _res, next) => {
+  audit({
+    actor_id: req.user?.id, actor_role: req.user?.role,
+    action: "ai.analytics.view", target_type: "analytics", target_id: name, ip: reqIp(req),
+  }).catch(() => {});
+  next();
+};
 
 /* ── Google Gemini helper (free tier — try first) ─────────── */
 async function callGemini(messages, lang = "bn") {
@@ -303,7 +313,7 @@ router.post("/chat/stream", async (req, res) => {
    body: { serviceType, area, userId, limit }
    Returns providers ranked by AI score
 ═══════════════════════════════════════════════════════════ */
-router.post("/match", async (req, res) => {
+router.post("/match", authMiddleware, async (req, res) => {
   try {
     const { serviceType, area, userId, limit = 10 } = req.body;
     const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 50); // cap at 50
@@ -364,7 +374,7 @@ router.post("/match", async (req, res) => {
    body: { serviceType, area, scheduledTime }
    Returns: { basePrice, dynamicPrice, surgeReason }
 ═══════════════════════════════════════════════════════════ */
-router.post("/dynamic-price", async (req, res) => {
+router.post("/dynamic-price", authMiddleware, async (req, res) => {
   try {
     const { serviceType = "general", area = "", scheduledTime } = req.body;
     const safeType = String(serviceType).slice(0, 80);
@@ -425,7 +435,7 @@ router.post("/dynamic-price", async (req, res) => {
    body: { userId, providerId, amount, serviceType, scheduledTime }
    Returns: { riskScore, riskLevel, flags }
 ═══════════════════════════════════════════════════════════ */
-router.post("/fraud-check", async (req, res) => {
+router.post("/fraud-check", authMiddleware, async (req, res) => {
   try {
     const { userId, providerId, amount, serviceType, scheduledTime } = req.body;
     const safeType = String(serviceType || "").slice(0, 80);
@@ -471,7 +481,7 @@ router.post("/fraud-check", async (req, res) => {
    body: { providerId, rating, comment, userId }
    Returns: { isSuspicious, confidence, reasons }
 ═══════════════════════════════════════════════════════════ */
-router.post("/review-check", async (req, res) => {
+router.post("/review-check", authMiddleware, async (req, res) => {
   try {
     const { providerId, rating, comment = "", userId } = req.body;
     const safeComment = String(comment).slice(0, 1000);
@@ -528,7 +538,7 @@ router.post("/review-check", async (req, res) => {
    GET /api/ai/forecast
    Returns: demand forecast, revenue forecast, top services
 ═══════════════════════════════════════════════════════════ */
-router.get("/forecast", ...adminOnly, async (req, res) => {
+router.get("/forecast", ...adminOnly, auditAnalytics("forecast"), async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:forecast', async () => {
     // Monthly revenue last 6 months
@@ -606,12 +616,13 @@ router.get("/forecast", ...adminOnly, async (req, res) => {
    GET /api/ai/churn
    Returns: at-risk providers and customers
 ═══════════════════════════════════════════════════════════ */
-router.get("/churn", ...adminOnly, async (req, res) => {
+router.get("/churn", ...adminOnly, auditAnalytics("churn"), async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:churn', async () => {
-    // Providers at risk: active but no booking in 30 days
+    // Providers at risk: active but no booking in 30 days.
+    // PII minimised: phone numbers are intentionally NOT returned.
     const [providerChurn] = await db.query(`
-      SELECT p.id, u.name, u.phone, p.service_type_en AS service_type, p.service_type_bn,
+      SELECT p.id, u.name, p.service_type_en AS service_type, p.service_type_bn,
              MAX(b.created_at) AS last_booking,
              COUNT(b.id) AS total_bookings,
              DATEDIFF(NOW(), COALESCE(MAX(b.created_at), p.created_at)) AS days_inactive
@@ -625,9 +636,9 @@ router.get("/churn", ...adminOnly, async (req, res) => {
       LIMIT 10
     `);
 
-    // Customers at risk: booked before but not in 45 days
+    // Customers at risk: booked before but not in 45 days (no phone returned)
     const [customerChurn] = await db.query(`
-      SELECT u.id, u.name, u.phone,
+      SELECT u.id, u.name,
              MAX(b.created_at) AS last_booking,
              COUNT(b.id) AS total_bookings,
              DATEDIFF(NOW(), MAX(b.created_at)) AS days_since_last
@@ -663,7 +674,7 @@ router.get("/churn", ...adminOnly, async (req, res) => {
    GET /api/ai/heatmap
    Returns service demand count per area/city
 ═══════════════════════════════════════════════════════════ */
-router.get("/heatmap", ...adminOnly, async (req, res) => {
+router.get("/heatmap", ...adminOnly, auditAnalytics("heatmap"), async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:heatmap', async () => {
     const [rows] = await db.query(`
@@ -710,7 +721,7 @@ router.get("/heatmap", ...adminOnly, async (req, res) => {
    body: { serviceType }
    Returns: suggested complementary services
 ═══════════════════════════════════════════════════════════ */
-router.post("/bundle-suggest", async (req, res) => {
+router.post("/bundle-suggest", authMiddleware, async (req, res) => {
   try {
     const { serviceType = "" } = req.body;
     const svc = serviceType.toLowerCase();
