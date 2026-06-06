@@ -345,9 +345,27 @@ CREATE TABLE IF NOT EXISTS microloans (
   INDEX idx_status (status)
 ) ENGINE=InnoDB;
 
+-- ── AUDIT LOG (admin actions, analytics access, money movement) ──
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+  actor_id    VARCHAR(36),
+  actor_role  VARCHAR(20),
+  action      VARCHAR(60) NOT NULL,
+  target_type VARCHAR(40),
+  target_id   VARCHAR(80),
+  ip          VARCHAR(60),
+  meta        JSON,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_action (action),
+  INDEX idx_actor  (actor_id),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB;
+
 -- ── ALTER existing tables (safe, idempotent) ─────────────
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER note;
 ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;
+-- Distinguishes booking payments from wallet top-ups (server-authoritative crediting)
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking' AFTER method;
 
 -- Demo Admin user (password: admin123)
 INSERT IGNORE INTO users (id,name,email,phone,password_hash,role,kyc_status,verified,balance,points,referral_code) VALUES

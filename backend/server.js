@@ -374,8 +374,31 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", async () => {
   logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
   logger.info(`Health check: http://localhost:${PORT}/api/health`);
+
+  // Payment gateway posture (logs without leaking secrets; warns on prod misconfig)
+  require("./config/payment").logStartup(logger);
+
   // Hoist one-time DDL so per-request handlers don't repeat it
   const _pool = require("./db");
+
+  // ── P0 migrations (idempotent, TiDB-compatible) ───────────
+  await _pool.query(
+    "ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking'"
+  ).catch(e => logger.warn("payments.purpose migration:", e.message));
+  await _pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    actor_id    VARCHAR(36),
+    actor_role  VARCHAR(20),
+    action      VARCHAR(60) NOT NULL,
+    target_type VARCHAR(40),
+    target_id   VARCHAR(80),
+    ip          VARCHAR(60),
+    meta        JSON,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_action (action),
+    INDEX idx_actor  (actor_id),
+    INDEX idx_created (created_at)
+  ) ENGINE=InnoDB`).catch(e => logger.warn("audit_log DDL:", e.message));
   await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
