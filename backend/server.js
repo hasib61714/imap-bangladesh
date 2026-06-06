@@ -255,6 +255,22 @@ server.listen(PORT, "0.0.0.0", async () => {
     INDEX idx_actor  (actor_id),
     INDEX idx_created (created_at)
   ) ENGINE=InnoDB`).catch(e => logger.warn("audit_log DDL:", e.message));
+
+  // ── P1 migrations (idempotent, TiDB-compatible) ───────────
+  // Refresh-token rotation columns (store hash only; family + reuse tracking)
+  for (const ddl of [
+    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(64)",
+    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS family_id VARCHAR(36)",
+    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revoked TINYINT(1) DEFAULT 0",
+    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS replaced_by VARCHAR(64)",
+    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS used_at TIMESTAMP NULL",
+    "ALTER TABLE refresh_tokens MODIFY COLUMN token VARCHAR(512) NULL",
+  ]) {
+    await _pool.query(ddl).catch(e => logger.warn("refresh_tokens migration:", e.message));
+  }
+  await _pool.query("CREATE INDEX idx_rt_token_hash ON refresh_tokens (token_hash)").catch(() => {});
+  await _pool.query("CREATE INDEX idx_rt_family ON refresh_tokens (family_id)").catch(() => {});
+
   await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
