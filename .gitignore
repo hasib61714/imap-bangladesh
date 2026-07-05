@@ -39,3 +39,7 @@ coverage/
 
 # Orphaned Next.js scaffold (build cache only)
 frontend-next/
+.gstack/
+
+# temp refactor analysis scripts
+frontend/.*.cjs

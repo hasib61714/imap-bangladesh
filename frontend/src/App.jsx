@@ -2,9 +2,15 @@
 import L from "leaflet";
 import { C_LIGHT, C_DARK, CSS, CSS_DARK } from "./constants/theme";
 import { T } from "./constants/translations";
-import { SVCS, PROVIDERS, MY_BOOKINGS, NOTIFS_DATA } from "./constants/data";
+import { SVCS, PROVIDERS, MY_BOOKINGS, NOTIFS_DATA,
+  CAL_SLOTS, AN_MONTHS, AN_DATA, AN_SERVICES, AN_ACTIVITY, SR_TYPES, SR_TIMES,
+  LOYALTY_REWARDS, LEVELS, LY_HISTORY, RF_FRIENDS, RF_STEPS, PF_PROVIDERS,
+  REG_SERVICES, PA_MONTHS, PA_EARNINGS, PA_REVIEWS, SC_COURSES, COUPONS,
+  PROMO_CATS, TRANSACTIONS, TOPUP_AMOUNTS, TOPUP_METHODS, BLOOD_GROUPS, DONORS,
+  BG_COL_MAP } from "./constants/data";
 import { ThemeCtx, useC, LangCtx, useTr, FavsCtx, LiveDataCtx, useLiveData, UserCtx, useUser } from "./contexts";
 import { Av, Stars, PBar, MiniBar } from "./components/ui";
+import { escHtml, toUiProv, pseudoBooked, haversine, showBrowserNotif } from "./utils/helpers";
 const AuthPage      = lazy(() => import("./pages/AuthPage"));
 const KYCPage       = lazy(() => import("./pages/KYCPage"));
 const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
@@ -24,7 +30,6 @@ const PAGES = ["home","services","providers","bookings","notifs","dashboard","ho
 import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, setToken, auth as authApi, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
-const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 /* ── Lazy-load fallback ─────────────────────────────────── */
 const PageLoader = () => (
@@ -38,39 +43,6 @@ const PageLoader = () => (
 );
 
 /* ── Map a backend provider row → UI provider shape ── */
-const toUiProv = p => ({
-  id:       p.id,
-  name:     p.name,
-  nameEn:   p.name,
-  // service: API returns service_type_bn / service_type_en (from providers table)
-  // or cat_bn / cat_en (from categories join), or legacy p.svc
-  svc:      p.service_type_bn||p.cat_bn||p.service_category||p.svc||"",
-  svcEn:    p.service_type_en||p.cat_en||p.service_category||p.svcEn||"",
-  r:        parseFloat(p.rating)||p.r||4.5,
-  rev:      p.review_count||p.rev||10,
-  price:    p.hourly_rate?`৳${p.hourly_rate}`:(p.price||"৳৩৫০"),
-  note:     p.bio_bn||p.bio||p.note||"",
-  noteEn:   p.bio_en||p.bio||p.noteEn||"",
-  ok:       p.nid_verified!==undefined?!!p.nid_verified:(p.ok!==undefined?p.ok:true),
-  top:      p.top||false,
-  av:       p.av||(p.name?.[0]||"P"),
-  col:      p.col||"#00C170",
-  score:    p.trust_score||p.score||80,
-  jobs:     p.total_jobs||p.jobs||0,
-  badge:    p.badge||"",
-  // area: API returns area_bn / area_en
-  loc:      p.area_bn||p.location||p.loc||"ঢাকা",
-  locEn:    p.area_en||p.location||p.locEn||"Dhaka",
-  eta:      p.eta||"১৫",
-  etaEn:    p.etaEn||"15",
-  tags:     Array.isArray(p.tags)?p.tags:(p.tags?String(p.tags).split(",").filter(Boolean):[]),
-  tagsEn:   Array.isArray(p.tagsEn)?p.tagsEn:(p.tagsEn?String(p.tagsEn).split(",").filter(Boolean):[]),
-  lat:      p.lat||p.latitude,
-  lng:      p.lng||p.longitude,
-  earnings: Array.isArray(p.earnings)?p.earnings:[0,0,0,0,0,0,0],
-  loanScore:p.loanScore||p.loan_score||82,
-  ai_score: p.ai_score||0,
-});
 
 
 
@@ -2054,16 +2026,7 @@ function FavoritesPage({favs,onBook,onView,onToggle}) {
 }
 
 /* ─── Smart Calendar ─────────────────────────────────── */
-const CAL_SLOTS = {
-  morning:  ["8:00 AM","9:00 AM","10:00 AM","11:00 AM"],
-  afternoon:["12:00 PM","1:00 PM","2:00 PM","3:00 PM"],
-  evening:  ["4:00 PM","5:00 PM","6:00 PM","7:00 PM"],
-};
 // Deterministic "booked" slots so UI looks realistic per provider
-const pseudoBooked=(pid,dateStr,slot)=>{
-  const h=([...`${pid}${dateStr}${slot}`].reduce((a,c)=>a+c.charCodeAt(0),0))%7;
-  return h<2;
-};
 function CalendarPage({onBook}) {
   const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
   const today=new Date();
@@ -2222,10 +2185,6 @@ function CalendarPage({onBook}) {
 }
 
 /* ─── Analytics Dashboard ───────────────────────────── */
-const AN_MONTHS=["Jul","Aug","Sep","Oct","Nov","Dec","Jan"];
-const AN_DATA=[2,3,1,4,3,5,4];
-const AN_SERVICES=[{icon:"⚡",name:"Electrical",nameBn:"ইলেকট্রিক",pct:32,color:"#F59E0B"},{icon:"🧹",name:"Cleaning",nameBn:"পরিষ্কার",pct:24,color:"#00C170"},{icon:"🔧",name:"Plumber",nameBn:"প্লাম্বার",pct:18,color:"#3B82F6"},{icon:"🏥",name:"Medical",nameBn:"চিকিৎসা",pct:15,color:"#EF4444"},{icon:"📚",name:"Tutoring",nameBn:"শিক্ষা",pct:11,color:"#8B5CF6"}];
-const AN_ACTIVITY=[{icon:"⚡",title:"Electrician booked",titleBn:"ইলেকট্রিশিয়ান বুক",date:"Today, 10:30 AM",amt:-385},{icon:"⭐",title:"Rated Farzana 5★",titleBn:"ফারজানাকে ৫★ দিলেন",date:"Yesterday",amt:0},{icon:"💳",title:"Wallet topped up",titleBn:"ওয়ালেট টপআপ",date:"2 days ago",amt:1000},{icon:"🔧",title:"Plumber booking",titleBn:"প্লাম্বার বুকিং",date:"3 days ago",amt:-280}];
 
 function AnalyticsPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2422,8 +2381,6 @@ function SettingsPage(){
 }
 
 /* ─── Service Request Form ───────────────────────────── */
-const SR_TYPES=["electrical","plumbing","cleaning","medical","tutoring","carpentry","painting","ac_repair"];
-const SR_TIMES=["08:00-10:00","10:00-12:00","12:00-14:00","14:00-16:00","16:00-18:00","18:00-20:00"];
 
 function ServiceRequestPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2541,9 +2498,6 @@ function ServiceRequestPage(){
 }
 
 /* ─── Loyalty / Points ───────────────────────────────── */
-const LOYALTY_REWARDS=[{pts:500,icon:"🎟️",titleEn:"₹50 off next booking",titleBn:"পরবর্তী বুকিং ৳৫০ ছাড়",code:"LY500"},{pts:1000,icon:"🎁",titleEn:"Free cleaning service",titleBn:"ফ্রি পরিষ্কার সেবা",code:"LY1000"},{pts:2000,icon:"⭐",titleEn:"Priority matching",titleBn:"অগ্রাধিকার ম্যাচিং",code:"LY2000"},{pts:5000,icon:"🏆",titleEn:"1 month premium",titleBn:"১ মাস প্রিমিয়াম",code:"LY5000"}];
-const LEVELS=[{name:"Bronze",nameBn:"ব্রোন্জ",min:0,max:500,color:"#CD7F32",icon:"🥉"},{name:"Silver",nameBn:"সিলভার",min:500,max:1500,color:"#C0C0C0",icon:"🥈"},{name:"Gold",nameBn:"গোল্ড",min:1500,max:3000,color:"#FFD700",icon:"🥇"},{name:"Platinum",nameBn:"প্লাটিনাম",min:3000,max:6000,color:"#E5E4E2",icon:"💎"}];
-const LY_HISTORY=[{icon:"⚡",titleEn:"Booked Electrician",titleBn:"ইলেকট্রিশিয়ান বুক",pts:+38,date:"Today"},{icon:"🎟️",titleEn:"Referral bonus",titleBn:"রেফারেল বোনাস",pts:+50,date:"Yesterday"},{icon:"🧹",titleEn:"Booked Cleaning",titleBn:"পরিষ্কার বুক",pts:+43,date:"2 days ago"},{icon:"💸",titleEn:"Redeemed coupon",titleBn:"কুপন রিডিম",pts:-200,date:"3 days ago"}];
 
 function LoyaltyPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2655,8 +2609,6 @@ function LoyaltyPage(){
 }
 
 /* ─── Referral Program ───────────────────────────────── */
-const RF_FRIENDS=[{name:"Karim Ahmed",nameEn:"Karim Ahmed",status:"active",earned:150,date:"Jan 12"},{name:"Nasrin Khatun",nameEn:"Nasrin Khatun",status:"active",earned:150,date:"Jan 8"},{name:"Alam Hossain",nameEn:"Alam Hossain",status:"pending",earned:0,date:"Jan 5"}];
-const RF_STEPS=[{icon:"📲",en:"Share your code with friends",bn:"বন্ধুদের সাথে কোড শেয়ার করুন"},{icon:"✅",en:"Friend signs up & books a service",bn:"বন্ধু নিবন্ধন ও বুকিং করেন"},{icon:"💰",en:"You both earn ৳150 bonus",bn:"আপনি উভয়ই ৳১৫০ বোনাস পাবেন"}];
 
 function ReferralPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2750,7 +2702,6 @@ function ReferralPage(){
 }
 
 /* ─── Portfolio Page ─────────────────────────────────── */
-const PF_PROVIDERS=[{id:1,name:"Md. Rakib",skill:"Electrician",exp:7,rating:4.9,jobs:320,skills:["Wiring","AC","Solar","Generator"],about:"7 বছরের অভিজ্ঞ ইলেকট্রিশিয়ান। ঢাকার সকল এলাকায় সেবা প্রদান।",aboutEn:"7-year experienced electrician serving all Dhaka areas.",gallery:["⚡","🔌","💡","🔧","⚙️","🛠️"]},{id:4,name:"Nasrin Begum",skill:"Cleaner",exp:5,rating:4.7,jobs:285,skills:["Deep Clean","Office","Post-Const","Kitchen"],about:"পেশাদার পরিষ্কারকর্মী। শতভাগ সন্তুষ্টি নিশ্চিত।",aboutEn:"Professional cleaner with 100% satisfaction guarantee.",gallery:["🧹","🧺","✨","🏠","🪣","🧽"]}];
 
 function PortfolioPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2828,7 +2779,6 @@ function PortfolioPage(){
 }
 
 /* ─── Provider Registration ──────────────────────────── */
-const REG_SERVICES=["Electrical","Plumbing","Cleaning","Nursing","Carpentry","Painting","AC Repair","Tutoring","Gardening","Security"];
 
 function ProviderRegPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2915,9 +2865,6 @@ function ProviderRegPage(){
 }
 
 /* ─── Provider Analytics ─────────────────────────────── */
-const PA_MONTHS=["Aug","Sep","Oct","Nov","Dec","Jan"];
-const PA_EARNINGS=[8200,9500,7800,11200,10800,12500];
-const PA_REVIEWS=[{name:"Rahim U.",stars:5,text:"অসাধারণ সেবা! সময়মতো এসেছেন।",textEn:"Excellent service! Arrived on time.",date:"Today"},{name:"Sultana B.",stars:4,text:"ভালো কাজ, দাম সঠিক।",textEn:"Good work, fair price.",date:"Yesterday"},{name:"Karim A.",stars:5,text:"100% সুপারিশ করব।",textEn:"100% recommended.",date:"3 days ago"}];
 
 function ProviderAnalyticsPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -2989,7 +2936,6 @@ function ProviderAnalyticsPage(){
 }
 
 /* ─── Skill Certification ────────────────────────────── */
-const SC_COURSES=[{id:1,icon:"⚡",titleEn:"Certified Electrician",titleBn:"সার্টিফাইড ইলেকট্রিশিয়ান",duration:"4 weeks",durationBn:"৪ সপ্তাহ",level:"Beginner",pts:200,issued:"Nov 2024"},{id:2,icon:"🔧",titleEn:"Plumbing Professional",titleBn:"প্লাম্বিং পেশাদার",duration:"3 weeks",durationBn:"৩ সপ্তাহ",level:"Intermediate",pts:250,issued:null},{id:3,icon:"🧹",titleEn:"Home Cleaning Expert",titleBn:"গৃহ পরিষ্কার বিশেষজ্ঞ",duration:"2 weeks",durationBn:"২ সপ্তাহ",level:"Beginner",pts:150,issued:null},{id:4,icon:"🏥",titleEn:"Home Nursing Basics",titleBn:"হোম নার্সিং বেসিক",duration:"6 weeks",durationBn:"৬ সপ্তাহ",level:"Advanced",pts:300,issued:"Dec 2024"},{id:5,icon:"❄️",titleEn:"AC Technician",titleBn:"এসি টেকনিশিয়ান",duration:"3 weeks",durationBn:"৩ সপ্তাহ",level:"Intermediate",pts:250,issued:null}];
 
 function SkillCertPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -3070,15 +3016,6 @@ function SkillCertPage(){
 }
 
 /* ─── Promo / Coupon System ──────────────────────────── */
-const COUPONS = [
-  {code:"IMAP20",pct:20,maxTk:150,minOrder:300,cat:"all",expiry:"31 Jan",uses:1240,limit:2000,tag:"hot",descBn:"সব সেবায় ২০% ছাড়",descEn:"20% off all services"},
-  {code:"FIRST50",pct:50,maxTk:200,minOrder:200,cat:"all",expiry:"28 Feb",uses:890,limit:1000,tag:"new",descBn:"প্রথম বুকিংয়ে ৫০% ছাড়",descEn:"50% off your first booking"},
-  {code:"ELEC15",pct:15,maxTk:120,minOrder:250,cat:"electrical",expiry:"15 Feb",uses:340,limit:500,tag:"",descBn:"ইলেকট্রিক সেবায় ১৫% ছাড়",descEn:"15% off electrical services"},
-  {code:"CLEAN30",pct:30,maxTk:180,minOrder:300,cat:"cleaning",expiry:"20 Jan",uses:620,limit:800,tag:"",descBn:"গৃহপরিচ্ছন্নতায় ৩০% ছাড়",descEn:"30% off cleaning services"},
-  {code:"NURSE10",pct:10,maxTk:100,minOrder:400,cat:"medical",expiry:"28 Feb",uses:180,limit:300,tag:"new",descBn:"নার্সিং সেবায় ১০% ছাড়",descEn:"10% off nursing services"},
-  {code:"FLASH40",pct:40,maxTk:250,minOrder:500,cat:"all",expiry:"Today!",uses:1890,limit:2000,tag:"flash",descBn:"ফ্ল্যাশ সেল — ৪০% ছাড়",descEn:"Flash sale — 40% off"},
-];
-const PROMO_CATS=["all","electrical","cleaning","medical","plumbing","tutoring"];
 
 function PromosPage(){
   const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -3209,18 +3146,6 @@ function PromosPage(){
 }
 
 /* ─── Wallet / Transaction History ──────────────────── */
-const TRANSACTIONS = [
-  {id:"TXN-9021",icon:"⚡",type:"payment",titleBn:"ইলেকট্রিশিয়ান সেবা",titleEn:"Electrician Service",provider:"Md. Rakib",amount:-385,method:"bKash",date:"আজ, ১০:৩০ AM",dateEn:"Today 10:30 AM",status:"success"},
-  {id:"TXN-9020",icon:"🔄",type:"refund",titleBn:"বুকিং বাতিল ফেরত",titleEn:"Booking Cancellation Refund",provider:"System",amount:+315,method:"Wallet",date:"আজ, ৮:০০ AM",dateEn:"Today 8:00 AM",status:"success"},
-  {id:"TXN-9019",icon:"🏥",type:"payment",titleBn:"নার্সিং সেবা",titleEn:"Nursing Service",provider:"Farzana Akter",amount:-535,method:"Nagad",date:"গতকাল",dateEn:"Yesterday",status:"success"},
-  {id:"TXN-9018",icon:"💳",type:"topup",titleBn:"ওয়ালেট টপআপ",titleEn:"Wallet Top Up",provider:"bKash",amount:+1000,method:"bKash",date:"২ দিন আগে",dateEn:"2 days ago",status:"success"},
-  {id:"TXN-9017",icon:"🔧",type:"payment",titleBn:"প্লাম্বার সেবা",titleEn:"Plumber Service",provider:"Md. Sajid",amount:-280,method:"Wallet",date:"৩ দিন আগে",dateEn:"3 days ago",status:"success"},
-  {id:"TXN-9016",icon:"❄️",type:"payment",titleBn:"AC সার্ভিস",titleEn:"AC Service",provider:"Karim Mia",amount:-450,method:"Rocket",date:"৫ দিন আগে",dateEn:"5 days ago",status:"success"},
-  {id:"TXN-9015",icon:"💳",type:"topup",titleBn:"ওয়ালেট টপআপ",titleEn:"Wallet Top Up",provider:"Nagad",amount:+500,method:"Nagad",date:"৭ দিন আগে",dateEn:"7 days ago",status:"success"},
-  {id:"TXN-9014",icon:"📚",type:"payment",titleBn:"গৃহশিক্ষক সেবা",titleEn:"Home Tutor Session",provider:"Nasrin Begum",amount:-400,method:"bKash",date:"১০ দিন আগে",dateEn:"10 days ago",status:"success"},
-];
-const TOPUP_AMOUNTS=[100,200,500,1000,2000,5000];
-const TOPUP_METHODS=[{id:"bkash",label:"bKash",icon:"🟣"},{id:"nagad",label:"Nagad",icon:"🟠"},{id:"rocket",label:"Rocket",icon:"🟤"},{id:"card",label:"Card",icon:"💳"}];
 
 function WalletPage() {
   const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -3453,20 +3378,8 @@ function WalletPage() {
 /* ─── Disaster Alert Mode ────────────────────────────── */
 
 /* ─── Blood Donation ─────────────────────────────────── */
-const BLOOD_GROUPS=["A+","A-","B+","B-","AB+","AB-","O+","O-"];
-const DONORS=[
-  {id:1,name:"মো. কাদের",nameEn:"Md. Kader",bg:"A+",loc:"মিরপুর",locEn:"Mirpur",phone:"01700-000001",lastDon:"3",dist:0.8,dons:12,avail:true,lat:23.8041,lng:90.3660},
-  {id:2,name:"রুমা খানম",nameEn:"Ruma Khanam",bg:"O+",loc:"গুলশান",locEn:"Gulshan",phone:"01700-000002",lastDon:"5",dist:1.9,dons:8,avail:true,lat:23.7860,lng:90.4158},
-  {id:3,name:"তারিক ইসলাম",nameEn:"Tariq Islam",bg:"B+",loc:"ধানমন্ডি",locEn:"Dhanmondi",phone:"01700-000003",lastDon:"2",dist:2.4,dons:20,avail:false,lat:23.7461,lng:90.3742},
-  {id:4,name:"সাদিয়া ইসলাম",nameEn:"Sadia Islam",bg:"AB+",loc:"উত্তরা",locEn:"Uttara",phone:"01700-000004",lastDon:"6",dist:5.1,dons:5,avail:true,lat:23.8759,lng:90.3795},
-  {id:5,name:"হাসান আলী",nameEn:"Hasan Ali",bg:"O-",loc:"বারিধারা",locEn:"Baridhara",phone:"01700-000005",lastDon:"4",dist:3.2,dons:15,avail:true,lat:23.7937,lng:90.4241},
-  {id:6,name:"নাজমা বেগম",nameEn:"Najma Begum",bg:"A-",loc:"বনানী",locEn:"Banani",phone:"01700-000006",lastDon:"7",dist:1.5,dons:3,avail:true,lat:23.7936,lng:90.4052},
-  {id:7,name:"রাফিউল আলম",nameEn:"Rafiul Alam",bg:"B-",loc:"মোহাম্মদপুর",locEn:"Mohammadpur",phone:"01700-000007",lastDon:"8",dist:2.8,dons:9,avail:false,lat:23.7528,lng:90.3564},
-  {id:8,name:"সিনথিয়া আক্তার",nameEn:"Sinthy Akter",bg:"AB-",loc:"রামপুরা",locEn:"Rampura",phone:"01700-000008",lastDon:"1",dist:4.0,dons:2,avail:true,lat:23.7628,lng:90.4243},
-];
 
 /* ── Blood Donor Map (Leaflet) ── */
-const BG_COL_MAP={"A+":"#DC2626","A-":"#EF4444","B+":"#2563EB","B-":"#3B82F6","AB+":"#7C3AED","AB-":"#8B5CF6","O+":"#D97706","O-":"#F59E0B"};
 function BloodDonorMap({donors,lang}){
   const mapElRef=useRef(null);
   const mapObjRef=useRef(null);
@@ -3705,11 +3618,6 @@ function BloodDonationPage() {
 }
 
 /* ─── GPS / Nearby ───────────────────────────────────── */
-const haversine=(lat1,lng1,lat2,lng2)=>{
-  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-};
 function NearbyPage({onBook,onView}) {
   const C=useC(); const tr=useTr();
   const [status,setStatus]=useState("idle"); // idle|detecting|done|error|denied
@@ -3998,14 +3906,6 @@ function LiveChatPage({provider, onBack}) {
    MAIN APP
 ══════════════════════════════════════════════════════════ */
 /* ── Browser Push Notification helper ── */
-function showBrowserNotif(title,body){
-  if(typeof Notification==="undefined"||Notification.permission!=="granted") return;
-  try{
-    if(navigator.serviceWorker?.controller){
-      navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"/icons/icon-192.png",badge:"/icons/icon-192.png",vibrate:[100,50,100]})).catch(()=>new Notification(title,{body}));
-    } else { new Notification(title,{body}); }
-  }catch{}
-}
 
 export default function IMAP() {
   const [page,setPage]        = usePageRoute("home", PAGES); // hash-synced (#services, back button)
