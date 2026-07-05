@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id    VARCHAR(36) NOT NULL,
   endpoint   VARCHAR(600) NOT NULL,
-  keys       JSON,
+  `keys`     JSON,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_ep (endpoint(255)),
   INDEX idx_ps_user (user_id)
