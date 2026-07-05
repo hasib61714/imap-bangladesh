@@ -15,11 +15,17 @@ const { audit } = require("./audit");
 
 /**
  * Settle a payment by id. Idempotent: a second call after success is a no-op.
- * @param {string} payId        payments.id (== gateway tran_id)
- * @param {string|null} valId   gateway validation id (optional)
+ * @param {string} payId          payments.id (== gateway tran_id)
+ * @param {string|null} valId     gateway validation id (optional)
+ * @param {object}  [opts]
+ * @param {object|null} [opts.validated]  the gateway validation response. When
+ *   present (real IPN/redirect callbacks), settlement is BOUND to it: the
+ *   validated tran_id and amount must match this payment, so a valid val_id
+ *   from one transaction can never settle a different/larger payment. Absent
+ *   only for dev-mock settlement (gated by allowMock(), non-prod).
  * @returns {Promise<{ok:boolean, already?:boolean, reason?:string, payment?:object, credited?:number}>}
  */
-async function finalizePayment(payId, valId = null) {
+async function finalizePayment(payId, valId = null, { validated = null } = {}) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -27,6 +33,25 @@ async function finalizePayment(payId, valId = null) {
     const [[pay]] = await conn.query("SELECT * FROM payments WHERE id = ? FOR UPDATE", [payId]);
     if (!pay) { await conn.rollback(); return { ok: false, reason: "not_found" }; }
     if (pay.status === "success") { await conn.rollback(); return { ok: true, already: true, payment: pay }; }
+
+    // SECURITY: bind settlement to the gateway-validated transaction. Without
+    // this, an attacker replaying any one valid val_id could settle an
+    // arbitrary pending payment (foreign booking / larger amount) for free.
+    if (validated) {
+      const okStatus = validated.status === "VALID" || validated.status === "VALIDATED";
+      const tranMatches = String(validated.tran_id) === String(payId);
+      const amountMatches =
+        parseFloat(validated.amount).toFixed(2) === parseFloat(pay.amount).toFixed(2);
+      if (!okStatus || !tranMatches || !amountMatches) {
+        await conn.rollback();
+        logger.warn("finalizePayment: gateway validation mismatch — settlement refused", {
+          payId, valId,
+          validatedTranId: validated.tran_id, validatedAmount: validated.amount,
+          expectedAmount: pay.amount, validatedStatus: validated.status,
+        });
+        return { ok: false, reason: "validation_mismatch" };
+      }
+    }
 
     await conn.query(
       "UPDATE payments SET status='success', gateway_val_id=COALESCE(?, gateway_val_id), paid_at=NOW() WHERE id=?",
