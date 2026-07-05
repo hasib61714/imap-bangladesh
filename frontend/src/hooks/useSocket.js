@@ -10,7 +10,11 @@ const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://
 let _socket = null;
 
 function getSocket(token) {
-  if (_socket && _socket.connected) return _socket;
+  // Reuse the live socket ONLY if it was opened with the same token. Otherwise
+  // (e.g. logged in after connecting anonymously, or switched account) the old
+  // socket is still authenticated as the previous identity — tear it down and
+  // reconnect with the new credentials.
+  if (_socket && _socket.connected && _socket.auth?.token === (token || "")) return _socket;
   if (_socket) { _socket.disconnect(); _socket = null; }
 
   _socket = io(SOCKET_URL, {
@@ -35,9 +39,12 @@ export function useSocket(token) {
 
   useEffect(() => {
     socketRef.current = getSocket(token);
-    // If token changed, force reconnect with new auth
-    if (token && _socket && !_socket.connected) {
-      _socket.auth = { token };
+    // If the socket exists but carries a stale token, refresh auth + reconnect.
+    if (_socket && _socket.auth?.token !== (token || "")) {
+      _socket.auth = { token: token || "" };
+      if (_socket.connected) _socket.disconnect();
+      _socket.connect();
+    } else if (_socket && !_socket.connected) {
       _socket.connect();
     }
   }, [token]);

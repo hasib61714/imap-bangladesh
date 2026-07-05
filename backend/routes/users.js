@@ -389,7 +389,7 @@ async function ensurePushTable() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id VARCHAR(36) NOT NULL,
       endpoint VARCHAR(600) NOT NULL,
-      keys JSON,
+      \`keys\` JSON,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE KEY uniq_ep (endpoint(255)),
       INDEX idx_ps_user (user_id)
@@ -405,9 +405,9 @@ router.post("/push-subscribe", authMiddleware, async (req, res) => {
     if (!subscription?.endpoint) return res.status(400).json({ error: "Invalid subscription" });
     await ensurePushTable();
     await pool.query(
-      `INSERT INTO push_subscriptions (user_id, endpoint, keys)
-       VALUES (?,?,?)
-       ON DUPLICATE KEY UPDATE user_id=?, keys=?`,
+      "INSERT INTO push_subscriptions (user_id, endpoint, `keys`) " +
+      "VALUES (?,?,?) " +
+      "ON DUPLICATE KEY UPDATE user_id=?, `keys`=?",
       [req.user.id, subscription.endpoint, JSON.stringify(subscription.keys),
        req.user.id, JSON.stringify(subscription.keys)]
     );

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "fix/**", "feat/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (install · migrate · integration test · audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    # Real DB so the security/integration tests actually execute (they self-skip
+    # without RUN_DB_TESTS + a reachable DB — a green run that skips them proves
+    # nothing). MariaDB, not plain MySQL 8: prod is TiDB, and both TiDB and
+    # MariaDB accept the `ADD COLUMN IF NOT EXISTS` DDL the migrations use.
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: imap_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: imap_db
+      DB_SSL: "false"
+      JWT_SECRET: ci-integration-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint --if-present
+      # Build the schema from migrations ALONE (proves they are the single
+      # source of truth and that the chain applies cleanly from an empty DB).
+      - name: Run migrations
+        run: npm run migrate
+      # Re-run to prove idempotency (must be a clean no-op).
+      - name: Migrations are idempotent
+        run: npm run migrate
+      - name: Test (integration enabled)
+        run: npm test
+        env:
+          RUN_DB_TESTS: "1"
+      - name: Security audit (high+)
+        run: npm audit --omit=dev --audit-level=high || true
+
+  frontend:
+    name: Frontend (install · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: https://imap-backend-mghb.onrender.com/api

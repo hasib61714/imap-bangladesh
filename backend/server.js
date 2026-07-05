@@ -10,32 +10,38 @@ const { ipKeyGenerator } = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
 const requestLogger = require("./middleware/requestLogger");
+const redis        = require("./utils/redis");
 
 const isProd = process.env.NODE_ENV === "production";
 
 // ── Rate limiters ─────────────────────────────────────────
-const generalLimiter = rateLimit({
+// Backed by Redis when available (shared across instances); otherwise the
+// default in-process memory store (identical single-instance behavior).
+const rlStore = redis.createRateLimitStore();
+const withStore = (cfg) => (rlStore ? { ...cfg, store: rlStore } : cfg);
+
+const generalLimiter = rateLimit(withStore({
   windowMs: 15 * 60 * 1000,   // 15 minutes
   max: isProd ? 200 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
-});
-const authLimiter = rateLimit({
+}));
+const authLimiter = rateLimit(withStore({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 20 : 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please wait." },
-});
-const aiLimiter = rateLimit({
+}));
+const aiLimiter = rateLimit(withStore({
   windowMs: 60 * 1000,           // 1-minute sliding window
   max: isProd ? 20 : 200,        // 20 AI calls / minute in prod
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests, please wait a moment." },
   keyGenerator: (req) => req.headers["authorization"] || ipKeyGenerator(req),
-});
+}));
 
 const app    = express();
 const server = http.createServer(app);
@@ -53,6 +59,9 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+// Multi-instance fan-out via Redis adapter (no-op single-instance / no Redis)
+redis.attachSocketAdapter(io).catch(() => {});
 
 // ── Socket.io authentication (strict) ─────────────────────
 // Reject missing / invalid / expired tokens and inactive users at connect time.
@@ -216,16 +225,28 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// ── Metrics (non-sensitive aggregate counters) ────────────
+const metrics = require("./utils/metrics");
+app.get("/api/metrics", (_req, res) => res.json(metrics.snapshot()));
+
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
 
 // ── Global error handler ──────────────────────────────────
+const errorTracker = require("./utils/errorTracker");
 app.use((err, req, res, _next) => {
-  logger.error("Unhandled error", { method: req.method, url: req.originalUrl, err: err.message, stack: err.stack });
+  // Report to the error tracker (Sentry if configured) + structured log.
+  // Response shape is unchanged.
+  errorTracker.captureException(err, { method: req.method, url: req.originalUrl, requestId: req.requestId });
   res.status(err.status || 500).json({ success: false, error: isProd ? "Internal server error" : err.message });
 });
 
 // ── Start ─────────────────────────────────────────────────
+// Enforce Redis only when explicitly required (REQUIRE_REDIS=true); otherwise
+// the in-memory fallback keeps single-instance deployments working unchanged.
+try { redis.assertReady(); }
+catch (e) { logger.error(e.message); process.exit(1); }
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", async () => {
   logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
@@ -234,73 +255,17 @@ server.listen(PORT, "0.0.0.0", async () => {
   // Payment gateway posture (logs without leaking secrets; warns on prod misconfig)
   require("./config/payment").logStartup(logger);
 
-  // Hoist one-time DDL so per-request handlers don't repeat it
-  const _pool = require("./db");
-
-  // ── P0 migrations (idempotent, TiDB-compatible) ───────────
-  await _pool.query(
-    "ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking'"
-  ).catch(e => logger.warn("payments.purpose migration:", e.message));
-  await _pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    actor_id    VARCHAR(36),
-    actor_role  VARCHAR(20),
-    action      VARCHAR(60) NOT NULL,
-    target_type VARCHAR(40),
-    target_id   VARCHAR(80),
-    ip          VARCHAR(60),
-    meta        JSON,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_action (action),
-    INDEX idx_actor  (actor_id),
-    INDEX idx_created (created_at)
-  ) ENGINE=InnoDB`).catch(e => logger.warn("audit_log DDL:", e.message));
-
-  // ── P1 migrations (idempotent, TiDB-compatible) ───────────
-  // Refresh-token rotation columns (store hash only; family + reuse tracking)
-  for (const ddl of [
-    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(64)",
-    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS family_id VARCHAR(36)",
-    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revoked TINYINT(1) DEFAULT 0",
-    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS replaced_by VARCHAR(64)",
-    "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS used_at TIMESTAMP NULL",
-    "ALTER TABLE refresh_tokens MODIFY COLUMN token VARCHAR(512) NULL",
-  ]) {
-    await _pool.query(ddl).catch(e => logger.warn("refresh_tokens migration:", e.message));
+  // ── Schema migrations ─────────────────────────────────────
+  // Single source of truth = database/migrations/*.sql, applied by the shared
+  // migrator (idempotent; safe on a fresh DB and on the existing prod DB).
+  // Best-effort: a migration failure is logged but never blocks startup.
+  try {
+    const { runMigrations } = require("./database/migrator");
+    const { applied } = await runMigrations({ log: (m) => logger.info(`[migrate] ${m}`) });
+    if (applied.length) logger.info("Migrations applied", { count: applied.length });
+  } catch (e) {
+    logger.error("Startup migrations failed (continuing on existing schema):", e.message);
   }
-  await _pool.query("CREATE INDEX idx_rt_token_hash ON refresh_tokens (token_hash)").catch(() => {});
-  await _pool.query("CREATE INDEX idx_rt_family ON refresh_tokens (family_id)").catch(() => {});
-
-  // KYC: widen doc_type from a rigid ENUM to VARCHAR (canonical set in config/kyc.js)
-  await _pool.query("ALTER TABLE kyc_docs MODIFY COLUMN doc_type VARCHAR(30) NOT NULL")
-    .catch(e => logger.warn("kyc doc_type migration:", e.message));
-
-  // Push subscriptions: user_id must be a UUID (VARCHAR), not INT (mismatch broke delivery)
-  await _pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(36) NOT NULL,
-    endpoint VARCHAR(600) NOT NULL,
-    keys JSON,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_ep (endpoint(255)),
-    INDEX idx_ps_user (user_id)
-  ) ENGINE=InnoDB`).catch(e => logger.warn("push_subscriptions DDL:", e.message));
-  await _pool.query("ALTER TABLE push_subscriptions MODIFY COLUMN user_id VARCHAR(36) NOT NULL")
-    .catch(e => logger.warn("push_subscriptions user_id migration:", e.message));
-
-  // Object-storage media metadata (object_key / cdn_url / mime_type / size)
-  await _pool.query(`CREATE TABLE IF NOT EXISTS media_assets (
-    id         VARCHAR(36) PRIMARY KEY,
-    owner_id   VARCHAR(36) NOT NULL,
-    kind       VARCHAR(30) NOT NULL,
-    object_key VARCHAR(512) NOT NULL,
-    cdn_url    VARCHAR(800),
-    mime_type  VARCHAR(100),
-    size       INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ma_owner (owner_id),
-    INDEX idx_ma_kind (kind)
-  ) ENGINE=InnoDB`).catch(e => logger.warn("media_assets DDL:", e.message));
 
   // Validate Web-Push (VAPID) configuration — warn if partially/incorrectly set
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
@@ -318,24 +283,13 @@ server.listen(PORT, "0.0.0.0", async () => {
     }
   }
 
-  await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(36) NOT NULL,
-    points INT NOT NULL,
-    reason_bn VARCHAR(200),
-    reason_en VARCHAR(200),
-    booking_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB`).catch(e => logger.warn("loyalty_log DDL:", e.message));
-  await _pool.query(`CREATE TABLE IF NOT EXISTS referrals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    referrer_id VARCHAR(36) NOT NULL,
-    referred_id VARCHAR(36) NOT NULL,
-    status ENUM('pending','active') DEFAULT 'pending',
-    bonus_paid DECIMAL(10,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_ref (referrer_id, referred_id)
-  ) ENGINE=InnoDB`).catch(e => logger.warn("referrals DDL:", e.message));
+  // ── Background workers ────────────────────────────────────
+  const jobs = require("./jobs");
+  jobs.startWorkers();
+  // Periodic housekeeping (expired tokens, old notifications)
+  jobs.enqueue("cleanup", {});
+  setInterval(() => jobs.enqueue("cleanup", {}), 6 * 60 * 60 * 1000).unref();
+  logger.info("Background workers started");
 });
 
 // ── Graceful shutdown ─────────────────────────────────────
@@ -362,7 +316,7 @@ const shutdown = async (signal) => {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("uncaughtException", (err) => {
-  logger.error("Uncaught exception", { err: err.message, stack: err.stack });
+  errorTracker.captureException(err, { source: "uncaughtException" });
   shutdown("uncaughtException");
 });
 process.on("unhandledRejection", (reason) => {

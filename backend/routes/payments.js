@@ -108,9 +108,10 @@ router.post("/ipn", async (req, res) => {
     // Verify with the gateway before crediting anything
     const validated = await payment.validatePayment(val_id);
     if (validated.status !== "VALID" && validated.status !== "VALIDATED") return res.json({ status: "invalid" });
-    // Atomic, idempotent settlement (booking confirm OR wallet credit)
-    const result = await finalizePayment(tran_id, val_id);
-    if (!result.ok)      return res.json({ status: "not_found" });
+    // Atomic, idempotent settlement (booking confirm OR wallet credit).
+    // `validated` binds settlement to the gateway transaction (tran_id + amount).
+    const result = await finalizePayment(tran_id, val_id, { validated });
+    if (!result.ok)      return res.json({ status: result.reason === "validation_mismatch" ? "invalid" : "not_found" });
     if (result.already)  return res.json({ status: "already_processed" });
 
     await pool.query("INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
@@ -132,9 +133,10 @@ router.post("/success", async (req, res) => {
   const { tran_id, val_id, status } = req.body;
   if (status === "VALID" || status === "VALIDATED") {
     try {
-      // Re-validate with the gateway, then settle via the idempotent ledger
-      await payment.validatePayment(val_id);
-      const result = await finalizePayment(tran_id, val_id);
+      // Re-validate with the gateway, then settle via the idempotent ledger.
+      // `validated` binds settlement to the gateway transaction (tran_id + amount).
+      const validated = await payment.validatePayment(val_id);
+      const result = await finalizePayment(tran_id, val_id, { validated });
       if (result.ok && result.payment) {
         cache.delPattern(new RegExp(`^payments:user:${result.payment.user_id}:`));
         cache.del(`user:wallet:${result.payment.user_id}`);

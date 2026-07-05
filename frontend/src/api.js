@@ -11,13 +11,42 @@ export const getToken  = ()           => localStorage.getItem("imap_token");
 export const setToken  = (t)          => localStorage.setItem("imap_token", t);
 export const clearToken= ()           => localStorage.removeItem("imap_token");
 
+// Rotating refresh token — lets access tokens stay short-lived. Persisted so a
+// 401 (expired access token) is recovered silently instead of logging out.
+export const getRefresh   = ()  => localStorage.getItem("imap_refresh");
+export const setRefresh   = (t) => { if (t) localStorage.setItem("imap_refresh", t); };
+export const clearRefresh = ()  => localStorage.removeItem("imap_refresh");
+
+// Single-flight refresh: many concurrent 401s share one refresh round-trip.
+let _refreshing = null;
+function refreshSession() {
+  const rt = getRefresh();
+  if (!rt) return Promise.resolve(false);
+  if (_refreshing) return _refreshing;
+  _refreshing = (async () => {
+    try {
+      const r = await fetch(`${BASE}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (!r.ok) return false;
+      const d = await r.json().catch(() => ({}));
+      if (d.token) { setToken(d.token); setRefresh(d.refresh_token); return true; }
+      return false;
+    } catch { return false; }
+    finally { _refreshing = null; }
+  })();
+  return _refreshing;
+}
+
 // ── Wake backend from Render sleep (call once on app load) ────
 export function wakeBackend() {
   fetch(`${BASE}/health`, { method: "GET" }).catch(() => {});
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────
-async function req(method, path, body = null, isForm = false, timeoutMs = 60000) {
+async function req(method, path, body = null, isForm = false, timeoutMs = 60000, _retry = false) {
   const token = getToken();
   const headers = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -51,16 +80,18 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000)
     res = await doFetch();
   }
 
-  let data;
-  try { data = await res.json(); } catch { data = {}; }
-
-  // Auto-logout on 401 — only when we sent a token (authenticated request)
-  // Uses custom event so React state updates cleanly (no reload loop)
-  if (res.status === 401 && token) {
-    localStorage.removeItem("imap_token");
+  // Access token expired? Silently refresh once and retry before giving up.
+  // Only logout if the refresh token is also dead.
+  if (res.status === 401 && token && !_retry) {
+    if (await refreshSession()) return req(method, path, body, isForm, timeoutMs, true);
+    clearToken();
+    clearRefresh();
     localStorage.removeItem("imap_user");
     window.dispatchEvent(new Event("imap-unauthorized"));
   }
+
+  let data;
+  try { data = await res.json(); } catch { data = {}; }
 
   if (!res.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: res.status, data });
   return data;
@@ -75,22 +106,25 @@ const del  = (p)    => req("DELETE", p);
 // ═══════════════════════════════════════════════════════════════
 //  AUTH
 // ═══════════════════════════════════════════════════════════════
+// Persist the rotating refresh token whenever an auth response carries one.
+const persist = (d) => { if (d && d.refresh_token) setRefresh(d.refresh_token); return d; };
+
 export const auth = {
   /** Register a new account */
   register: (name, email, password, phone, role, avatar) =>
-    post("/auth/register", { name, email, password, phone, role, avatar }),
+    post("/auth/register", { name, email, password, phone, role, avatar }).then(persist),
 
   /** Login with email or phone + password */
   login: (identifier, password) =>
-    post("/auth/login", { identifier, password }),
+    post("/auth/login", { identifier, password }).then(persist),
 
   /** Verify Google ID token and login/register */
   googleLogin: (credential) =>
-    post("/auth/google", { credential }),
+    post("/auth/google", { credential }).then(persist),
 
   /** Social login (Facebook mock) */
   socialLogin: (provider, socialId, email, name, avatar) =>
-    post("/auth/social-login", { provider, socialId, email, name, avatar }),
+    post("/auth/social-login", { provider, socialId, email, name, avatar }).then(persist),
 
   /** Send OTP to phone */
   sendOtp: (phone) =>
@@ -98,13 +132,16 @@ export const auth = {
 
   /** Verify OTP */
   verifyOtp: (phone, otp) =>
-    post("/auth/verify-otp", { phone, otp }),
+    post("/auth/verify-otp", { phone, otp }).then(persist),
 
   /** Get current logged-in user (checks token) */
   me: () => get("/auth/me"),
 
-  /** Exchange a valid JWT for a fresh one (call before expiry or after app focus) */
-  refresh: () => post("/auth/refresh", {}),
+  /** Rotate the refresh token for a fresh access token */
+  refresh: () => post("/auth/refresh", { refresh_token: getRefresh() }).then(persist),
+
+  /** Revoke the refresh-token family server-side (best-effort). */
+  logout: () => post("/auth/logout", { refresh_token: getRefresh() }).catch(() => {}),
 };
 
 // ═══════════════════════════════════════════════════════════════

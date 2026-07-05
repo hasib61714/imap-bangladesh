@@ -146,7 +146,13 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
 
   const doEmailAuth = async () => {
     if (!email.includes("@")) { setErr(lang === "bn" ? "সঠিক Email দিন" : "Enter valid email"); return; }
-    if (password.length < 6)  { setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর" : "Password min 6 chars"); return; }
+    // Login keeps the legacy minimum (don't lock out existing users); new
+    // registrations must meet the strong policy the server enforces.
+    if (mode === "login") {
+      if (password.length < 6) { setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর" : "Password min 6 chars"); return; }
+    } else if (password.length < 12) {
+      setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ১২ অক্ষর — বড়/ছোট হাতের অক্ষর, সংখ্যা ও চিহ্ন সহ" : "Password: min 12 chars incl. upper, lower, number & symbol"); return;
+    }
     setErr(""); setLoadingKey("email");
     try {
       if (mode === "login") {
