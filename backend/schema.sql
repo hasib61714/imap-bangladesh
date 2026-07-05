@@ -1,6 +1,10 @@
 -- ═══════════════════════════════════════════════════════════
---  IMAP Bangladesh — Full MySQL Schema
---  Run: mysql -u root -p < schema.sql
+--  IMAP Bangladesh — Full schema SNAPSHOT (convenience only)
+--
+--  SOURCE OF TRUTH = database/migrations/*.sql, applied by `npm run migrate`
+--  (also run automatically at server startup). This file is a flat snapshot
+--  for quick local/docker bootstrap and must be kept in sync with migrations.
+--  Requires MariaDB/TiDB (uses ADD COLUMN IF NOT EXISTS).
 -- ═══════════════════════════════════════════════════════════
 
 CREATE DATABASE IF NOT EXISTS imap_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -401,6 +405,17 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER n
 ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;
 -- Distinguishes booking payments from wallet top-ups (server-authoritative crediting)
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking' AFTER method;
+
+-- Referral tracking (see migration 005_referrals.sql)
+CREATE TABLE IF NOT EXISTS referrals (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  referrer_id VARCHAR(36) NOT NULL,
+  referred_id VARCHAR(36) NOT NULL,
+  status      ENUM('pending','active') DEFAULT 'pending',
+  bonus_paid  DECIMAL(10,2) DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_ref (referrer_id, referred_id)
+) ENGINE=InnoDB;
 
 -- No default admin is seeded (removed admin123 backdoor).
 -- Create the first admin securely with:  npm run create-admin

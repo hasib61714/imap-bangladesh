@@ -14,19 +14,20 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    # Real MySQL so the security/integration tests actually execute (they
-    # self-skip without RUN_DB_TESTS + a reachable DB — a green run that
-    # skips them proves nothing).
+    # Real DB so the security/integration tests actually execute (they self-skip
+    # without RUN_DB_TESTS + a reachable DB — a green run that skips them proves
+    # nothing). MariaDB, not plain MySQL 8: prod is TiDB, and both TiDB and
+    # MariaDB accept the `ADD COLUMN IF NOT EXISTS` DDL the migrations use.
     services:
-      mysql:
-        image: mysql:8
+      mariadb:
+        image: mariadb:11
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: imap_db
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: imap_db
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=15
@@ -49,15 +50,12 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint --if-present
-      - name: Wait for MySQL
-        run: |
-          for i in $(seq 1 30); do
-            mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
-            echo "waiting for mysql ($i)…"; sleep 2
-          done
-      - name: Load base schema
-        run: mysql -h 127.0.0.1 -uroot -proot imap_db < schema.sql
+      # Build the schema from migrations ALONE (proves they are the single
+      # source of truth and that the chain applies cleanly from an empty DB).
       - name: Run migrations
+        run: npm run migrate
+      # Re-run to prove idempotency (must be a clean no-op).
+      - name: Migrations are idempotent
         run: npm run migrate
       - name: Test (integration enabled)
         run: npm test
