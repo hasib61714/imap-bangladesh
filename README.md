@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=javascript,nodejs,express,mongodb&theme=dark" />
+    <img src="https://skillicons.dev/icons?i=javascript,nodejs,express,mysql,react,redis&theme=dark" />
   </a>
 </p>
 
@@ -47,10 +47,14 @@
 |---|---|
 | Runtime | Node.js |
 | Framework | Express.js |
-| Database | MongoDB (Mongoose) |
+| Database | MySQL 8 / TiDB Cloud (mysql2) |
+| Cache / Scaling | Redis (ioredis) — optional, in-memory fallback |
 | Real-Time | Socket.io |
-| Maps & GPS | Google Maps API |
-| Auth | Phone OTP (SMS Gateway) |
+| Frontend | React 18 + Vite + Ant Design |
+| Maps & GPS | Leaflet + OpenStreetMap |
+| Payments | SSLCommerz |
+| Storage | Cloudflare R2 / AWS S3 |
+| Auth | JWT + refresh rotation, Phone OTP, Google |
 | Language | JavaScript (ES2022) |
 
 ---
@@ -60,9 +64,9 @@
 ### Prerequisites
 
 - Node.js >= 18 & npm
-- MongoDB >= 6.0 (local or Atlas)
-- Google Maps API key
-- SMS gateway credentials (for OTP)
+- MySQL 8 (local) or a TiDB Cloud cluster
+- Redis (optional — only needed for multi-instance scaling)
+- SMS gateway credentials (optional — OTP runs in mock mode by default)
 
 ### Installation
 
@@ -71,12 +75,16 @@
 git clone https://github.com/hasib61714/imap-bangladesh.git
 cd imap-bangladesh
 
-# Install dependencies
-npm install
+# Install backend dependencies
+cd backend && npm install
 
 # Configure environment
 cp .env.example .env
-# Fill in: MONGO_URI, GOOGLE_MAPS_KEY, SMS_API_KEY, JWT_SECRET
+# Fill in: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET (see .env.example)
+
+# Create the schema, then start
+npm run migrate
+npm run dev
 ```
 
 ### Usage
