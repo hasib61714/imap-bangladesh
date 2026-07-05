@@ -4859,16 +4859,20 @@ export default function IMAP() {
   /* ── MOBILE BOTTOM NAV ── */
   const MobNav = ()=>(
     <div className="mnav">
-      {[["home","🏠",tr.home],["services","🛠️",tr.services],["nearby","📍",tr.gpsNav||"Nearby"],["saved","🔖",tr.favNav||"Saved"],["_profile","👤",tr.profile]].map(([id,icon,l])=>(
-        <button key={id} onClick={()=>{
+      {[["home","🏠",tr.home],["services","🛠️",tr.services],["nearby","📍",tr.gpsNav||"Nearby"],["saved","🔖",tr.favNav||"Saved"],["_profile","👤",tr.profile]].map(([id,icon,l])=>{
+        const active = page===id;
+        return (
+        <button key={id} aria-label={l} aria-current={active?"page":undefined} onClick={()=>{
           if(id==="_map")setModal("map");
           else if(id==="_profile"){setProfDrop(o=>!o);}
           else{setPage(id);closeAll();}
-        }} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",padding:"7px 0",fontFamily:"'Hind Siliguri',sans-serif"}}>
-          <div className="jc" style={{width:28,height:28,borderRadius:8,background:page===id?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:15,transition:"all .18s"}}>{icon}</div>
-          <div style={{fontSize:10,fontWeight:600,color:page===id?C.p:C.muted}}>{l}</div>
+        }} style={{position:"relative",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"8px 0",fontFamily:"'Hind Siliguri',sans-serif",WebkitTapHighlightColor:"transparent"}}>
+          {/* animated active indicator */}
+          <div style={{position:"absolute",top:0,width:active?24:0,height:3,borderRadius:"0 0 4px 4px",background:`linear-gradient(90deg,${C.p},${C.pdk})`,transition:"width .22s cubic-bezier(.4,0,.2,1)"}}/>
+          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px ${C.p}55`:"none"}}>{icon}</div>
+          <div style={{fontSize:10.5,fontWeight:active?800:600,color:active?C.p:C.muted,transition:"color .18s"}}>{l}</div>
         </button>
-      ))}
+      )})}
     </div>
   );
 
