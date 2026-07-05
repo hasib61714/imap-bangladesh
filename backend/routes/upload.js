@@ -13,6 +13,7 @@ const pool    = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const storage = require("../utils/storage");
 const { normalizeDocType } = require("../config/kyc");
+const { assertAllowedUpload } = require("../utils/fileType");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -48,20 +49,21 @@ router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) =
   try {
     if (!req.file) return res.status(400).json({ error: "ফাইল প্রয়োজন।" });
     if (req.file.size > 2 * 1024 * 1024) return res.status(400).json({ error: "Avatar সর্বোচ্চ 2MB হতে পারে।" });
+    const mime = assertAllowedUpload(req.file); // trust bytes, not client Content-Type
 
     if (storage.isConfigured()) {
-      const { key, url } = await storage.uploadFile({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname: req.file.originalname, folder: "avatars" });
+      const { key, url } = await storage.uploadFile({ buffer: req.file.buffer, mimetype: mime, originalname: req.file.originalname, folder: "avatars" });
       await pool.query("UPDATE users SET avatar=? WHERE id=?", [url, req.user.id]);
-      await recordMedia(req.user.id, "avatar", { key, url, mimetype: req.file.mimetype, size: req.file.size });
+      await recordMedia(req.user.id, "avatar", { key, url, mimetype: mime, size: req.file.size });
       return res.json({ url, message: "প্রোফাইল ছবি আপডেট হয়েছে।" });
     }
 
-    const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const base64 = `data:${mime};base64,${req.file.buffer.toString("base64")}`;
     await pool.query("UPDATE users SET avatar=? WHERE id=?", [base64, req.user.id]);
     res.json({ url: base64, mock: true, note: "Cloud storage নেই — base64 dev mode" });
   } catch (err) {
     logger.error("upload-avatar:", err);
-    res.status(500).json({ error: err.message || "Upload failed" });
+    res.status(err.status || 500).json({ error: err.message || "Upload failed" });
   }
 });
 
@@ -78,13 +80,14 @@ router.post("/kyc", authMiddleware, upload.fields([
     for (const [field, col] of Object.entries(colMap)) {
       if (!files[field]?.[0]) continue;
       const f = files[field][0];
+      const fMime = assertAllowedUpload(f); // trust bytes, not client Content-Type
       let url;
       if (storage.isConfigured()) {
-        const up = await storage.uploadFile({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname, folder: `kyc/${req.user.id}` });
+        const up = await storage.uploadFile({ buffer: f.buffer, mimetype: fMime, originalname: f.originalname, folder: `kyc/${req.user.id}` });
         url = up.url;
-        await recordMedia(req.user.id, "kyc", { key: up.key, url: up.url, mimetype: f.mimetype, size: f.size });
+        await recordMedia(req.user.id, "kyc", { key: up.key, url: up.url, mimetype: fMime, size: f.size });
       } else {
-        url = `data:${f.mimetype};base64,${f.buffer.toString("base64")}`;
+        url = `data:${fMime};base64,${f.buffer.toString("base64")}`;
       }
       results[col] = url;
     }
@@ -123,7 +126,7 @@ router.post("/kyc", authMiddleware, upload.fields([
     res.json({ uploaded: Object.keys(results), doc_type, doc_number, message: "KYC ডকুমেন্ট আপলোড হয়েছে।" });
   } catch (err) {
     logger.error("upload-kyc:", err);
-    res.status(500).json({ error: err.message || "Upload failed" });
+    res.status(err.status || 500).json({ error: err.message || "Upload failed" });
   }
 });
 
@@ -131,18 +134,19 @@ router.post("/kyc", authMiddleware, upload.fields([
 router.post("/proof", authMiddleware, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "ফাইল প্রয়োজন।" });
+    const mime = assertAllowedUpload(req.file); // trust bytes, not client Content-Type
     const { booking_id } = req.body;
     let url;
     if (storage.isConfigured()) {
-      const r = await storage.uploadFile({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname: req.file.originalname, folder: "proof" });
+      const r = await storage.uploadFile({ buffer: req.file.buffer, mimetype: mime, originalname: req.file.originalname, folder: "proof" });
       url = r.url;
-      await recordMedia(req.user.id, "proof", { key: r.key, url: r.url, mimetype: req.file.mimetype, size: req.file.size });
+      await recordMedia(req.user.id, "proof", { key: r.key, url: r.url, mimetype: mime, size: req.file.size });
     } else {
-      url = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+      url = `data:${mime};base64,${req.file.buffer.toString("base64")}`;
     }
     if (booking_id) await pool.query("UPDATE bookings SET completion_proof=? WHERE id=? AND (customer_id=? OR ?='admin')", [url, booking_id, req.user.id, req.user.role]);
     res.json({ url, message: "ছবি আপলোড হয়েছে।" });
-  } catch (err) { logger.error("upload-proof:", err); res.status(500).json({ error: err.message || "Upload failed" }); }
+  } catch (err) { logger.error("upload-proof:", err); res.status(err.status || 500).json({ error: err.message || "Upload failed" }); }
 });
 
 /* ── Error handler ── */
