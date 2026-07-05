@@ -12,6 +12,13 @@ const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
 import VoiceCommand from "./components/VoiceCommand";
 import { useSocket } from "./hooks/useSocket";
+import { usePageRoute } from "./hooks/usePageRoute";
+
+// Valid in-app pages (drives hash deep-linking; unknown hashes fall back home).
+const PAGES = ["home","services","providers","bookings","notifs","dashboard","how",
+  "saved","nearby","calendar","blood","disaster","wallet","cprofile","loyalty",
+  "referral","promos","settings","analytics","panalytics","portfolio","providerreg",
+  "skillcert","srvreq"];
 import { users as usersApi, providers as providersApi, bookings as bookingsApi, reviews as reviewsApi, ai, blood as bloodApi, disaster as disasterApi, chat as chatApi, promos as promosApi, schedule as scheduleApi, kyc as kycApi, getToken, setToken, auth as authApi, sos as sosApi, payments as paymentsApi, upload as uploadApi, loans as loansApi, wakeBackend } from "./api";
 
 const C = C_LIGHT; // module-level fallback
@@ -4331,7 +4338,7 @@ function showBrowserNotif(title,body){
 }
 
 export default function IMAP() {
-  const [page,setPage]        = useState("home");
+  const [page,setPage]        = usePageRoute("home", PAGES); // hash-synced (#services, back button)
   const [booking,setBooking]  = useState(null);
   const [detail,setDetail]    = useState(null);
   const [rateFor,setRateFor]  = useState(null);
