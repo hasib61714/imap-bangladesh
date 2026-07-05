@@ -41,11 +41,14 @@ function listMigrations() {
     .sort();
 }
 
-// Split a migration file into individual statements. These files are plain DDL
-// with no stored routines or `;` inside literals, so a simple split is safe.
+// Split a migration file into individual statements. `--` comments are stripped
+// FIRST (whole-line and inline) — critically, this drops any `;` that appears
+// inside a comment (e.g. "-- legacy column (unused; hash is canonical)"), which
+// would otherwise split a statement mid-way. These files are plain DDL with no
+// stored routines or `;` inside string literals, so this is safe.
 function splitStatements(sql) {
   return sql
-    .split("\n").filter((line) => !/^\s*--/.test(line)).join("\n") // strip line comments
+    .replace(/--[^\n]*/g, "")  // strip -- comments to end of line (incl. embedded ;)
     .split(";")
     .map((s) => s.trim())
     .filter(Boolean);
