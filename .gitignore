@@ -36,3 +36,6 @@ backend/uploads/
 
 # Coverage
 coverage/
+
+# Orphaned Next.js scaffold (build cache only)
+frontend-next/
