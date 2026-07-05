@@ -2,7 +2,13 @@
 <html lang="bn">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- App fonts: Hind Siliguri (Bangla/body) + Plus Jakarta Sans (headings).
+         Referenced throughout the CSS but were never loaded — Bangla fell back to
+         each device's system font. display=swap avoids invisible-text flash. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
     <!-- theme-color is supported in Chrome, Edge, and Safari; other browsers use color-scheme. Firefox and Opera will ignore this. -->
     <!-- htmlhint meta[name=theme-color]:off -->
     <meta name="theme-color" content="#006A4E" /><!-- @browser-support: Chrome, Edge, Safari -->
