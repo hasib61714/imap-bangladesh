@@ -47,6 +47,7 @@ before(async () => {
   app.use("/api/users",    require("../routes/users"));
   app.use("/api/bookings", require("../routes/bookings"));
   app.use("/api/payments", require("../routes/payments"));
+  app.use("/api/auth",     require("../routes/auth"));
 
   // Seed disposable users + provider
   ids.customer     = randomUUID();
@@ -274,4 +275,16 @@ test("9. finalizePayment refuses a validated response that does not match the pa
   assert.equal(p.status, "success", "matching gateway response settles the payment");
 
   await pool.query("DELETE FROM payments WHERE id=?", [payId]);
+});
+
+// ── Passwordless-login refusal on the LIVE /api/auth/login route ──
+// The seeded users have no password_hash (phone-OTP accounts). Password login
+// must be refused for them — otherwise anyone could log in by phone alone.
+test("10. passwordless (OTP/social) account cannot log in via /api/auth/login", async (t) => {
+  if (!dbReady) return t.skip("no test DB");
+  const res = await request(app)
+    .post("/api/auth/login")
+    .send({ identifier: "01900000001", password: "whatever" }); // ids.customer, no password_hash
+  assert.equal(res.status, 401, "passwordless account must not authenticate by identifier alone");
+  assert.ok(!res.body.token, "no token issued");
 });
