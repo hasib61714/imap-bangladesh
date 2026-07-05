@@ -1,5 +1,6 @@
 ﻿const logger = require('../utils/logger');
 const router   = require("express").Router();
+const crypto   = require("crypto");
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
@@ -7,6 +8,7 @@ const pool     = require("../db");
 const sms      = require("../utils/sms");
 const otpStore = require("../utils/otp-store");
 const refreshTokens = require("../utils/refreshTokens");
+const { validatePasswordStrength } = require("../utils/password");
 const { validate, body } = require("../middleware/validate");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -15,7 +17,7 @@ const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUppe
 // ACCESS_TOKEN_TTL (e.g. "15m") once the client auto-refreshes.
 const makeToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.ACCESS_TOKEN_TTL || process.env.JWT_EXPIRES_IN || "7d",
+    expiresIn: process.env.ACCESS_TOKEN_TTL || process.env.JWT_EXPIRES_IN || "2h",
   });
 
 // Best-effort: issue a rotating refresh token. Never breaks auth if the
@@ -30,7 +32,7 @@ const registerRules = validate([
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ max: 80 }).withMessage("Name too long"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Invalid email").normalizeEmail(),
   body("phone").optional({ checkFalsy: true }).matches(/^01[0-9]{9}$/).withMessage("Phone must be 11 digits starting with 01"),
-  body("password").optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  body("password").optional({ checkFalsy: true }).isLength({ min: 12 }).withMessage("Password must be at least 12 characters"),
   body("role").optional().isIn(["customer", "provider"]).withMessage("Role must be customer or provider"),
 ]);
 
@@ -42,6 +44,12 @@ const otpRules = validate([
   body("phone").matches(/^01[0-9]{9}$/).withMessage("Valid 11-digit phone required"),
 ]);
 
+// Unverified social login (raw client-supplied socialId → token) is a mock/demo
+// affordance ONLY. It is never safe in production: a known/guessable social_id
+// would be a full account-takeover primitive. Verified providers use /google.
+const ALLOW_MOCK_SOCIAL_LOGIN =
+  process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_SOCIAL_LOGIN === "true";
+
 // ── POST /api/auth/register ───────────────────────────────
 router.post("/register", registerRules, async (req, res) => {
   try {
@@ -52,6 +60,12 @@ router.post("/register", registerRules, async (req, res) => {
       return res.status(400).json({ error: "Email, phone, or social ID required" });
     if (avatar && avatar.length > 2_700_000)
       return res.status(400).json({ error: "Avatar too large (max ~2 MB)" });
+    // If the user sets a password, enforce the strong policy (utils/password.js).
+    // Passwordless signup (phone-OTP / social) stays allowed.
+    if (password) {
+      const chk = validatePasswordStrength(password);
+      if (!chk.ok) return res.status(400).json({ error: `Weak password — must contain ${chk.errors.join(", ")}.` });
+    }
 
     // Duplicate check
     if (email) {
@@ -113,10 +127,16 @@ router.post("/login", loginRules, async (req, res) => {
 
     const user = rows[0];
 
-    if (user.password_hash) {
-      const ok = await bcrypt.compare(password || "", user.password_hash);
-      if (!ok) return res.status(401).json({ error: "Wrong password" });
+    // SECURITY: passwordless accounts (created via phone-OTP or social) have
+    // password_hash = NULL. They MUST NOT be authenticable by identifier alone —
+    // refuse password login and steer them to their real factor (OTP / social).
+    if (!user.password_hash) {
+      return res.status(401).json({
+        error: "This account has no password. Please log in with OTP or your social account.",
+      });
     }
+    const ok = await bcrypt.compare(password || "", user.password_hash);
+    if (!ok) return res.status(401).json({ error: "Wrong password" });
 
     const { password_hash, ...safeUser } = user;
     res.json({ user: safeUser, token: makeToken(user), refresh_token: await issueRefresh(user.id) });
@@ -129,6 +149,12 @@ router.post("/login", loginRules, async (req, res) => {
 // ── POST /api/auth/social-login ───────────────────────────
 router.post("/social-login", async (req, res) => {
   try {
+    // SECURITY: refuse unverified social login in production. There is no
+    // server-side proof the caller owns `socialId`, so issuing a token here
+    // would let anyone log in as any social account by its id.
+    if (!ALLOW_MOCK_SOCIAL_LOGIN) {
+      return res.status(403).json({ error: "Unverified social login is disabled. Please use Google sign-in." });
+    }
     const { socialId, provider, email, name, avatar } = req.body;
     if (!socialId || !provider) return res.status(400).json({ error: "socialId and provider required" });
     if (socialId.length > 200 || provider.length > 30)
@@ -156,7 +182,7 @@ router.post("/social-login", async (req, res) => {
 router.post("/send-otp", otpRules, async (req, res) => {
   try {
     const { phone } = req.body;
-    const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp    = crypto.randomInt(100000, 1000000).toString(); // CSPRNG — not Math.random
     const stored = otpStore.setOtp(phone, otp);
     if (!stored) {
       const secs = otpStore.getSecondsLeft(phone);

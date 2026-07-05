@@ -163,3 +163,111 @@ test("5. normal user is blocked from AI analytics", async (t) => {
   const blob = JSON.stringify(ok.body);
   assert.ok(!/01900000/.test(blob), "churn response must not leak phone numbers");
 });
+
+// ── Booking status state-machine hardening (money-mint / refund fixes) ──
+
+test("6. re-completing a booking credits the provider only ONCE (no wallet mint)", async (t) => {
+  if (!dbReady) return t.skip("no test DB");
+  const id = randomUUID();
+  await pool.query(
+    "INSERT INTO bookings (id,customer_id,provider_id,amount,platform_fee,payment_method,payment_status,status) VALUES (?,?,?,?,?,'bKash','paid','confirmed')",
+    [id, ids.richCustomer, ids.provider, 500, 50]
+  );
+  await pool.query("UPDATE users SET balance=0 WHERE id=?", [ids.providerUser]);
+  const provTok = token(ids.providerUser, "provider");
+  const complete = () => request(app).patch(`/api/bookings/${id}/status`)
+    .set("Authorization", `Bearer ${provTok}`).send({ status: "completed" });
+
+  const first = await complete();
+  assert.equal(first.status, 200);
+  await complete(); // repeat — must NOT credit again
+  await complete();
+
+  const [[u]] = await pool.query("SELECT balance FROM users WHERE id=?", [ids.providerUser]);
+  assert.equal(Number(u.balance), 450, "earnings (500-50) credited exactly once despite 3 calls");
+  const [[{ c }]] = await pool.query(
+    "SELECT COUNT(*) AS c FROM wallet_transactions WHERE user_id=? AND type='credit' AND method='wallet'",
+    [ids.providerUser]
+  );
+  assert.equal(Number(c), 1, "exactly one earnings transaction written");
+  await pool.query("DELETE FROM bookings WHERE id=?", [id]);
+});
+
+test("7. a customer cannot move a booking to 'completed' (role-scoped transitions)", async (t) => {
+  if (!dbReady) return t.skip("no test DB");
+  const id = randomUUID();
+  await pool.query(
+    "INSERT INTO bookings (id,customer_id,provider_id,amount,platform_fee,payment_method,status) VALUES (?,?,?,?,?,'bKash','confirmed')",
+    [id, ids.richCustomer, ids.provider, 500, 50]
+  );
+  await pool.query("UPDATE users SET balance=0 WHERE id=?", [ids.providerUser]);
+  const res = await request(app).patch(`/api/bookings/${id}/status`)
+    .set("Authorization", `Bearer ${token(ids.richCustomer, "customer")}`)
+    .send({ status: "completed" });
+  assert.equal(res.status, 403, "customer may only cancel, not complete");
+  const [[u]] = await pool.query("SELECT balance FROM users WHERE id=?", [ids.providerUser]);
+  assert.equal(Number(u.balance), 0, "no earnings credited on a rejected transition");
+  await pool.query("DELETE FROM bookings WHERE id=?", [id]);
+});
+
+test("8. cancelling a CASH booking refunds nothing; a wallet booking refunds once", async (t) => {
+  if (!dbReady) return t.skip("no test DB");
+  const custTok = token(ids.richCustomer, "customer");
+  const cancel = (id) => request(app).patch(`/api/bookings/${id}/status`)
+    .set("Authorization", `Bearer ${custTok}`).send({ status: "cancelled" });
+
+  // Cash booking → never debited at creation → must NOT be refunded.
+  const cashId = randomUUID();
+  await pool.query(
+    "INSERT INTO bookings (id,customer_id,provider_id,amount,platform_fee,payment_method,status) VALUES (?,?,?,?,?,'cash','pending')",
+    [cashId, ids.richCustomer, ids.provider, 500, 50]
+  );
+  await pool.query("UPDATE users SET balance=1000 WHERE id=?", [ids.richCustomer]);
+  const c1 = await cancel(cashId);
+  assert.equal(c1.status, 200);
+  let [[u]] = await pool.query("SELECT balance FROM users WHERE id=?", [ids.richCustomer]);
+  assert.equal(Number(u.balance), 1000, "cash cancellation must not credit the wallet");
+
+  // Wallet booking → refunded exactly once, even if cancel is retried.
+  const walletId = randomUUID();
+  await pool.query(
+    "INSERT INTO bookings (id,customer_id,provider_id,amount,platform_fee,payment_method,status) VALUES (?,?,?,?,?,'bKash','pending')",
+    [walletId, ids.richCustomer, ids.provider, 500, 50]
+  );
+  await pool.query("UPDATE users SET balance=1000 WHERE id=?", [ids.richCustomer]);
+  await cancel(walletId);
+  await cancel(walletId); // retry must be a no-op (already cancelled)
+  [[u]] = await pool.query("SELECT balance FROM users WHERE id=?", [ids.richCustomer]);
+  assert.equal(Number(u.balance), 1550, "refund of 550 applied exactly once");
+
+  await pool.query("DELETE FROM bookings WHERE id IN (?,?)", [cashId, walletId]);
+});
+
+// ── Payment settlement binding (ledger tran_id + amount must match gateway) ──
+
+test("9. finalizePayment refuses a validated response that does not match the payment", async (t) => {
+  if (!dbReady) return t.skip("no test DB");
+  const { finalizePayment } = require("../utils/ledger");
+  const payId = randomUUID();
+  await pool.query(
+    "INSERT INTO payments (id,booking_id,user_id,amount,method,purpose,status,gateway_tran_id) VALUES (?,NULL,?,?,?,'wallet_topup','pending',?)",
+    [payId, ids.richCustomer, 500, "sslcommerz", payId]
+  );
+
+  // Wrong tran_id → refused.
+  let r = await finalizePayment(payId, "V1", { validated: { status: "VALID", tran_id: "someone-elses-tran", amount: "500.00" } });
+  assert.equal(r.ok, false); assert.equal(r.reason, "validation_mismatch");
+  // Amount tampered upward → refused.
+  r = await finalizePayment(payId, "V1", { validated: { status: "VALID", tran_id: payId, amount: "5000.00" } });
+  assert.equal(r.ok, false); assert.equal(r.reason, "validation_mismatch");
+  let [[p]] = await pool.query("SELECT status FROM payments WHERE id=?", [payId]);
+  assert.equal(p.status, "pending", "payment must remain unsettled after mismatches");
+
+  // Correct binding → settles once, then idempotent.
+  r = await finalizePayment(payId, "V1", { validated: { status: "VALID", tran_id: payId, amount: "500.00" } });
+  assert.equal(r.ok, true);
+  [[p]] = await pool.query("SELECT status FROM payments WHERE id=?", [payId]);
+  assert.equal(p.status, "success", "matching gateway response settles the payment");
+
+  await pool.query("DELETE FROM payments WHERE id=?", [payId]);
+});

@@ -3,6 +3,7 @@
 // the service pure and unit-testable with a fake repository.
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
+const { validatePasswordStrength } = require("../../../utils/password");
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -19,10 +20,13 @@ function createAuthService({ repo, signAccessToken, issueRefresh }) {
       if (!identifier) throw httpError(400, "Email or phone required");
       const user = await repo.findActiveByIdentifier(identifier);
       if (!user) throw httpError(401, "Account not found");
-      if (user.password_hash) {
-        const ok = await bcrypt.compare(password || "", user.password_hash);
-        if (!ok) throw httpError(401, "Wrong password");
+      // SECURITY: never authenticate a passwordless account (OTP/social) by
+      // identifier alone — that would be a bulk account-takeover primitive.
+      if (!user.password_hash) {
+        throw httpError(401, "This account has no password. Please log in with OTP or your social account.");
       }
+      const ok = await bcrypt.compare(password || "", user.password_hash);
+      if (!ok) throw httpError(401, "Wrong password");
       const { password_hash, ...safeUser } = user;
       return { user: safeUser, token: signAccessToken(user), refresh_token: await issueRefresh(user.id) };
     },
@@ -31,6 +35,10 @@ function createAuthService({ repo, signAccessToken, issueRefresh }) {
       const { name, email, phone, password, role = "customer", loginMethod = "email", socialId, avatar } = input;
       if (!name?.trim()) throw httpError(400, "Name required");
       if (!email && !phone && !socialId) throw httpError(400, "Email, phone, or social ID required");
+      if (password) {
+        const chk = validatePasswordStrength(password);
+        if (!chk.ok) throw httpError(400, `Weak password — must contain ${chk.errors.join(", ")}.`);
+      }
       if (email && await repo.findByEmail(email)) throw httpError(409, "Email already registered");
       if (phone && await repo.findByPhone(phone)) throw httpError(409, "Phone already registered");
 

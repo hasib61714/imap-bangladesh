@@ -1,5 +1,6 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
+const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const cache  = require("../utils/cache");
@@ -69,7 +70,7 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     }
 
     id  = uuidv4();
-    otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otp = crypto.randomInt(100000, 1000000).toString(); // CSPRNG — not Math.random
 
     await conn.query(
       `INSERT INTO bookings
@@ -199,131 +200,141 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 // ── PATCH /api/bookings/:id/status ───────────────────────
+// Role-scoped state machine. ALL money movement (provider earnings on
+// completion, customer refund on cancellation) happens inside ONE transaction
+// with SELECT ... FOR UPDATE, and only fires on the actual state TRANSITION —
+// never on a repeated call. This prevents a provider from minting wallet balance
+// by re-PATCHing "completed", and prevents double/cash refunds.
+const BOOKING_STATUSES = ["pending", "confirmed", "active", "completed", "cancelled"];
+// Which statuses each role may move a booking INTO.
+const ALLOWED_TRANSITIONS = {
+  customer: ["cancelled"],
+  provider: ["confirmed", "active", "completed", "cancelled"],
+  admin:    BOOKING_STATUSES,
+};
+
 router.patch("/:id/status", authMiddleware, async (req, res) => {
+  const { status } = req.body;
+  if (!BOOKING_STATUSES.includes(status)) return res.status(400).json({ error: "Invalid status" });
+
+  const conn = await pool.getConnection();
+  let ctx = null; // set on success → drives post-commit side effects
   try {
-    const { status } = req.body;
-    const allowed = ["pending","confirmed","active","completed","cancelled"];
-    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });
+    await conn.beginTransaction();
 
-    const [rows] = await pool.query("SELECT * FROM bookings WHERE id = ?", [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: "Booking not found" });
-
+    const [rows] = await conn.query("SELECT * FROM bookings WHERE id = ? FOR UPDATE", [req.params.id]);
+    if (!rows.length) { await conn.rollback(); conn.release(); return res.status(404).json({ error: "Booking not found" }); }
     const booking = rows[0];
-    // customers can cancel; providers confirm/complete
-    const isCustomer = booking.customer_id === req.user.id;
-    const [prov]     = await pool.query("SELECT user_id FROM providers WHERE id = ?", [booking.provider_id]);
-    const isProvider = prov.length && prov[0].user_id === req.user.id;
-    const isAdmin    = req.user.role === "admin";
 
+    const [prov] = await conn.query("SELECT user_id FROM providers WHERE id = ?", [booking.provider_id]);
+    const providerUserId = prov.length ? prov[0].user_id : null;
+
+    const isCustomer = booking.customer_id === req.user.id;
+    const isProvider = providerUserId && providerUserId === req.user.id;
+    const isAdmin    = req.user.role === "admin";
     if (!isCustomer && !isProvider && !isAdmin) {
+      await conn.rollback(); conn.release();
       return res.status(403).json({ error: "Access denied" });
     }
 
-    await pool.query("UPDATE bookings SET status = ? WHERE id = ?", [status, req.params.id]);
-
-    // ✅ Emit real-time booking update via Socket.io
-    const io = req.app.get("io");
-    if (io) {
-      io.to(`booking_${req.params.id}`).emit("booking_updated", {
-        bookingId: req.params.id,
-        status,
-        updatedAt: new Date().toISOString(),
-      });
+    // Role-scoped transition guard (admin may set anything).
+    const role = isAdmin ? "admin" : isProvider ? "provider" : "customer";
+    if (!ALLOWED_TRANSITIONS[role].includes(status)) {
+      await conn.rollback(); conn.release();
+      return res.status(403).json({ error: "You are not allowed to set this status" });
     }
 
-    // Status-based notifications
-    const pushMessages = {
-      confirmed:  { title: "✅ বুকিং নিশ্চিত",   body: "আপনার বুকিং নিশ্চিত হয়েছে।" },
-      active:     { title: "🔄 সেবা শুরু হয়েছে",  body: "সেবা প্রদানকারী কাজ শুরু করেছেন।" },
-      completed:  { title: "🎉 সেবা সম্পন্ন",   body: "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন!" },
-      cancelled:  { title: "❌ বুকিং বাতিল",   body: "আপনার বুকিং বাতিল করা হয়েছে।" },
-    };
-    const pushMsg = pushMessages[status];
-    if (pushMsg) {
-      // Push to customer
-      sendPush(booking.customer_id, { ...pushMsg, url: "/" }).catch(() => {});
-      // Insert DB notification
-      await pool.query(
-        "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
-        [booking.customer_id, pushMsg.title.slice(0,2), "booking",
-         pushMsg.title, pushMsg.title, pushMsg.body, pushMsg.body]
-      ).catch(() => {});
-    }
+    const prevStatus = booking.status;
+    await conn.query("UPDATE bookings SET status = ? WHERE id = ?", [status, req.params.id]);
 
-    // On complete — update provider stats + credit earnings
-    if (status === "completed") {
-      await pool.query(
-        "UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?",
-        [booking.provider_id]
-      );
-      // Credit provider wallet (amount minus platform fee)
-      if (prov.length) {
-        const earnings = parseFloat(booking.amount) - parseFloat(booking.platform_fee || 0);
-        if (earnings > 0) {
-          await pool.query(
-            "UPDATE users SET balance = balance + ? WHERE id = ?",
-            [earnings, prov[0].user_id]
-          );
-          await pool.query(
-            "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
-            [prov[0].user_id, "credit", earnings,
-             `সেবা সম্পন্ন - বুকিং #${req.params.id.slice(0,8)}`,
-             `Service completed - Booking #${req.params.id.slice(0,8)}`, "wallet"]
-          );
-        }
-      }
-      cache.del("admin:stats");
-      cache.del("admin:revenue");
-      cache.del("admin:bookings:default");
-      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
-      if (prov.length) cache.del(`user:wallet:${prov[0].user_id}`); // bust provider wallet after earnings credit
-      if (prov.length) cache.del(`user:profile:${prov[0].user_id}`); // bust provider profile (balance changed)
-      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
-      // Notify via socket too
-      if (io) {
-        io.emit(`user_${booking.customer_id}`, {
-          type: "notification",
-          title: "সেবা সম্পন্ন ✅",
-          body: "আপনার সেবা সম্পন্ন হয়েছে।",
-        });
+    let credited = false, refunded = false;
+
+    // Transition INTO completed (once) → provider stats + earnings credit.
+    if (status === "completed" && prevStatus !== "completed" && providerUserId) {
+      await conn.query("UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?", [booking.provider_id]);
+      const earnings = parseFloat(booking.amount) - parseFloat(booking.platform_fee || 0);
+      if (earnings > 0) {
+        await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [earnings, providerUserId]);
+        await conn.query(
+          "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
+          [providerUserId, "credit", earnings,
+           `সেবা সম্পন্ন - বুকিং #${req.params.id.slice(0,8)}`,
+           `Service completed - Booking #${req.params.id.slice(0,8)}`, "wallet"]
+        );
+        credited = true;
       }
     }
 
-    // On cancellation — refund customer if booking not yet active
-    if (status === "cancelled" && ["pending", "confirmed"].includes(booking.status)) {
+    // Transition INTO cancelled from a pre-service state → refund the customer,
+    // but ONLY what was actually debited at creation. Cash bookings never debit
+    // the wallet (paid on delivery), so they must never be refunded.
+    const isCash = String(booking.payment_method).toLowerCase() === "cash";
+    if (status === "cancelled" && ["pending", "confirmed"].includes(prevStatus) && !isCash) {
       const refundAmt = parseFloat(booking.amount) + parseFloat(booking.platform_fee || 0);
-      await pool.query(
-        "UPDATE users SET balance = balance + ? WHERE id = ?",
-        [refundAmt, booking.customer_id]
-      );
-      await pool.query(
+      await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [refundAmt, booking.customer_id]);
+      await conn.query(
         "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
         [booking.customer_id, "credit", refundAmt,
          `বুকিং বাতিল রিফান্ড #${req.params.id.slice(0,8)}`,
          `Booking cancellation refund #${req.params.id.slice(0,8)}`, "refund"]
       );
-      cache.del("admin:stats");
-      cache.del("admin:revenue");
-      cache.del("admin:bookings:default");
-      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
-      cache.del(`user:wallet:${booking.customer_id}`); // bust customer wallet after cancellation refund
-      cache.del(`user:profile:${booking.customer_id}`); // bust customer profile (balance changed)
-      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
-      // Socket-notify provider so their jobs view updates immediately
-      if (io && prov.length) {
-        io.emit(`user_${prov[0].user_id}`, {
-          type: "notification",
-          title: "❌ বুকিং বাতিল",
-          body: "একটি বুকিং বাতিল হয়েছে।",
-        });
-      }
+      refunded = true;
     }
 
-    res.json({ success: true, status });
+    await conn.commit();
+    ctx = { booking, providerUserId, credited, refunded };
   } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
     logger.error("update booking status:", err);
-    res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Server error" });
   }
+  conn.release();
+
+  // ── Post-commit side effects (safe outside the txn) ──────
+  const { booking, providerUserId, credited, refunded } = ctx;
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`booking_${req.params.id}`).emit("booking_updated", {
+      bookingId: req.params.id, status, updatedAt: new Date().toISOString(),
+    });
+  }
+
+  const pushMessages = {
+    confirmed:  { title: "✅ বুকিং নিশ্চিত",   body: "আপনার বুকিং নিশ্চিত হয়েছে।" },
+    active:     { title: "🔄 সেবা শুরু হয়েছে",  body: "সেবা প্রদানকারী কাজ শুরু করেছেন।" },
+    completed:  { title: "🎉 সেবা সম্পন্ন",   body: "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন!" },
+    cancelled:  { title: "❌ বুকিং বাতিল",   body: "আপনার বুকিং বাতিল করা হয়েছে।" },
+  };
+  const pushMsg = pushMessages[status];
+  if (pushMsg) {
+    sendPush(booking.customer_id, { ...pushMsg, url: "/" }).catch(() => {});
+    await pool.query(
+      "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
+      [booking.customer_id, pushMsg.title.slice(0,2), "booking",
+       pushMsg.title, pushMsg.title, pushMsg.body, pushMsg.body]
+    ).catch(() => {});
+  }
+
+  // Cache busting — always refresh the customer's booking list + admin aggregates.
+  cache.del("admin:stats");
+  cache.del("admin:revenue");
+  cache.del("admin:bookings:default");
+  cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
+  if (providerUserId) cache.del(`provider:jobs:${providerUserId}`);
+
+  if (credited && providerUserId) {
+    cache.del(`user:wallet:${providerUserId}`);
+    cache.del(`user:profile:${providerUserId}`);
+    if (io) io.emit(`user_${booking.customer_id}`, { type: "notification", title: "সেবা সম্পন্ন ✅", body: "আপনার সেবা সম্পন্ন হয়েছে।" });
+  }
+  if (refunded) {
+    cache.del(`user:wallet:${booking.customer_id}`);
+    cache.del(`user:profile:${booking.customer_id}`);
+    if (io && providerUserId) io.emit(`user_${providerUserId}`, { type: "notification", title: "❌ বুকিং বাতিল", body: "একটি বুকিং বাতিল হয়েছে।" });
+  }
+
+  res.json({ success: true, status });
 });
 
 module.exports = router;
