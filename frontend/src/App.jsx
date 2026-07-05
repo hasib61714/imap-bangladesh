@@ -172,9 +172,17 @@ export default function IMAP() {
   const [emgSvc,setEmgSvc]    = useState(null);
   const [elderly,setElderly]  = useState(false);
   const [tracking,setTracking]= useState(false);
-  const [lang,setLang]        = useState("bn");
-  const [dark,setDark]        = useState(false);
+  const [lang,setLang]        = useState(() => localStorage.getItem("imap_lang") || "bn");
+  const [dark,setDark]        = useState(() => {
+    const s = localStorage.getItem("imap_dark");
+    if (s !== null) return s === "1";
+    return typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches : false;
+  });
   const [onboard,setOnboard]  = useState(()=>!localStorage.getItem("imap_ob"));
+  // Persist theme + language so they survive reloads (were resetting every time)
+  useEffect(()=>{ localStorage.setItem("imap_dark", dark ? "1" : "0"); }, [dark]);
+  useEffect(()=>{ localStorage.setItem("imap_lang", lang); }, [lang]);
   const [favs,setFavs]        = useState(()=>JSON.parse(localStorage.getItem("imap_favs")||"[]"));
   const [chatWith,setChatWith] = useState(null);
   const [anim,setAnim]        = useState(false);
