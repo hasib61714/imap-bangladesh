@@ -4,7 +4,7 @@ services:
     name: imap-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm ci                 # honour the lockfile (reproducible builds)
     startCommand: node server.js
     envVars:
       # ── Core ──────────────────────────────────────────
@@ -14,14 +14,16 @@ services:
         value: 10000
 
       # ── Database ────────────────────────────────────
+      # Host + user are infrastructure secrets — set them in the Render
+      # dashboard, not in version control (don't hand attackers the endpoint).
       - key: DB_HOST
-        value: gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+        sync: false
       - key: DB_PORT
         value: 4000
       - key: DB_USER
-        value: 2ZctdUCKR1pNorW.root
+        sync: false
       - key: DB_PASSWORD
-        sync: false   # ← set this in Render dashboard
+        sync: false
       - key: DB_NAME
         value: imap_db
       - key: DB_SSL
@@ -30,8 +32,12 @@ services:
       # ── JWT ───────────────────────────────────────────
       - key: JWT_SECRET
         generateValue: true
+      # Short-lived access token; the client silently refreshes via the
+      # rotating refresh token (utils/refreshTokens.js) on 401.
+      - key: ACCESS_TOKEN_TTL
+        value: 1h
       - key: JWT_EXPIRES_IN
-        value: 7d
+        value: 1h
 
       # ── Frontend URL ──────────────────────────────────
       - key: FRONTEND_URL
@@ -67,23 +73,39 @@ services:
       - key: PLATFORM_FEE_PCT
         value: "0.10"
 
-      # ── Redis (optional; enables shared rate-limit/OTP + socket scaling) ──
-      # Leave unset for in-memory fallback. Requires `npm i ioredis`.
+      # ── Redis (shared rate-limit/OTP + Socket.IO fan-out for scaling) ──
+      # Wired from the managed Key-Value service defined below. `ioredis` is now
+      # a real dependency, so this connects for real. Set REQUIRE_REDIS=true once
+      # provisioned to fail fast instead of silently falling back to memory.
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: keyvalue
+          name: imap-redis
+          property: connectionString
+      # - key: REQUIRE_REDIS
+      #   value: "true"
 
       # ── SMS (mock by default) ─────────────────────────
+      # Provider values the code understands: mock | bulksmsbd | sslwireless | twilio.
+      # Set the credential group matching SMS_PROVIDER in the dashboard.
       - key: SMS_PROVIDER
         value: mock
-      - key: SMS_FROM
-        value: "+8801700000000"
+      # Twilio:
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
-      - key: BD_SMS_API_KEY
+      - key: TWILIO_PHONE
         sync: false
-      - key: BD_SMS_SENDER_ID
+      # bulksmsbd:
+      - key: BULKSMS_API_KEY
+        sync: false
+      - key: BULKSMS_SENDER_ID
+        sync: false
+      # sslwireless:
+      - key: SSLWIRELESS_TOKEN
+        sync: false
+      - key: SSLWIRELESS_SID
         sync: false
 
       # ── Web Push (VAPID) ──────────────────────────────
@@ -121,4 +143,15 @@ services:
         generateValue: true
 
     healthCheckPath: /api/health
-    autoDeploy: true
+    # Do NOT auto-deploy on every push — that ships code before CI runs.
+    # Enable "Auto-Deploy: After CI Checks Pass" in the Render dashboard, or
+    # trigger deploys from a CI job via a Render Deploy Hook.
+    autoDeploy: false
+
+  # ── Redis / Key-Value (shared state for horizontal scaling) ──
+  # Backs rate-limiting, OTP storage, and Socket.IO fan-out across instances.
+  - type: keyvalue
+    name: imap-redis
+    plan: free
+    ipAllowList: []          # only reachable from Render services (no public access)
+    maxmemoryPolicy: noeviction

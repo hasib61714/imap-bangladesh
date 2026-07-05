@@ -1,7 +1,12 @@
 name: Deploy Frontend to GitHub Pages
 
+# Deploy ONLY after CI has passed on main. `workflow_run` fires when the CI
+# workflow completes; the job guard below requires a successful conclusion, so
+# a red CI never ships the frontend.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -11,6 +16,8 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Guard: only proceed for a green CI run (or a manual dispatch).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
