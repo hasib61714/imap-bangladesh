@@ -17,8 +17,8 @@ const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
 const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
 import VoiceCommand from "./components/VoiceCommand";
-import DisasterPage from "./pages/DisasterPage";
-import NotifPage from "./pages/NotifPage";
+const DisasterPage = lazy(() => import("./pages/DisasterPage"));
+const NotifPage = lazy(() => import("./pages/NotifPage"));
 import PageLoader from "./pages/PageLoader";
 import LiveMap from "./pages/LiveMap";
 import PCard from "./pages/PCard";
@@ -27,31 +27,31 @@ import BookModal from "./pages/BookModal";
 import RatingModal from "./pages/RatingModal";
 import DisputeModal from "./pages/DisputeModal";
 import GuaranteeModal from "./pages/GuaranteeModal";
-import MyBookings from "./pages/MyBookings";
+const MyBookings = lazy(() => import("./pages/MyBookings"));
 import LoanScore from "./pages/LoanScore";
-import ProviderDash from "./pages/ProviderDash";
+const ProviderDash = lazy(() => import("./pages/ProviderDash"));
 import NIDPage from "./pages/NIDPage";
 import ElderlyMode from "./pages/ElderlyMode";
 import SearchFilter from "./pages/SearchFilter";
-import CustomerProfilePage from "./pages/CustomerProfilePage";
+const CustomerProfilePage = lazy(() => import("./pages/CustomerProfilePage"));
 import Chat from "./pages/Chat";
 import Onboarding from "./pages/Onboarding";
-import FavoritesPage from "./pages/FavoritesPage";
-import CalendarPage from "./pages/CalendarPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import SettingsPage from "./pages/SettingsPage";
-import ServiceRequestPage from "./pages/ServiceRequestPage";
-import LoyaltyPage from "./pages/LoyaltyPage";
-import ReferralPage from "./pages/ReferralPage";
-import PortfolioPage from "./pages/PortfolioPage";
-import ProviderRegPage from "./pages/ProviderRegPage";
-import ProviderAnalyticsPage from "./pages/ProviderAnalyticsPage";
-import SkillCertPage from "./pages/SkillCertPage";
-import PromosPage from "./pages/PromosPage";
-import WalletPage from "./pages/WalletPage";
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ServiceRequestPage = lazy(() => import("./pages/ServiceRequestPage"));
+const LoyaltyPage = lazy(() => import("./pages/LoyaltyPage"));
+const ReferralPage = lazy(() => import("./pages/ReferralPage"));
+const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
+const ProviderRegPage = lazy(() => import("./pages/ProviderRegPage"));
+const ProviderAnalyticsPage = lazy(() => import("./pages/ProviderAnalyticsPage"));
+const SkillCertPage = lazy(() => import("./pages/SkillCertPage"));
+const PromosPage = lazy(() => import("./pages/PromosPage"));
+const WalletPage = lazy(() => import("./pages/WalletPage"));
 import BloodDonorMap from "./pages/BloodDonorMap";
-import BloodDonationPage from "./pages/BloodDonationPage";
-import NearbyPage from "./pages/NearbyPage";
+const BloodDonationPage = lazy(() => import("./pages/BloodDonationPage"));
+const NearbyPage = lazy(() => import("./pages/NearbyPage"));
 import LiveChatPage from "./pages/LiveChatPage";
 import { useSocket } from "./hooks/useSocket";
 import { usePageRoute } from "./hooks/usePageRoute";
@@ -1193,6 +1193,7 @@ export default function IMAP() {
           </div>
         )}
         <div style={{minHeight:"calc(100vh - 62px)"}}>
+         <Suspense fallback={<PageLoader/>}>
           {page==="home"      && <Home/>}
           {page==="cprofile" && <div className="wp" style={{padding:"0 0 80px"}}><CustomerProfilePage user={authUser} onAvatarUpdate={u=>{setAuthUser(u);}} onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="services"  && <div className="wp sp"><Services/></div>}
@@ -1217,6 +1218,7 @@ export default function IMAP() {
           {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage/></div>}
           {page==="panalytics"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderAnalyticsPage/></div>}
           {page==="skillcert" && <div className="wp" style={{padding:"28px 0 80px"}}><SkillCertPage/></div>}
+         </Suspense>
         </div>
         <MobNav/>
 
