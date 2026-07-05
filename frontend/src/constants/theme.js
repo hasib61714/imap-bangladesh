@@ -213,8 +213,9 @@ input:focus,textarea:focus,select:focus{
   .mnav{
     display:flex;position:fixed;bottom:0;left:0;right:0;
     background:rgba(255,255,255,.98);
-    backdrop-filter:blur(5px) saturate(120%);-webkit-backdrop-filter:blur(5px) saturate(120%);
-    border-top:1px solid rgba(214,236,227,.8);z-index:800;height:62px;
+    backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
+    border-top:1px solid rgba(214,236,227,.8);z-index:800;
+    min-height:62px;padding-bottom:env(safe-area-inset-bottom,0px);
     box-shadow:0 -8px 32px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
   }
   .dnav{display:none!important;}.dbtn{display:none!important;}.nsearch{display:none!important;}
