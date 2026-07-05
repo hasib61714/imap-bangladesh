@@ -119,6 +119,13 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     await conn.rollback().catch(() => {});
     conn.release();
     if (err.status === 404) return res.status(404).json({ error: err.message });
+    // Transient concurrency conflict (deadlock / lock-wait / optimistic
+    // serialization). The txn safely rolled back — no double-spend — so tell
+    // the client to retry rather than returning an opaque 500.
+    if (["ER_LOCK_DEADLOCK", "ER_LOCK_WAIT_TIMEOUT", "ER_CHECKREAD"].includes(err.code) ||
+        [1213, 1205, 1020].includes(err.errno)) {
+      return res.status(409).json({ error: "একসাথে একাধিক অনুরোধ — একটু পরে আবার চেষ্টা করুন।" });
+    }
     logger.error("create booking:", err);
     return res.status(500).json({ error: "Server error" });
   }

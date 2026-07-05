@@ -130,11 +130,15 @@ test("3. concurrent bookings cannot double-spend", async (t) => {
     .set("Authorization", `Bearer ${token(ids.customer, "customer")}`)
     .send({ provider_id: ids.provider, payment_method: "bKash" });
   const [a, b] = await Promise.all([fire(), fire()]);
-  const statuses = [a.status, b.status].sort();
-  assert.deepEqual(statuses, [201, 400], "exactly one booking should succeed");
+  const statuses = [a.status, b.status];
+  const ok = statuses.filter((s) => s === 201).length;
+  // Exactly one must succeed; the loser is a clean client rejection — either
+  // insufficient-funds (400) or a transient lock conflict (409), never a 500.
+  assert.equal(ok, 1, "exactly one booking should succeed");
+  assert.ok(statuses.some((s) => s === 400 || s === 409), "loser is a 400/409, not a 500");
   const [[u]] = await pool.query("SELECT balance FROM users WHERE id=?", [ids.customer]);
   assert.ok(Number(u.balance) >= 0, "balance must never go negative");
-  assert.equal(Number(u.balance), 50, "exactly one 550 debit applied");
+  assert.equal(Number(u.balance), 50, "exactly one 550 debit applied (no double-spend)");
 });
 
 test("4. client-modified amount is ignored (server price stored)", async (t) => {
