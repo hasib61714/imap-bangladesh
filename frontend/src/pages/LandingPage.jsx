@@ -77,6 +77,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   }]);
   const [faqOpen,       setFaqOpen]       = useState(null);
   const [annDismissed,  setAnnDismissed]  = useState(false);
+  const [heroQuery,     setHeroQuery]     = useState("");
   const chatEndRef = useRef(null);
 
   /* ─────────── SCROLL REVEAL ─────────── */
@@ -164,6 +165,9 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
     heroH1:     "Bangladesh's #1 AI-Powered Service Platform",
     heroSub:    "Get trusted home services at your doorstep  •  Earn as a Provider  •  100% Safe & Verified",
     heroBtn1:"Get Service", heroBtn2:"Become a Provider", heroBtn3:"Ask AI",
+    heroSearchPh:"What service do you need? e.g. electrician, cleaner",
+    heroSearchBtn:"Search",
+    heroCats:[{k:"elec",i:"⚡",l:"Electrician"},{k:"plumb",i:"🔧",l:"Plumber"},{k:"clean",i:"🧹",l:"Cleaner"},{k:"ac",i:"❄️",l:"AC Repair"},{k:"emg",i:"🚨",l:"Emergency"}],
     svcLabel:"WHAT WE OFFER",   svcTitle:"Any Service, Any Time",    svcSub:"Browse 500+ services without login. Book in minutes.",
     viewAll:"View All Services →",
     howLabel:"HOW IT WORKS",    howTitle:"Get Service in 4 Simple Steps",
@@ -188,6 +192,9 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
     heroH1:     "বাংলাদেশের #১ AI-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম",
     heroSub:    "ঘরে বসে বিশ্বস্ত সেবা নিন  •  Provider হয়ে আয় করুন  •  সম্পূর্ণ নিরাপদ",
     heroBtn1:"সেবা নিন", heroBtn2:"সেবাদাতা হোন", heroBtn3:"AI-কে জিজ্ঞেস করুন",
+    heroSearchPh:"কী সেবা দরকার? যেমন ইলেকট্রিশিয়ান, ক্লিনার",
+    heroSearchBtn:"খুঁজুন",
+    heroCats:[{k:"elec",i:"⚡",l:"ইলেকট্রিশিয়ান"},{k:"plumb",i:"🔧",l:"প্লাম্বার"},{k:"clean",i:"🧹",l:"ক্লিনার"},{k:"ac",i:"❄️",l:"এসি সার্ভিস"},{k:"emg",i:"🚨",l:"জরুরি সেবা"}],
     svcLabel:"আমাদের সেবাসমূহ", svcTitle:"যেকোনো সেবা, যেকোনো সময়", svcSub:"লগইন ছাড়াই ৫০০+ সেবা ব্রাউজ করুন। মিনিটেই বুক করুন।",
     viewAll:"সব সেবা দেখুন →",
     howLabel:"কিভাবে কাজ করে", howTitle:"৪টি সহজ ধাপে সেবা নিন",
@@ -465,7 +472,32 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           <h1 itemProp="name" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(28px,5vw,52px)", fontWeight:800, color:"#FFFFFF", lineHeight:1.18, marginBottom:18, textShadow:"0 2px 16px rgba(0,0,0,.3)" }}>
             {T.heroH1}
           </h1>
-          <p style={{ fontSize:"clamp(14px,2vw,18px)", color:"rgba(255,255,255,.8)", marginBottom:42, lineHeight:1.75 }}>{T.heroSub}</p>
+          <p style={{ fontSize:"clamp(14px,2vw,18px)", color:"rgba(255,255,255,.8)", marginBottom:30, lineHeight:1.75 }}>{T.heroSub}</p>
+
+          {/* Hero search — the marketplace entry point */}
+          <form onSubmit={(e)=>{ e.preventDefault(); onGetStarted(); }}
+            style={{ maxWidth:580, margin:"0 auto 18px", display:"flex", gap:7, background:"#fff",
+                     borderRadius:16, padding:7, boxShadow:"0 14px 44px rgba(0,0,0,.24)" }}>
+            <input value={heroQuery} onChange={e=>setHeroQuery(e.target.value)} placeholder={T.heroSearchPh}
+              aria-label={T.heroSearchPh}
+              style={{ flex:1, minWidth:0, border:"none", outline:"none", fontSize:15, padding:"12px 14px",
+                       background:"transparent", fontFamily:"'Hind Siliguri',sans-serif", color:"#0F1A16" }} />
+            <button type="submit" className="lp-btn lp-btn-g"
+              style={{ padding:"12px 22px", borderRadius:11, whiteSpace:"nowrap", flexShrink:0 }}>🔍 {T.heroSearchBtn}</button>
+          </form>
+
+          {/* Category quick chips */}
+          <div style={{ display:"flex", justifyContent:"center", gap:8, flexWrap:"wrap", marginBottom:34 }}>
+            {T.heroCats.map(c => (
+              <button key={c.k} onClick={onGetStarted}
+                style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, color:"#fff",
+                         background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.22)",
+                         borderRadius:22, padding:"7px 15px", cursor:"pointer", fontWeight:600,
+                         fontFamily:"'Hind Siliguri',sans-serif", transition:"background .15s" }}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.24)"}
+                onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.12)"}>{c.i} {c.l}</button>
+            ))}
+          </div>
 
           {/* CTA buttons */}
           <div className="lp-hero-btns" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", marginBottom:46 }}>
