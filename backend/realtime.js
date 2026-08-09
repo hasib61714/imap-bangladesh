@@ -8,15 +8,29 @@
 const logger = require("./utils/logger");
 const { getParticipation } = require("./utils/bookingAccess");
 const { isValidStatus } = require("./utils/bookingState");
+const { authorize, ACTION } = require("./src/modules/platform/authorization");
+const { legacyActorFromUser } = require("./src/modules/platform/authorization/legacy");
 
 /** Room that receives emergency alerts. Membership is DB-verified. */
 const ADMIN_ROOM = "role:admin";
 
 /**
- * Confirm, against the database, that this socket really belongs to an
- * administrator. A `role` claim inside the JWT is not sufficient: it can
- * be stale after a demotion, and it is the only thing an attacker with an
- * old token controls.
+ * Confirm, against the database, that this socket may see the emergency
+ * queue. A `role` claim inside the JWT is not sufficient: it can be stale
+ * after a demotion, and it is the only thing an attacker with an old token
+ * controls — so the role is re-read per connection and the decision is the
+ * kernel's.
+ *
+ * I-04 replaced `rows[0].role === "admin"` here. The query is unchanged; what
+ * changed is that admission to this room is now the same question as
+ * `GET /api/sos`, answered in the same place. When the emergency queue moves
+ * to a narrower role than the Gate-1 all-six grant, this follows without
+ * being edited.
+ *
+ * The decision is NOT audited. This runs speculatively on every socket
+ * connection, so recording each denial would write a row every time an
+ * ordinary user opens the app — which is the access log §25 says not to
+ * build. Nobody attempted anything here.
  */
 async function joinAdminRoomIfPermitted(socket, pool) {
   if (!socket.user?.id) return false;
@@ -25,7 +39,10 @@ async function joinAdminRoomIfPermitted(socket, pool) {
       "SELECT role FROM users WHERE id = ? AND is_active = 1 LIMIT 1",
       [socket.user.id]
     );
-    if (rows.length && rows[0].role === "admin") {
+    if (!rows.length) return false;
+    const actor = legacyActorFromUser({ id: socket.user.id, role: rows[0].role, is_active: 1 });
+    const decision = await authorize(actor, ACTION.EMERGENCY_LIST, null, { db: pool });
+    if (decision.allowed) {
       socket.join(ADMIN_ROOM);
       socket.isAdmin = true;
       return true;

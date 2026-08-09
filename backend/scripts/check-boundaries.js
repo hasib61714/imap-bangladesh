@@ -170,6 +170,46 @@ const DDL_ALLOWED = [/^scripts\//, /^migrations\//, /^test\//, /^src\/shared\/dd
 
 const LINES = (s) => s.split(String.fromCharCode(10));
 
+// ── I-04: authorization is asked, never reimplemented ────────
+//
+// The literals watched here are the PLATFORM vocabulary — `admin` and the six
+// roles. `customer` and `provider` are deliberately absent: they name account
+// kinds as well as roles and appear in legitimate domain code (`if (role ===
+// "provider") create a provider profile` at registration is not an
+// authorization check). Watching them would produce noise, and a rule that
+// produces noise is a rule that gets an exemption list until it means nothing.
+const PLATFORM_ROLE_WORDS =
+  "admin|platform_owner|trust_safety|emergency_responder|operations|support|finance";
+
+const ADHOC_AUTHZ_PATTERNS = [
+  // `x === "admin"` and `"admin" === x`, in either direction, any operator.
+  new RegExp('(?:===|!==|==|!=)\\s*["\'](?:' + PLATFORM_ROLE_WORDS + ')["\']'),
+  new RegExp('["\'](?:' + PLATFORM_ROLE_WORDS + ')["\']\\s*(?:===|!==|==|!=)'),
+  // The SQL form, which is how it hid in payments.js and upload.js:
+  //   WHERE ... AND (customer_id=? OR ?='admin')
+  new RegExp('\\?\\s*=\\s*["\'](?:' + PLATFORM_ROLE_WORDS + ')["\']'),
+  // The deleted middleware, by name.
+  /\brequireRole\s*\(/,
+];
+
+/**
+ * Where a role literal is legitimate, each entry for a stated reason.
+ *
+ * `bookingAccess.js`, `bookingState.js` and `realtime.js` carry a different
+ * vocabulary that happens to share the word: the PARTICIPANT role — which side
+ * of a booking an actor is on. `bookingState.js` uses it to decide which
+ * transitions are legal, which is the state machine's question, not the
+ * kernel's (§19). Renaming it would touch the socket layer that §42 defers.
+ */
+const AUTHZ_EXEMPT = [
+  /^src\/modules\/platform\/authorization\//,
+  /^test\//,
+  /^scripts\//,
+  /^utils\/bookingAccess\.js$/,
+  /^utils\/bookingState\.js$/,
+  /^realtime\.js$/,
+];
+
 const RULES = [
   {
     id: "no-ddl-outside-migrations",
@@ -252,11 +292,32 @@ const RULES = [
     },
   },
   {
+    id: "no-adhoc-authorization",
+    severity: "error",
+    why: "Three authorization implementations existed and none could answer 'who may do what'. There is one, and it is asked rather than reimplemented (AUTHORIZATION-ARCHITECTURE §10).",
+    check(file, r, code) {
+      if (AUTHZ_EXEMPT.some((p) => p.test(r))) return [];
+      const hits = [];
+      LINES(code).forEach((line, i) => {
+        for (const re of ADHOC_AUTHZ_PATTERNS) {
+          const m = new RegExp(re.source, re.flags.replace("g", "")).exec(line);
+          if (m) {
+            hits.push({ line: i + 1, detail: m[0].trim().slice(0, 72) });
+            break;
+          }
+        }
+      });
+      return hits;
+    },
+  },
+  {
     id: "sql-only-in-infrastructure",
     severity: "warn",
     why: "SQL lives in repositories. 18 route files currently issue it directly; each clears as its module migrates.",
     check(file, r, code) {
-      if (/^src\/modules\/[^/]+\/infrastructure\//.test(r)) return [];
+      // `platform` groups by component before layer — audit/, authorization/ —
+      // so its repositories live one directory deeper than a domain module's.
+      if (/^src\/modules\/[^/]+\/(?:[^/]+\/)?infrastructure\//.test(r)) return [];
       if (/^(migrations|scripts|test)\//.test(r) || r === "db.js") return [];
       const hits = [];
       LINES(code).forEach((line, i) => {
