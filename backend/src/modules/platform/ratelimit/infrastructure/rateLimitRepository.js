@@ -26,6 +26,7 @@
 
 const { systemClock } = require("../../../../shared/clock");
 const P = require("../domain/policy");
+const { withTransientRetry } = require("../../../../shared/transient");
 
 /**
  * §17. Raised when the store cannot answer.
@@ -75,7 +76,11 @@ const at = (d) => new Date(d);
  * @returns {Promise<{allowed: boolean, scope: string, retryAfterSeconds: number,
  *                    limitedBy: string|null, hits: object}>}
  */
-async function consume(db, scope, dimensions = {}, { clock = systemClock } = {}) {
+async function consume(db, scope, dimensions = {}, opts = {}) {
+  return withTransientRetry(() => consumeOnce(db, scope, dimensions, opts));
+}
+
+async function consumeOnce(db, scope, dimensions = {}, { clock = systemClock } = {}) {
   const rules = P.rulesFor(scope);
   if (!rules) throw new RateLimitUnavailable(new Error(`unknown rate-limit scope "${scope}"`));
 

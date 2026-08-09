@@ -21,6 +21,10 @@
 const { newId } = require("../../../../shared/ids");
 const { systemClock } = require("../../../../shared/clock");
 const C = require("../domain/challenge");
+// A deadlock means this transaction did not happen. The concurrency tests
+// found it: three instances verifying one code intermittently produced a
+// 503 instead of one success and two refusals.
+const { withTransientRetry } = require("../../../../shared/transient");
 
 /** Errors this repository raises when the store cannot answer. */
 class OtpStoreUnavailable extends Error {
@@ -57,6 +61,10 @@ const at = (d) => new Date(d);
  * clear and never logged — §12 and §32.
  */
 async function issue(db, spec) {
+  return withTransientRetry(() => issueOnce(db, spec));
+}
+
+async function issueOnce(db, spec) {
   const {
     purpose, channel, destination, principalId = null,
     correlationId = null, ip = null, clock = systemClock,
@@ -68,6 +76,21 @@ async function issue(db, spec) {
   const destinationHash = C.hashDestination(channel, destination);
   const now = clock.now();
 
+  // Resolved in AUTOCOMMIT, then locked by primary key — verify() explains
+  // why both halves matter. The ABSENCE of a row is deliberately not held by
+  // a gap lock: two instances finding nothing and both inserting is settled
+  // by uniq_active_challenge, which is where single-active semantics belong.
+  let candidates;
+  try {
+    [candidates] = await db.query(
+      `SELECT id FROM otp_challenge
+        WHERE destination_hash = ? AND purpose = ? AND status = 'active' LIMIT 1`,
+      [destinationHash, purpose]
+    );
+  } catch (err) {
+    throw new OtpStoreUnavailable(err);
+  }
+
   let conn;
   try {
     conn = await db.getConnection();
@@ -78,17 +101,15 @@ async function issue(db, spec) {
   try {
     await conn.beginTransaction();
 
-    // The existing live challenge, locked so a concurrent issue on another
-    // instance waits here rather than racing to the unique index.
-    const [live] = await conn.query(
-      `SELECT id, resend_after, expires_at, attempts, max_attempts
-         FROM otp_challenge
-        WHERE destination_hash = ? AND purpose = ? AND status = 'active'
-        FOR UPDATE`,
-      [destinationHash, purpose]
-    );
+    const [live] = candidates.length
+      ? await conn.query(
+          `SELECT id, resend_after, expires_at, attempts, max_attempts, status
+             FROM otp_challenge WHERE id = ? FOR UPDATE`,
+          [candidates[0].id]
+        )
+      : [[]];
 
-    if (live.length) {
+    if (live.length && live[0].status === C.STATUS.ACTIVE) {
       const row = live[0];
       const expired = new Date(row.expires_at).getTime() <= now.getTime();
       const resendAt = new Date(row.resend_after).getTime();
@@ -159,12 +180,52 @@ async function issue(db, spec) {
  * currently in a login flow.
  */
 async function verify(db, spec) {
+  return withTransientRetry(() => verifyOnce(db, spec));
+}
+
+async function verifyOnce(db, spec) {
   const { purpose, channel, destination, code, clock = systemClock } = spec;
 
   if (!C.isKnownPurpose(purpose)) throw new C.OtpError(`unknown OTP purpose "${purpose}"`, "UNKNOWN_PURPOSE");
 
   const destinationHash = C.hashDestination(channel, destination);
   const now = clock.now();
+
+  // ── RESOLVE THE ID IN AUTOCOMMIT, THEN LOCK IT BY PRIMARY KEY ──
+  //
+  // Two problems, one shape, both found by the concurrency test rather than
+  // by review.
+  //
+  // A `SELECT ... FOR UPDATE` through idx_lookup takes next-key locks on a
+  // secondary-index range while the UPDATE that follows takes one on the
+  // clustered index, so three transactions can acquire that pair in an order
+  // that cycles. Verifying one code from three instances deadlocked
+  // intermittently — which a user double-tapping "verify" would have seen as
+  // an occasional 503.
+  //
+  // Moving the lookup inside the transaction but ahead of the locking read
+  // traded that for MariaDB's ER_CHECKREAD: the plain read establishes the
+  // transaction's snapshot, and a locking read on a row committed to since
+  // then is REFUSED rather than silently reading the newer version.
+  //
+  // Resolving the id outside the transaction settles both. The transaction's
+  // first statement is then a locking read on a single primary key: no
+  // snapshot to go stale, no secondary-index gaps to cycle on, and every
+  // contender queues behind the same one record lock.
+  //
+  // The id may be stale by the time it is locked. Everything below re-checks
+  // the locked row, and the consuming UPDATE is guarded on its status anyway.
+  let candidates;
+  try {
+    [candidates] = await db.query(
+      `SELECT id FROM otp_challenge
+        WHERE destination_hash = ? AND purpose = ? AND status = 'active' LIMIT 1`,
+      [destinationHash, purpose]
+    );
+  } catch (err) {
+    throw new OtpStoreUnavailable(err);
+  }
+  if (!candidates.length) return { ok: false, reason: "none" };
 
   let conn;
   try {
@@ -178,13 +239,14 @@ async function verify(db, spec) {
 
     const [rows] = await conn.query(
       `SELECT id, code_hash, principal_id, status, attempts, max_attempts, expires_at
-         FROM otp_challenge
-        WHERE destination_hash = ? AND purpose = ? AND status = 'active'
-        FOR UPDATE`,
-      [destinationHash, purpose]
+         FROM otp_challenge WHERE id = ? FOR UPDATE`,
+      [candidates[0].id]
     );
 
-    const row = rows[0] || null;
+    // Not active any more: consumed by a concurrent verify, or superseded by a
+    // resend between the two reads. Both are correctly "this code is no longer
+    // the one to type", and the caller is told the same thing either way.
+    const row = rows[0] && rows[0].status === C.STATUS.ACTIVE ? rows[0] : null;
     const blocker = C.unusableReason(row, now);
 
     if (blocker === "expired") {

@@ -31,6 +31,7 @@
 const { newId } = require("../../../shared/ids");
 const { systemClock } = require("../../../shared/clock");
 const S = require("../domain/session");
+const { withTransientRetry } = require("../../../shared/transient");
 
 class SessionStoreUnavailable extends Error {
   constructor(cause) {
@@ -106,8 +107,28 @@ async function findByRefreshToken(db, refreshToken) {
  * the reason rotation alone is not enough. A rotation that also resets the
  * deadline is the same defect with more steps.
  */
-async function rotate(db, { refreshToken, device = null, ip = null, clock = systemClock }) {
+async function rotate(db, spec) {
+  return withTransientRetry(() => rotateOnce(db, spec));
+}
+
+async function rotateOnce(db, { refreshToken, device = null, ip = null, clock = systemClock }) {
   const now = clock.now();
+  const hash = S.hashRefreshToken(refreshToken);
+
+  // Resolved in AUTOCOMMIT, then locked by primary key — the same remedy, for
+  // the same reason, as `otp/infrastructure/otpRepository.js`. Locking through
+  // `uniq_refresh` and then updating by primary key lets two transactions
+  // acquire the pair in an order that cycles: two clients refreshing the same
+  // token at once deadlocked intermittently, and the caller saw a 503 rather
+  // than one rotation and one refusal.
+  let found;
+  try {
+    [found] = await db.query("SELECT id FROM session WHERE refresh_token_hash = ? LIMIT 1", [hash]);
+  } catch (err) {
+    throw new SessionStoreUnavailable(err);
+  }
+  if (!found.length) return { ok: false, reason: "unknown" };
+
   let conn;
   try {
     conn = await db.getConnection();
@@ -117,11 +138,10 @@ async function rotate(db, { refreshToken, device = null, ip = null, clock = syst
 
   try {
     await conn.beginTransaction();
-    const hash = S.hashRefreshToken(refreshToken);
     const [rows] = await conn.query(
       `SELECT id, principal_id, account_id, expires_at, revoked_at, revoked_reason
-         FROM session WHERE refresh_token_hash = ? FOR UPDATE`,
-      [hash]
+         FROM session WHERE id = ? FOR UPDATE`,
+      [found[0].id]
     );
 
     if (!rows.length) {
