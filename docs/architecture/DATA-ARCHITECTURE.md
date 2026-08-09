@@ -333,3 +333,30 @@ Division → District → Upazila/Thana → Area/Ward → landmark text
 | `users.role` | AD-017 |
 | Any `LONGTEXT` image column | AD-011 |
 | A mutable balance column | AD-007 |
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** V-03, O-02 · **Scope frozen by:** `GATE-1-ARCHITECTURE.md`
+Where this section conflicts with anything above it, **this section wins.**
+
+## E1 — `booking_clearing` account kind
+
+The account taxonomy gains a tenth kind, `booking_clearing` (Platform, credit balance),
+replacing the undefined `customer_settlement` used in the worked flows. It must never be
+merged with `customer_liability`, which stays defined and non-issuable under AD-019.
+Reasoning in `FINANCIAL-ARCHITECTURE.md` Phase 2.75 amendment A1.
+
+## E2 — `booking.payment_status` is a read model
+
+Not authoritative, not written by a booking use case, rebuildable from Payment state,
+reconciled nightly. Payment wins on divergence.
+
+## E3 — entity scope for Gate 1
+
+`PHASE-2.5-SIMPLIFICATION.md` recommended 3 removals, 2 collapses and 4 deferrals against
+the ~70-entity Phase 2 model. The **binding** Gate-1 entity list is
+`GATE-1-ARCHITECTURE.md` §4 — approximately 38 entities. Entities specified in this
+document but absent from that list are deferred, not deleted: they remain designed, and
+they are not built at Gate 1.

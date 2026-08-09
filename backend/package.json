@@ -10,6 +10,8 @@
     "db:init": "node scripts/initDb.js",
     "admin:reset": "node scripts/resetAdmin.js",
     "test": "node --test \"test/**/*.test.js\"",
+    "test:unit": "node --test \"test/*.test.js\"",
+    "test:integration": "node --test \"test/integration/**/*.test.js\"",
     "test:watch": "node --test --watch \"test/**/*.test.js\"",
     "db:migrate": "node scripts/migrate.js",
     "db:migrate:status": "node scripts/migrate.js --status"

@@ -10,8 +10,9 @@ const { ipKeyGenerator } = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
 const requestLogger = require("./middleware/requestLogger");
+const env          = require("./config/environment");
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = env.isProduction();
 
 // ── Rate limiters ─────────────────────────────────────────
 const generalLimiter = rateLimit({

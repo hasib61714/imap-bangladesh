@@ -211,3 +211,32 @@ The trigger for revisiting is in AD-005: >5,000 providers, >3 cities, or measure
 | Regulatory capability rules per market (`I-09`) | Second country |
 | Semantic retrieval over service descriptions | AD-005 / AD-018 triggers |
 | Service packages (`part_of` composition into a single quote) | Demonstrated demand for bundles |
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** O-04, S-01
+Where this section conflicts with anything above it, **this section wins.**
+
+## F1 — O-04: `provider_service_area.standing_facts` is derived
+
+Trust owns provider standing. The copy carried in the discovery projection is
+**derived, never authoritative, and rebuildable from Trust**. Nothing may write to it
+except the projection's own event handlers.
+
+## F2 — S-01: the closure table is deferred
+
+`AD-004` materialises a `service_edge_closure` table while its own justification argues
+that the service graph is "small and slow-changing". Both cannot be true. At Gate 1
+the graph is a few hundred nodes and is held in memory, rebuilt on change.
+
+Deferred, not deleted: the closure table returns when the graph outgrows memory or
+multi-hop weighted traversal is required. Recorded as **AD-021**.
+
+## F3 — the discovery projection is deferred
+
+`PHASE-2.5-SIMPLIFICATION.md` S-03. Gate-1 discovery is a relational query over
+`provider`, `provider_capability`, `provider_coverage` and `availability`. This removes
+one table, eight event handlers, and defect O-04 with them. It returns when query latency
+requires it — measured, not assumed. Recorded as **AD-022**.

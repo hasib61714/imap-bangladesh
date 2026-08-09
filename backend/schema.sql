@@ -1,10 +1,15 @@
 -- ═══════════════════════════════════════════════════════════
 --  IMAP Bangladesh — Full MySQL Schema
---  Run: mysql -u root -p < schema.sql
+--  Run: mysql -u root -p <database-name> < schema.sql
+--
+--  Phase 2.75: this file used to open with
+--      CREATE DATABASE IF NOT EXISTS imap_db;  USE imap_db;
+--  which meant every table landed in a database named `imap_db`
+--  regardless of DB_NAME or of which database the client had
+--  selected — including when the operator had deliberately chosen
+--  a different target. The target database is now chosen by the
+--  connection; scripts/initDb.js creates and selects DB_NAME first.
 -- ═══════════════════════════════════════════════════════════
-
-CREATE DATABASE IF NOT EXISTS imap_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE imap_db;
 
 -- ── USERS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (

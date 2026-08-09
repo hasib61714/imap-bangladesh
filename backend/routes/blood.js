@@ -3,6 +3,7 @@ const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const cache = require('../utils/cache');
+const env   = require("../config/environment");
 
 // Ensure table exists with seed data
 const initTable = async () => {
@@ -35,7 +36,7 @@ const initTable = async () => {
   //
   // Seeding is now development-only, and every seeded row is flagged
   // is_demo=1 so production reads exclude it (see DEMO_FILTER below).
-  if (process.env.NODE_ENV === "production") return;
+  if (env.isProduction()) return;
 
   const [[{ cnt }]] = await pool.query("SELECT COUNT(*) AS cnt FROM blood_donors");
   if (cnt === 0) {
@@ -54,7 +55,7 @@ const initTable = async () => {
 initTable().catch(e => logger.warn("blood table init:", e.message));
 
 /** Production must never read demo rows. */
-const DEMO_FILTER = process.env.NODE_ENV === "production" ? " AND is_demo = 0" : "";
+const DEMO_FILTER = env.isProduction() ? " AND is_demo = 0" : "";
 
 /**
  * Donor phone numbers are personal data belonging to volunteers.

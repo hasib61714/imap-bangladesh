@@ -7,8 +7,12 @@
 const { createLogger, format, transports } = require("winston");
 
 const { combine, timestamp, printf, colorize, errors } = format;
+const env = require("../config/environment");
 
-const isProd = process.env.NODE_ENV === "production";
+// Phase 2.75: log level and redaction follow the *declared* process
+// environment, not the widened data-safety predicate — a developer
+// running locally should still get readable logs.
+const isProd = env.isProductionEnvironment();
 
 // ── Simple line format for dev ────────────────────────────
 const devFormat = combine(

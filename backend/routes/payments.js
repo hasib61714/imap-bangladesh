@@ -18,8 +18,9 @@ const { withTransaction } = require("../db");
 const { authMiddleware, requireRole } = require("../middleware/auth");
 const payment         = require("../utils/payment");
 const { parseAmount, MoneyError } = require("../utils/money");
+const env            = require("../config/environment");
 
-const isProd = () => process.env.NODE_ENV === "production";
+const isProd = () => env.isProduction();
 const FE = () => process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || "https://hasib61714.github.io/imap-bangladesh";
 
 /**
@@ -183,7 +184,7 @@ router.post("/initiate", authMiddleware, async (req, res) => {
     // ── Development-only settlement. Unreachable in production (guarded
     // above). Runs through the same single-credit path as a real callback
     // so the dev and production code paths cannot diverge.
-    logger.warn("DEV MODE: settling payment without a gateway", { payId, env: process.env.NODE_ENV });
+    logger.warn("DEV MODE: settling payment without a gateway", { payId, ...env.describe() });
     const outcome = await settlePayment({ tranId: payId, valId: `DEV-${payId}`, gatewayAmount: totalAmount });
     bustPaymentCaches(req.user.id);
     return res.json({

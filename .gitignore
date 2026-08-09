@@ -4,13 +4,31 @@ frontend/node_modules/
 backend/node_modules/
 
 # Environment files - NEVER commit these!
+# Phase 2.75: the previous list enumerated three suffixes, so a file named
+# .env.development or backend/.env.production would have been committed.
+# Ignore every variant and allow back only the two documented templates.
 .env
-.env.local
-.env.staging
-backend/.env
-frontend/.env
-frontend/.env.local
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 # frontend/.env.production is committed (contains only public VITE_API_URL)
+!frontend/.env.production
+
+# Keys, certificates and credential material - NEVER commit these!
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*service-account*.json
+*credentials*.json
 
 # Build output
 frontend/dist/

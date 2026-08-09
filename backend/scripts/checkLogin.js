@@ -1,6 +1,11 @@
 const pool = require('../db');
+const env = require('../config/environment');
 
 async function check() {
+  // Phase 2.75: this prints every user's name, phone and role. Against
+  // production that is a bulk export of personal data.
+  env.requireProductionAcknowledgement('bulk user dump (checkLogin)');
+
   // Check all users
   const [users] = await pool.query('SELECT id, name, phone, role, is_active FROM users ORDER BY joined_at DESC');
   console.log('\n=== USERS ===');

@@ -14,11 +14,24 @@
  * error silently. A small enumerated set of "object already exists"
  * codes is tolerated so a partially-migrated database can be brought
  * forward, and every tolerated statement is printed.
+ *
+ * Phase 2.75 corrects two safety defects found by Phase 2.5:
+ *
+ *  1. `--status` used to call ensureTable() before branching, so the
+ *     documented read-only command executed CREATE TABLE. It was
+ *     therefore unusable for inspecting a database you did not intend
+ *     to write to — including production. It is now genuinely read-only
+ *     and reports an uninitialised database instead of initialising it.
+ *
+ *  2. Nothing distinguished a production target from any other. Applying
+ *     and stamping now require an explicit typed acknowledgement when
+ *     the configured database is production.
  */
 require("dotenv").config();
 const fs   = require("fs");
 const path = require("path");
 const pool = require("../db");
+const env  = require("../config/environment");
 
 const DIR = path.join(__dirname, "..", "migrations");
 
@@ -40,6 +53,20 @@ function parseStatements(sql) {
     .split(/;\s*(?:\r?\n|$)/)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/**
+ * Read-only existence probe. Used by --status so that inspecting a
+ * database never writes to it.
+ */
+async function migrationsTableExists() {
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS c
+       FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+        AND table_name   = 'schema_migrations'`
+  );
+  return rows[0].c > 0;
 }
 
 async function ensureTable() {
@@ -98,16 +125,34 @@ async function runOne({ version, file }) {
 
 async function main() {
   const arg = process.argv[2];
-  await ensureTable();
-  const applied = await appliedVersions();
   const migrations = allMigrations();
+  const target = env.describe();
 
+  console.log(
+    `target: ${target.dbHost}:${target.dbPort}/${target.dbName}  ` +
+    `(process=${target.processEnv}, data=${target.databaseEnv})`
+  );
+
+  // ── Read-only path. Touches nothing, creates nothing. ──────────
   if (arg === "--status") {
+    if (!(await migrationsTableExists())) {
+      console.log("\nschema_migrations does not exist — no migration has ever been applied.");
+      console.log("(--status is read-only and will not create it; run without arguments to apply.)\n");
+      for (const m of migrations) console.log(`· pending  ${m.version}`);
+      return;
+    }
+    const applied = await appliedVersions();
     for (const m of migrations) {
       console.log(`${applied.has(m.version) ? "✔ applied" : "· pending"}  ${m.version}`);
     }
     return;
   }
+
+  // ── Everything below this line writes. ─────────────────────────
+  env.requireProductionAcknowledgement(arg === "--stamp" ? "migration stamp" : "database migration");
+
+  await ensureTable();
+  const applied = await appliedVersions();
 
   if (arg === "--stamp") {
     const v = process.argv[3];

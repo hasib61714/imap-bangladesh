@@ -21,9 +21,17 @@ const storePass = process.env.SSLCOMMERZ_STORE_PASSWORD || process.env.SSL_STORE
 // P1-17: render.yaml provisions SSL_IS_SANDBOX and nothing read it, so
 // sandbox mode was inferred from NODE_ENV alone. The explicit flag now
 // wins when it is set.
+//
+// Phase 2.75: the fallback follows the *declared* process environment,
+// deliberately NOT the widened env.isProduction(). Every other guard was
+// widened so that a development process on production data behaves as
+// production — but doing that here would switch a developer's run onto
+// the live gateway and move real money. The correct response to that
+// configuration is db.js refusing to start, not live charges.
+const env = require("../config/environment");
 const isSandbox = process.env.SSL_IS_SANDBOX !== undefined && process.env.SSL_IS_SANDBOX !== ""
   ? String(process.env.SSL_IS_SANDBOX).toLowerCase() === "true"
-  : process.env.NODE_ENV !== "production";
+  : !env.isProductionEnvironment();
 
 async function initiatePayment({ orderId, amount, currency = "BDT", customer, product, successUrl, failUrl, cancelUrl }) {
   if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");

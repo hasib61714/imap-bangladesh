@@ -2,8 +2,13 @@ require("dotenv").config();
 const fs    = require("fs");
 const path  = require("path");
 const mysql = require("mysql2/promise");
+const env   = require("../config/environment");
 
 async function initDb() {
+  // Phase 2.75: this applies schema.sql. Against production that is a
+  // deliberate act, not a default.
+  env.requireProductionAcknowledgement("schema initialisation");
+
   const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
 
   // Connect without selecting a DB first

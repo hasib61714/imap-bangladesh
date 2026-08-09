@@ -23,6 +23,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../db");
+const env = require("../config/environment");
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -36,6 +37,10 @@ function generatePassword(length = 24) {
 }
 
 async function main() {
+  // Phase 2.75: bootstrapping an administrator against production is a
+  // legitimate operation, but never an accidental one.
+  env.requireProductionAcknowledgement("administrator bootstrap");
+
   const email = (process.env.ADMIN_BOOTSTRAP_EMAIL || "").trim() || null;
   const phone = (process.env.ADMIN_BOOTSTRAP_PHONE || "").trim() || null;
   const name  = (process.env.ADMIN_BOOTSTRAP_NAME  || "").trim() || "IMAP Administrator";

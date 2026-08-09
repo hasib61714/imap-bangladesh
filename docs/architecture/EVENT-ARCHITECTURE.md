@@ -264,3 +264,93 @@ An event handler that needs to do slow or external work **enqueues a job**; it d
 | A consumer needs independent scaling | Extract that consumer only — producers unchanged |
 | Cross-service consumers appear | Swap the dispatcher transport to a broker; producers and consumers unchanged (the point of AD-006) |
 | Event volume outgrows a polled table | Change detection or a log-based approach; the envelope is unchanged |
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** V-05 / U-01, V-08 · **Related:** `GATE-1-ARCHITECTURE.md` §6
+Where this section conflicts with anything above it, **this section wins.**
+
+## B1 — V-05 / U-01: job idempotency
+
+API idempotency (AD-010) and event-consumer idempotency were specified. **Jobs were
+not**, and jobs are what call external systems — SMS, push, the payment gateway, payout
+execution. A retried job with no identity sends the message twice, or worse.
+
+Every job MUST declare one of two properties. There is no third option, and a job that
+declares neither fails at startup, in the same way a use case with no authorization
+policy does.
+
+### Job identity
+
+| Concept | Definition |
+|---|---|
+| **Job type** | the handler — `sms.send`, `payout.execute` |
+| **Job key** | deterministic, derived only from the job's inputs. `sms.send:otp:<phone>:<otp_window>`, `payout.execute:<claim_id>:<attempt_epoch>`. **UNIQUE per (type, key)** — enqueuing a duplicate is a no-op returning the existing job |
+| **Execution id** | one attempt. New on every retry. Correlates logs and audit |
+| **Effect token** | what is presented to the external system as its idempotency key. Derived from the job key, **never** from the execution id — otherwise every retry is a fresh request to the provider |
+
+### The two permitted declarations
+
+**`idempotent: "key"`** — the job has a deterministic key and its external call carries
+the effect token. Required for anything that moves money, sends a message, or changes
+external state. The provider deduplicates; if it cannot, the job must record its own
+completion (below) before the effect is considered done.
+
+**`idempotent: "at-least-once"`** — an explicit, reviewed statement that repeating the
+effect is harmless. Permitted for cache warming, projection rebuilds, metrics. **Not
+permitted for anything with an external side effect.**
+
+### Result persistence
+
+A job's terminal outcome is written **in the same transaction as its effect** where the
+effect is local, and **immediately after** where the effect is external. On restart, a
+job whose effect token is already recorded as completed is skipped, not re-run.
+
+The unavoidable window — external call succeeded, local record not yet written — is
+closed by the effect token, not by hope: the retry presents the same token and the
+provider returns the original result.
+
+### Failure handling
+
+| Situation | Behaviour |
+|---|---|
+| Transient failure | bounded exponential retry; same job key, new execution id, same effect token |
+| Retries exhausted | dead-letter with the full attempt history; **never** silently dropped |
+| Poison job | quarantined after N executions; alert |
+| Ambiguous external outcome (timeout) | **never** marked failed. Reconcile against the provider — the money may have moved |
+
+The last row is the same rule Phase 0.5 established for payment callbacks, generalised.
+
+### Applies to
+
+Async jobs, notifications (SMS, push, email), reconciliation jobs, external API calls,
+scheduled jobs, and — at Gate 2 — AI jobs. Tested per `TESTING-STRATEGY.md` §5 row 16.
+
+## B2 — V-08: the Booking ↔ Finance cycle is legal, and here is the rule
+
+`DOMAIN-ARCHITECTURE.md` shows `BK → FN` (`BookingCompleted`) and `FN → BK`
+(`PaymentCaptured`). That is a genuine cycle at the context level. It is benign, but only
+under a rule that was implicit:
+
+| Direction | Mechanism | Constraint |
+|---|---|---|
+| Booking → Finance | **event** | asynchronous; Booking never calls a Finance command synchronously |
+| Finance → Booking | **event** | asynchronous; Finance never writes booking state |
+| Booking → Finance | **query** | synchronous reads are permitted; they create no write cycle |
+
+Both write directions are event-only, so there is no synchronous call cycle and no
+distributed transaction. **A synchronous write in either direction is an architecture
+violation, not a shortcut.**
+
+## B3 — event minimisation
+
+Phase 2 defines 45 events. `PHASE-2.5-SIMPLIFICATION.md` S-05 found 8 with no consumer
+at all. The binding rule for Gate 1:
+
+> **No event is published that has no consumer.**
+
+The Gate-1 set is 16 events, enumerated with producer, consumer, payload, ordering,
+idempotency and failure behaviour in `GATE-1-ARCHITECTURE.md` §6. The remaining 29 are
+deferred, not deleted — they are specified above and become live when their consumer does.

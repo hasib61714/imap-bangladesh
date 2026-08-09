@@ -420,3 +420,131 @@ Recorded rather than silently resolved, per the phase rule.
 | **C-05** | `PRD.md` §4.4 gives booking states `pending → confirmed → active → [arrived] → completed`, plus `cancelled` | R-505 requires the **customer** to confirm completion, and R-1102 requires a dispute to hold funds. Neither is expressible without an intermediate state between "provider says done" and "completed", and a `disputed` state. | **Elaboration, declared not silent.** `STATE-MACHINES.md` §4 adds `awaiting_confirmation` and `disputed`. This makes R-505 and R-1102 implementable and changes no product decision — but it is a change to the state list Phase 1 published, so it is recorded here rather than absorbed. |
 
 No Phase 1 product decision has been changed by this phase.
+
+---
+
+# Phase 2.75 amendment — decisions AD-021 … AD-026
+
+**Date:** 2026-08-09 · **Basis:** `docs/audit/PHASE-2.5-GATE-REPORT.md`, `docs/audit/PHASE-2.75-DATABASE-REHEARSAL.md`
+
+Six decisions, of which two **correct** earlier ADs. Corrections are recorded as new
+decisions rather than as edits, so the reasoning that produced the original stays visible.
+
+## AD-021 — Defer the service-graph closure table (corrects AD-004)
+
+**Context.** AD-004 materialises `service_edge_closure` while justifying the relational
+choice on the grounds that the graph is "small and slow-changing". Phase 2.5 (S-01)
+found the decision contradicted by its own reasoning: a few hundred slow-changing nodes
+do not need a materialised transitive closure, and the table brings a rebuild path, a
+drift class and a consistency question with it.
+
+**Decision.** Gate 1 holds the service graph in memory and rebuilds on change. The
+closure table is designed and not built.
+
+**Revisit when** the graph exceeds roughly 5,000 nodes, changes frequently enough that
+in-memory rebuild is disruptive, or multi-hop weighted traversal is required.
+
+**Cost of reversal.** Low — adding the table later is additive.
+
+## AD-022 — Defer the discovery projection (adopts S-03)
+
+**Context.** A dedicated read projection costs one table and eight event handlers, and
+introduced ownership defect O-04. Gate-1 discovery is a filtered join over four tables
+at a few hundred providers.
+
+**Decision.** Query the relational model directly at Gate 1. Introduce the projection
+when measured query latency requires it.
+
+**Revisit when** p95 discovery latency exceeds the budget in `PERFORMANCE.md` under real
+load. Measured, not assumed.
+
+## AD-023 — `booking_clearing` as a distinct account kind (closes V-03)
+
+**Context.** The worked ledger flows post to `customer_settlement`, which is not in the
+account taxonomy. Five existing kinds were tested as substitutes and all failed;
+`customer_liability` failed *dangerously*, because routing booking payments through it
+means issuing customer stored value on every transaction — the regulated activity D-010
+withdraws pending legal sign-off.
+
+**Decision.** Add `booking_clearing` (Platform, credit balance), distinct from and never
+merged with `customer_liability`. Reasoning and constraints in
+`FINANCIAL-ARCHITECTURE.md` Phase 2.75 amendment A1.
+
+**Cost of reversal.** None — it is a required account, not an optimisation.
+
+## AD-024 — Every job declares an idempotency property (completes AD-010, AD-016)
+
+**Context.** AD-010 covers API idempotency; event consumers were specified. Jobs were
+not — and jobs are what call SMS, push and payment providers. A retried job with no
+identity repeats an external side effect.
+
+**Decision.** Every job declares `idempotent: "key"` (deterministic job key plus an
+effect token presented to the external system) or `idempotent: "at-least-once"` (an
+explicit statement that repetition is harmless — **not permitted for external side
+effects**). A job that declares neither fails at startup, exactly as a use case with no
+authorization policy does. Full contract in `EVENT-ARCHITECTURE.md` amendment B1.
+
+**Consequence.** AD-010 and AD-016 move from PROVISIONAL to LOCKED.
+
+## AD-025 — Fail-closed environment identity (closes V-01)
+
+**Context.** Seven production safety controls keyed on `NODE_ENV === "production"` while
+`.env` declared development against the production database, disabling all seven against
+real user data.
+
+**Decision.** Environment is resolved on two independent axes — what the process is
+(`APP_ENV`, then `NODE_ENV`, unset → production) and what the data is (`DATABASE_ENV`,
+then host inference, unknown → production). Development behaviour requires **both** to be
+development-like. A non-production process refuses to open a production database. Scripts
+that write to production require a typed acknowledgement naming the exact database.
+Demo seeding has no override at all.
+
+**Implemented**, not merely specified: `backend/config/environment.js`, 14 call sites,
+18 tests. Specification in `ENVIRONMENT-ARCHITECTURE.md`.
+
+**Cost of reversal.** n/a — this is a safety property, not a trade-off.
+
+## AD-026 — Gate 1 is the implementation boundary (closes V-06)
+
+**Context.** Phase 1 defines two release gates; Phase 2 classified everything against a
+single "MVP", producing an architecture roughly twice the size of the first release.
+
+**Decision.** `GATE-1-ARCHITECTURE.md` is the binding scope for Phase 3: 5 modules,
+~38 entities, 16 events, 6 state machines, 0 AI tools, 4 bounded contexts plus Platform.
+Anything specified in Phase 2 and absent from that document is **deferred, not deleted**
+— it stays designed, and it is not built at Gate 1.
+
+**Revisit when** Gate 1 ships. Gate 2 scope is then re-derived from what Gate 1 learned,
+not assumed from Phase 2.
+
+---
+
+## Decision index — Phase 2.75 additions
+
+| ID | Decision | Reverses cleanly? | Trigger to revisit |
+|---|---|---|---|
+| AD-021 | Defer closure table | Yes — additive | Graph size, traversal depth |
+| AD-022 | Defer discovery projection | Yes — additive | Measured p95 latency |
+| AD-023 | `booking_clearing` account | No — required | — |
+| AD-024 | Job idempotency declaration | No — foundational | — |
+| AD-025 | Fail-closed environment identity | No — safety property | — |
+| AD-026 | Gate 1 as implementation boundary | Yes | Gate 1 ships |
+
+## Status after Phase 2.75
+
+| Was | Now | Why |
+|---|---|---|
+| AD-004 REQUIRES RESEARCH | **LOCKED as amended by AD-021** | Contradiction resolved by deferring the table |
+| AD-010 PROVISIONAL | **LOCKED** | Job layer specified (AD-024) |
+| AD-016 PROVISIONAL | **LOCKED** | Same |
+| AD-002 PROVISIONAL | **PROVISIONAL** | TiDB verification still outstanding — `PHASE-2.75-DATABASE-REHEARSAL.md` §5 |
+| AD-003 PROVISIONAL | **PROVISIONAL** | Unchanged; revisit at team scale |
+| AD-018 PROVISIONAL | **PROVISIONAL** | Gate 2 concern; untouched by this phase |
+| AD-019, AD-020 BLOCKED BY SIGN-OFF | **BLOCKED BY SIGN-OFF** | D-010, D-011, D-012, D-013 unresolved. **No approval has been invented** |
+
+**16 LOCKED · 4 PROVISIONAL · 0 REQUIRES RESEARCH · 2 BLOCKED BY SIGN-OFF · 6 new.**
+
+## Conflicts with Phase 1 — status
+
+C-01 … C-05 are unchanged and remain recorded rather than resolved. C-04 (five product
+decisions requiring sign-off) is still open and is listed in `PHASE-3-READINESS.md` §7.

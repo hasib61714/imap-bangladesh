@@ -8,6 +8,7 @@ const sms      = require("../utils/sms");
 const otpStore = require("../utils/otp-store");
 const { validate, body } = require("../middleware/validate");
 const { parseOptionalAmount, MoneyError } = require("../utils/money");
+const env      = require("../config/environment");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 const makeToken = (user) =>
@@ -190,7 +191,7 @@ router.post("/send-otp", otpRules, async (req, res) => {
     }
     const message = `আপনার IMAP OTP কোড: ${otp}। এই কোড ৫ মিনিট বৈধ। কাউকে শেয়ার করবেন না।`;
     await sms.sendSMS(phone, message);
-    const isMock = process.env.NODE_ENV !== "production" && (process.env.SMS_PROVIDER || "mock") === "mock";
+    const isMock = env.allowsDevelopmentBehaviour() && (process.env.SMS_PROVIDER || "mock") === "mock";
     res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Dev only — never sent in production" }) });
   } catch (err) {
     logger.error("send-otp:", err);

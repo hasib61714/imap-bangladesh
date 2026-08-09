@@ -3,6 +3,7 @@ const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const cache = require('../utils/cache');
+const env   = require("../config/environment");
 
 // Ensure disaster_reports table exists
 const initTable = async () => {
@@ -26,7 +27,7 @@ const initTable = async () => {
   //
   // Seeding is development-only now, and seeded rows carry is_demo=1 so
   // production reads exclude them.
-  if (process.env.NODE_ENV === "production") return;
+  if (env.isProduction()) return;
 
   const [[{ cnt }]] = await pool.query("SELECT COUNT(*) AS cnt FROM disaster_reports");
   if (cnt === 0) {
@@ -41,7 +42,7 @@ const initTable = async () => {
 initTable().catch(e => logger.warn("disaster table init:", e.message));
 
 /** Production must never serve demo rows as real alerts. */
-const DEMO_FILTER = process.env.NODE_ENV === "production" ? " WHERE is_demo = 0" : "";
+const DEMO_FILTER = env.isProduction() ? " WHERE is_demo = 0" : "";
 
 // GET /api/disaster/alerts  — public
 //

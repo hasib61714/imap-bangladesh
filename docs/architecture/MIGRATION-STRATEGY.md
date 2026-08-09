@@ -307,3 +307,94 @@ Step 3 must be **exact**. A single-poisha discrepancy means a rounding assumptio
 | **Column drops** | **Not reversible.** Backup + explicit gate |
 
 Two steps are one-way: the ledger cutover and any column drop. Both are named, both are gated, and neither is scheduled early.
+
+---
+
+# Phase 2.75 amendment — rehearsal plans and executed findings
+
+**Date:** 2026-08-09 · **Closes:** part of V-02 · **Evidence:** `docs/audit/PHASE-2.75-DATABASE-REHEARSAL.md`
+
+## G0 — A rehearsal environment now exists
+
+Phase 2.5 rated every step in this document one level higher because none of its stop
+conditions or rollbacks could be exercised. An isolated, disposable MySQL-family engine
+has since been used to rehearse migrations `001` and `002` end to end, including failure
+and recovery paths.
+
+That closes the "no environment at all" objection. It does **not** close TiDB
+verification: MariaDB is not TiDB, and what the rehearsal does and does not establish is
+enumerated in `PHASE-2.75-DATABASE-REHEARSAL.md` §5. Steps 2 and 3 below additionally
+need a **restored copy of production**, because their risk is in the data, not the DDL.
+
+## G1 — Findings from executing rather than reading
+
+| # | Finding | Status |
+|---|---|---|
+| 1 | `migrate.js --status` executed `CREATE TABLE` before branching — the documented read-only command wrote DDL | **fixed**; pinned by an integration test |
+| 2 | `schema.sql` opened with `USE imap_db`, so every table landed in a database named `imap_db` regardless of `DB_NAME` or of the selected database | **fixed**; pinned by an integration test |
+| 3 | `002` aborts on duplicate non-NULL `ref_id` and destroys nothing — correct, and a **production pre-check** | pre-check added to the procedure below |
+| 4 | A failed migration leaves partial state; DDL does not roll back on MySQL-family engines | inherent — mitigated by the mandatory pre-migration snapshot |
+
+### Production pre-check for `002`
+
+Read-only. Any row returned is a pre-existing double-credit that must be reconciled by a
+human before the migration can apply.
+
+```sql
+SELECT ref_id, COUNT(*) AS n
+  FROM wallet_transactions
+ WHERE ref_id IS NOT NULL
+ GROUP BY ref_id HAVING COUNT(*) > 1;
+```
+
+## G2 — Step 2 (Service Graph) rehearsal plan — VERY HIGH
+
+Three conflicting taxonomies reconciled into one, with human capability mapping.
+**Irreversible in the sense that matters:** the mapping decisions are judgement, and
+re-deriving them after the fact is not possible from the data alone.
+
+| | |
+|---|---|
+| **Preconditions** | rehearsal environment restored from a production copy; taxonomy mapping table reviewed and signed off by a human; `platform` audit module live so every mapping decision is recorded; verified snapshot taken |
+| **Input data** | `categories`, `providers.service_type_bn`, `providers.service_type_en`, and the free-text service descriptions — the three taxonomies |
+| **Transformation** | build `service` and `service_category` from the reviewed mapping; write `service_edge` for the reviewed relationships; map each provider's declared service to one or more `provider_capability` rows; **every unmapped value goes to a review queue — none is dropped, none is guessed** |
+| **Validation** | every provider has ≥1 capability, or appears in the review queue; no capability references a non-existent service; the count of distinct source values equals mapped + queued; a sample of 30 providers is checked by a human against their profile text |
+| **Rollback** | restore the snapshot. The old columns are **retained, not dropped**, for one full release cycle — this is what makes rollback real rather than theoretical |
+| **Reconciliation** | for two weeks, a daily job compares the legacy `service_type_*` values against derived capabilities and reports drift |
+| **Stop condition** | more than 5% of providers land in the review queue, **or any provider loses a regulated capability they previously advertised** |
+| **Human approval** | required before the mapping table is applied, and again before the old columns are dropped |
+
+The stop condition's second clause is the important one. A silently lost capability means
+a provider stops receiving work with no explanation, and nobody finds out from a metric.
+
+## G3 — Step 3 (Ledger) rehearsal plan — VERY HIGH
+
+Opening balances **cannot be derived** from existing data. `users.balance` was a mutable
+column with no entries behind it, and some of it was the 500.00 credited free at signup.
+
+| | |
+|---|---|
+| **Preconditions** | restored production copy; `booking_clearing` and the other nine account kinds created; audit module live; verified snapshot; **a documented, signed opening-balance decision** |
+| **Input data** | `users.balance`, `wallet_transactions` (partial and known-inconsistent), `payments`, completed `bookings` |
+| **Transformation** | create a `ledger_account` per account holder; post a single dated **opening-balance transaction** per account, against `platform_opening_equity`; migrate `wallet_transactions` rows that have a resolvable counterparty into ledger transactions; everything else stays in the opening balance and is **stated as such**, not spread across invented entries |
+| **Validation** | Σ debits = Σ credits globally **and per transaction**; every derived balance equals the source `users.balance` to the minor unit; no negative provider payable; the total of all opening balances is reported as one number to the person signing it off |
+| **Rollback** | restore the snapshot. `users.balance` is **retained read-only** for one release cycle and reconciled daily against the derived projection |
+| **Reconciliation** | nightly recomputation of every projection from entries, alerting on any divergence — the check `users.balance` could never pass |
+| **Stop condition** | **any** imbalance, at any scale. Not "0.1% variance" — a double-entry ledger that does not balance is not a ledger |
+| **Human approval** | **mandatory and non-delegable.** Opening balances assert what the platform owes real people. Engineering can compute the number; it cannot decide it |
+
+### The part that is not a technical problem
+
+Some portion of the current `users.balance` total is money that was never paid in — the
+signup credit. Converting it to a ledger opening balance converts it into a **stated
+liability of the platform**. Writing it off converts it into a **balance some users lose**.
+
+Both are business decisions with customer-facing consequences. Neither may be made by
+the migration. The decision must be recorded, with its amount, before Step 3 runs.
+
+## G4 — Ordering
+
+`GATE-1-ARCHITECTURE.md` §11 puts `platform` (audit) first and `finance` (ledger) third,
+before anything depends on either. Step 2 lands with `marketplace` (fourth) and Step 3
+with `finance` (third). Migration execution against production is step 8 — **after** the
+full sequence is green on staging, never interleaved with it.

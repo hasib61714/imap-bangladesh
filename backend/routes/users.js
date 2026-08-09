@@ -5,6 +5,7 @@ const { withTransaction } = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
 const { parseAmount, MoneyError } = require("../utils/money");
+const env    = require("../config/environment");
 
 // ── GET /api/users/profile ────────────────────────────────
 router.get("/profile", authMiddleware, async (req, res) => {
@@ -113,7 +114,7 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
   // P0-12 (related): this credits a balance with no payment behind it.
   // It is now refused in production regardless of gateway configuration —
   // previously an unconfigured gateway was enough to unlock free money.
-  if (process.env.NODE_ENV === "production") {
+  if (env.isProduction()) {
     return res.status(403).json({
       error: "Use the payment gateway for wallet top-up.",
       useGateway: true,

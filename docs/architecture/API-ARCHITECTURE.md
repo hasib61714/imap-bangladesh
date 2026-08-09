@@ -298,3 +298,46 @@ The spec is the artefact. A handler whose responses do not match it fails CI. Th
 | Accepting equivalent field-name variants | The audited `amount`/`total_amount` tolerance |
 | Returning PII on public endpoints | P1-1, P1-2 |
 | 404-vs-403 leakage | Enables enumeration |
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** V-05 (API surface of job idempotency)
+Where this section conflicts with anything above it, **this section wins.**
+
+## C1 — commands that enqueue jobs
+
+A command whose effect is asynchronous must not return a result implying the effect
+happened. It returns the **accepted** state and a handle:
+
+```
+202 Accepted
+{ "status": "accepted", "jobId": "...", "effect": "Requested" }
+```
+
+`effect` uses the nine-state truthfulness vocabulary (`PRODUCT-DECISIONS.md` D-008).
+It may be `Requested` or `Pending`. It may **not** be `Confirmed` or `Completed` until
+the server has observed the effect — the same rule the emergency surface is held to,
+applied to every asynchronous command.
+
+## C2 — API idempotency key and job key are different things
+
+| | Scope | Lifetime | Set by |
+|---|---|---|---|
+| `Idempotency-Key` header | one HTTP request | 24 h | client |
+| Job key | one unit of asynchronous work | until the job is terminal | server, deterministically |
+| Effect token | one external side effect | the external provider's window | server, derived from the job key |
+
+A retried HTTP request with the same `Idempotency-Key` returns the **original stored
+response**, including the original `jobId`. It does not enqueue a second job. Where a
+command enqueues work, the job key is derived from the command's domain reference (e.g.
+`booking:<id>`), never from the HTTP idempotency key — so the guarantee survives a client
+that forgets to send one.
+
+## C3 — job status is queryable
+
+`GET /api/jobs/:jobId` returns `{ status, effect, attempts, lastError? }`, authorised to
+the principal that created it. Without this a client has no honest way to answer "did it
+work?", and the alternative is the client guessing — which is how a UI ends up claiming
+success the server never confirmed.

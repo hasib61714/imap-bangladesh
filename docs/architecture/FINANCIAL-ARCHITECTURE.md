@@ -324,3 +324,83 @@ Every financial effect is triggered by a conditional update on the state machine
 | Tax computation | No VAT/tax obligation is modelled. **Flagged for legal review** — marketplace VAT treatment in Bangladesh is not something to assume |
 | Provider invoicing | FUTURE (R-909) |
 | Chargeback handling | Card chargebacks need a defined process before card payments scale |
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** V-03, V-04, O-02, O-03
+Where this section conflicts with anything above it, **this section wins.**
+
+## A1 — V-03: the tenth account kind
+
+`§4.1` steps 2–3 post to `customer_settlement`, which does not appear in the `§3.1`
+taxonomy. An implementer would have to invent it. Before adding an account, the
+question asked in Phase 2.75 §20 was whether an existing one could carry the flow:
+
+| Candidate | Verdict |
+|---|---|
+| Post capture straight to `provider_payable` + `commission_revenue` | **No.** The provider has not earned it until completion. This makes unearned funds withdrawable and recognises revenue early — the same defect class as the free-balance-at-signup finding |
+| `refund_liability` | **No.** That account means *refunds decided and owed*. Overloading it destroys the only signal finance has |
+| `platform_cash` | **No.** Implies the funds are the platform's own. They are not, until completion |
+| `customer_liability` | **No, and dangerous.** That kind is the non-issuable stored-value placeholder held for D-010 (AD-019). Routing every booking payment through it means the platform issues customer stored value on every transaction — the exact regulated activity D-010 withdraws pending legal sign-off |
+| `gateway_clearing` | **No.** Tracks funds *at the gateway*. After capture the obligation exists regardless of settlement timing; conflating them hides settlement lag |
+
+A distinct account is genuinely required. **Renamed** on adoption:
+
+| Account kind | Owner | Normal balance | Meaning |
+|---|---|---|---|
+| `booking_clearing` | Platform (Finance) | **Credit** | Funds captured for a specific booking, not yet allocated. Released to `provider_payable` + `commission_revenue` on completion, or to `refund_liability` on cancellation |
+
+The name `customer_settlement` is withdrawn. The word "customer" invited precisely
+the confusion this finding is about: **these are not customer funds in any spendable
+sense.** They cannot be withdrawn, transferred, or applied to another booking. They
+are platform-held funds earmarked to one booking. Replace `customer_settlement` with
+`booking_clearing` in `§4.1`.
+
+Constraints:
+* balance per `booking_clearing` sub-account is zero once the booking reaches a terminal state — a non-zero balance on a terminal booking is a reconciliation alert (`§7`);
+* it is never presented to a customer as a balance;
+* `customer_liability` remains defined and non-issuable. **The two must never be merged.** Merging them silently enables a legally gated capability.
+
+## A2 — V-04: refund entry ordering
+
+`§4.3` shows the settlement leg before the recognition leg, so `refund_liability` is
+debited before anything credits it. The obligation must be recognised before it is
+discharged. Corrected order:
+
+```
+1. RefundApproved   — recognise the obligation, reverse the allocation
+                      DR provider_payable      36000
+                      DR commission_revenue     4000
+                      CR refund_liability      40000
+                      reference: booking:<id>:refund:1:recognition
+
+2. RefundExecuted   — discharge it, once the gateway confirms
+                      DR refund_liability      40000
+                      CR gateway_clearing      40000
+                      reference: booking:<id>:refund:1:settlement
+```
+
+Two references, not one: approval and execution are separated in time and can fail
+independently. A refund approved but not yet executed is a real, reportable liability,
+and with a single reference it was invisible. `refund_failed` (`§11`) returns to state
+1 having already recognised the obligation, which is correct.
+
+## A3 — O-02: booking payment status has one owner
+
+**Payment is authoritative.** `booking.payment_status` is a **read-model column**,
+written only by the `payment.captured` / `payment.failed` / `refund.issued` handlers
+and never by a booking use case. It is rebuildable from Payment state, and `§7`
+reconciliation compares the two; divergence is an alert, and Payment wins.
+
+**Cash settlement produces a `Payment` record** with `method = cash`, state `captured`,
+at completion. Without this, cash bookings would have no Payment row to derive from and
+Booking would need its own authority — reintroducing the duplicate-authority defect by
+a side door. One payment concept, one owner.
+
+## A4 — O-03: dispute state and held funds
+
+* **Booking owns the dispute.** It transitions to `disputed` and publishes `booking.disputed`.
+* **Finance owns the hold.** It applies the hold on that event. A Booking use case never writes a payout claim.
+* **The race is closed by re-reading, not by ordering.** Payout batch clearance re-reads dispute state at batch time rather than trusting the claim's `held` flag alone — the same belt-and-braces reasoning as the three-layer idempotency in `§6`.

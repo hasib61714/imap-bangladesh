@@ -346,3 +346,44 @@ Six distinct permission sets, not one `admin` flag (brief §60).
 | **Emergency responder** | Emergency queue, release donor contact | Anything in Marketplace or Finance |
 
 Every one of these actions is audited with actor and reason (R-1103). No role may grant itself another role (Tier C).
+
+---
+
+# Phase 2.75 amendment — binding corrections
+
+**Date:** 2026-08-09 · **Closes:** O-01, O-02, O-03, V-08
+Where this section conflicts with anything above it, **this section wins.**
+
+## D1 — O-01: capability verification has exactly one owner
+
+Three contexts touched `provider_capability.verified` and none was named as the
+authority. That flag decides whether someone may be booked for a refrigerant-handling or
+electrical job, so an unowned flag is a safety defect, not a modelling one.
+
+| State | Owner | Rule |
+|---|---|---|
+| `provider_capability` — the **declaration** | **Provider** | a provider says what they do |
+| `capability_verification` — the **decision** | **Identity / KYC** | same human-review workflow as identity, same Sealed evidence handling, same Tier-C constraint |
+| capability folded into eligibility | **Trust** | **reads the decision; never makes it** |
+
+`provider_capability.verified` becomes a **projection** of the KYC decision, not an
+independently writable column. A provider can therefore declare a regulated capability
+and still not be bookable for it — which is the entire point of D-005.
+
+## D2 — O-02: booking payment status
+
+**Payment is authoritative.** `booking.payment_status` is a read-model column written
+only by event handlers. Cash settlement produces a `Payment` record with `method = cash`.
+Full statement in `FINANCIAL-ARCHITECTURE.md` Phase 2.75 amendment A3.
+
+## D3 — O-03: dispute versus held funds
+
+Booking owns the dispute and publishes `booking.disputed`; Finance owns the hold and
+applies it on the event; payout clearance re-reads dispute state at batch time. Full
+statement in `FINANCIAL-ARCHITECTURE.md` Phase 2.75 amendment A4.
+
+## D4 — V-08: the Booking ↔ Finance cycle
+
+Both write directions are **event-only**; synchronous reads are permitted. A synchronous
+write in either direction is an architecture violation. Table in `EVENT-ARCHITECTURE.md`
+Phase 2.75 amendment B2.

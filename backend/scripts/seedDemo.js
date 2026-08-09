@@ -21,9 +21,16 @@ const { v4: uuidv4 } = require("uuid");
 
 const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
 
-if (process.env.NODE_ENV === "production") {
-  console.error("❌ Refusing to seed demo data with NODE_ENV=production.");
-  console.error("   Demo providers use a shared password and fabricated statistics.");
+// Phase 2.75 (V-01): NODE_ENV alone was an insufficient discriminator —
+// `.env` declared development while pointing at the production cluster,
+// so this refusal never fired where it mattered. The guard now considers
+// the database target as well, and has no override.
+const env = require("../config/environment");
+try {
+  env.forbidInProduction("demo data seeding");
+} catch (err) {
+  console.error(`❌ ${err.message}`);
+  console.error("\n   Demo providers use a shared password and fabricated statistics.");
   process.exit(1);
 }
 

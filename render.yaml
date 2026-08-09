@@ -8,8 +8,18 @@ services:
     startCommand: node server.js
     envVars:
       # ── Core ──────────────────────────────────────────
+      # Phase 2.75 (V-01): APP_ENV is the authoritative environment
+      # statement and DATABASE_ENV the authoritative statement about the
+      # data. Both are declared explicitly rather than inferred, so the
+      # production deployment never depends on a hostname pattern.
+      - key: APP_ENV
+        value: production
       - key: NODE_ENV
         value: production
+      - key: DATABASE_ENV
+        value: production
+      - key: PRODUCTION_DB_HOST
+        value: gateway01.ap-northeast-1.prod.aws.tidbcloud.com
       - key: PORT
         value: 10000
 

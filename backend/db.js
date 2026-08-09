@@ -1,5 +1,11 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
+const env = require("./config/environment");
+
+// Phase 2.75 (V-01): before a single connection is opened, refuse to run
+// a non-production process against a production database. Every Phase 0.5
+// safety control depends on that separation holding.
+env.assertEnvironmentIsCoherent();
 
 // TiDB Cloud requires SSL; standard Node.js CA bundle covers TiDB's certificate
 const sslConfig = process.env.DB_SSL === "true"
@@ -24,7 +30,12 @@ const pool = mysql.createPool({
 // Test connection on startup
 pool.getConnection()
   .then(conn => {
-    console.log("✅ MySQL connected — DB:", process.env.DB_NAME);
+    const d = env.describe();
+    console.log(
+      `✅ MySQL connected — db=${d.dbName} host=${d.dbHost} ` +
+      `process=${d.processEnv} data=${d.databaseEnv}` +
+      (d.acknowledgedOverride ? "  ⚠ PRODUCTION OVERRIDE ACKNOWLEDGED" : "")
+    );
     conn.release();
   })
   .catch(err => {
