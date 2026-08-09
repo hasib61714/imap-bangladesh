@@ -273,8 +273,8 @@ router.get("/me/jobs", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/providers/apply  (existing user applies as provider) ──────────
-// Add nid_number column if it doesn't exist (safe migration)
-pool.query("ALTER TABLE users ADD COLUMN nid_number VARCHAR(30) NULL").catch(()=>{});
+// I-01: this used to run ALTER TABLE users on every process start, with
+// its error swallowed. It is migration 004 now.
 
 router.post("/apply", authMiddleware, async (req, res) => {
   try {

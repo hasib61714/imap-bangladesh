@@ -4,21 +4,8 @@ const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const { sendPush } = require("../utils/push");
 
-// Ensure chat_messages table exists
-const initTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      booking_id  VARCHAR(36) NOT NULL,
-      sender_id   VARCHAR(36) NOT NULL,
-      sender_role ENUM('customer','provider','admin') DEFAULT 'customer',
-      message     TEXT NOT NULL,
-      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_booking (booking_id)
-    ) ENGINE=InnoDB
-  `);
-};
-initTable().catch(e => logger.warn("chat table init:", e.message));
+// I-01: initTable() used to CREATE TABLE chat_messages on import.
+// The table is migration 003; the function is gone with it.
 
 // GET /api/chat/:bookingId  — fetch messages (polling)
 router.get("/:bookingId", authMiddleware, async (req, res) => {

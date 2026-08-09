@@ -5,21 +5,9 @@ const { authMiddleware } = require("../middleware/auth");
 const cache = require('../utils/cache');
 const env   = require("../config/environment");
 
-// Ensure disaster_reports table exists
+// Development-only demo alerts. The table is migration 003 as of I-01 —
+// this function no longer issues any DDL.
 const initTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS disaster_reports (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      user_id     VARCHAR(36),
-      reporter_name VARCHAR(120),
-      type        VARCHAR(60) NOT NULL,
-      description TEXT,
-      area        VARCHAR(120),
-      severity    ENUM('low','medium','high','critical') DEFAULT 'medium',
-      status      ENUM('pending','confirmed','resolved') DEFAULT 'pending',
-      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB
-  `);
   // ── P0-10: four fabricated disaster alerts — including a "critical"
   // cyclone warning for Cox's Bazar — were seeded into the production
   // database and served publicly as live emergency information. Users

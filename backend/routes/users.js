@@ -390,29 +390,19 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
-// Ensure push_subscriptions table exists (called once on first use)
-let pushTableReady = false;
-async function ensurePushTable() {
-  if (pushTableReady) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      endpoint VARCHAR(600) NOT NULL,
-      keys JSON,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_ep (endpoint(255))
-    )
-  `);
-  pushTableReady = true;
-}
+// I-01: ensurePushTable() used to create push_subscriptions lazily with
+// `user_id INT NOT NULL` and an unquoted `keys` column — the exact P1
+// defect migration 002 corrected, which meant every subscription was
+// stored against user 0 and push never delivered. Because it ran on first
+// use rather than on import, it would have recreated the broken shape on
+// any database where the table did not yet exist. The table is now
+// migration 003, with the corrected VARCHAR(36) user_id.
 
 // POST /api/users/push-subscribe — save browser push subscription
 router.post("/push-subscribe", authMiddleware, async (req, res) => {
   try {
     const { subscription } = req.body;
     if (!subscription?.endpoint) return res.status(400).json({ error: "Invalid subscription" });
-    await ensurePushTable();
     await pool.query(
       `INSERT INTO push_subscriptions (user_id, endpoint, keys)
        VALUES (?,?,?)
@@ -431,7 +421,6 @@ router.post("/push-subscribe", authMiddleware, async (req, res) => {
 router.post("/test-push", authMiddleware, async (req, res) => {
   try {
     if (!process.env.VAPID_PUBLIC_KEY) return res.status(501).json({ error: "Push not configured on server" });
-    await ensurePushTable();
     const [subs] = await pool.query(
       "SELECT * FROM push_subscriptions WHERE user_id=? LIMIT 5",
       [req.user.id]

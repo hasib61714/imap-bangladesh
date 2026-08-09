@@ -196,20 +196,40 @@
 
 ¹ created by migration `002` · ² created at import time by a route module
 
-### 4.1 Import-time DDL — 6 sites to retire
+### 4.1 Runtime DDL — 8 sites to retire
 
-| Module | Statement |
-|---|---|
-| `routes/admin.js` | `CREATE TABLE system_settings` |
-| `routes/blood.js` | `CREATE TABLE blood_donors` + 3 × `ALTER TABLE` |
-| `routes/chat.js` | `CREATE TABLE chat_messages` |
-| `routes/disaster.js` | `CREATE TABLE disaster_reports` |
-| `routes/loans.js` | `CREATE TABLE microloans` |
-| `routes/promos.js` | 3 × `ALTER TABLE promos` |
-| `routes/providers.js` | `ALTER TABLE users` |
-| `routes/users.js` | `CREATE TABLE push_subscriptions` |
+**Corrected during I-01.** This section originally listed six sites in route
+modules. Executing the retirement found **two more in `server.js` itself**, and
+one of the tables they create is declared nowhere else in the repository.
 
-Each must become a migration before the owning module is touched. Until then, the production schema depends on module load order — and `schema.sql` is not a complete description of the database.
+| Module | Statement | When |
+|---|---|---|
+| `routes/admin.js` | `CREATE TABLE system_settings` | import |
+| `routes/blood.js` | `CREATE TABLE blood_donors` + 3 × `ALTER TABLE` | import |
+| `routes/chat.js` | `CREATE TABLE chat_messages` | import |
+| `routes/disaster.js` | `CREATE TABLE disaster_reports` | import |
+| `routes/loans.js` | `CREATE TABLE microloans` | import |
+| `routes/promos.js` | 3 × `ALTER TABLE promos` | import |
+| `routes/providers.js` | `ALTER TABLE users ADD nid_number` | import, unconditional |
+| `routes/users.js` | `CREATE TABLE push_subscriptions` | **first use** |
+| **`server.js`** | **`CREATE TABLE loyalty_log`** | **`listen()` callback** |
+| **`server.js`** | **`CREATE TABLE referrals`** | **`listen()` callback** |
+
+Two findings that only executing the change surfaced:
+
+* **`referrals` is declared nowhere else** — not in `schema.sql`, not in any
+  migration. It existed only as a string inside a startup callback whose error
+  was logged and swallowed, so a database where that call failed has no
+  `referrals` table and no record of why.
+* **`routes/users.js` created `push_subscriptions` with `user_id INT NOT NULL`
+  and an unquoted `keys` column** — the exact P1 defect migration `002`
+  corrected. Because it ran on first use rather than on import, it would have
+  **recreated the broken shape** on any database where the table did not yet
+  exist, including a fresh one.
+
+All ten are migrations `003` and `004` as of I-01, and the DDL is deleted from
+every module. Until that landed, the production schema depended on module load
+order — and `schema.sql` was not a complete description of the database.
 
 ---
 

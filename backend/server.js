@@ -192,29 +192,12 @@ app.use((err, req, res, _next) => {
 
 // ── Start ─────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, "0.0.0.0", async () => {
+server.listen(PORT, "0.0.0.0", () => {
   logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
   logger.info(`Health check: http://localhost:${PORT}/api/health`);
-  // Hoist one-time DDL so per-request handlers don't repeat it
-  const _pool = require("./db");
-  await _pool.query(`CREATE TABLE IF NOT EXISTS loyalty_log (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(36) NOT NULL,
-    points INT NOT NULL,
-    reason_bn VARCHAR(200),
-    reason_en VARCHAR(200),
-    booking_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB`).catch(e => logger.warn("loyalty_log DDL:", e.message));
-  await _pool.query(`CREATE TABLE IF NOT EXISTS referrals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    referrer_id VARCHAR(36) NOT NULL,
-    referred_id VARCHAR(36) NOT NULL,
-    status ENUM('pending','active') DEFAULT 'pending',
-    bonus_paid DECIMAL(10,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_ref (referrer_id, referred_id)
-  ) ENGINE=InnoDB`).catch(e => logger.warn("referrals DDL:", e.message));
+  // I-01: this callback used to CREATE TABLE loyalty_log and referrals on
+  // every startup, with both errors logged and swallowed. `referrals` was
+  // declared nowhere else in the repository. Both are migration 003 now.
 });
 
 // ── Graceful shutdown ─────────────────────────────────────

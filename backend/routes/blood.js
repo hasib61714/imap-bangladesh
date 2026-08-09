@@ -5,30 +5,9 @@ const { authMiddleware } = require("../middleware/auth");
 const cache = require('../utils/cache');
 const env   = require("../config/environment");
 
-// Ensure table exists with seed data
+// Development-only demo donors. The table and its columns are migrations
+// 003 and 004 as of I-01 — this function no longer issues any DDL.
 const initTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS blood_donors (
-      id           INT AUTO_INCREMENT PRIMARY KEY,
-      user_id      VARCHAR(36),
-      name         VARCHAR(120) NOT NULL,
-      blood_group  VARCHAR(6) NOT NULL,
-      phone        VARCHAR(20) NOT NULL,
-      area_bn      VARCHAR(100),
-      area_en      VARCHAR(100),
-      district     VARCHAR(60),
-      is_available TINYINT(1) DEFAULT 1,
-      total_donated INT DEFAULT 0,
-      last_donated DATE NULL,
-      latitude     DECIMAL(10,8),
-      longitude    DECIMAL(11,8),
-      created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB
-  `);
-  // If table already exists but still has old column name, add missing column gracefully
-  await pool.query(`ALTER TABLE blood_donors ADD COLUMN IF NOT EXISTS last_donated DATE NULL`).catch(()=>{});
-  await pool.query(`ALTER TABLE blood_donors ADD COLUMN IF NOT EXISTS latitude DECIMAL(10,8) NULL`).catch(()=>{});
-  await pool.query(`ALTER TABLE blood_donors ADD COLUMN IF NOT EXISTS longitude DECIMAL(11,8) NULL`).catch(()=>{});
   // ── P0-10: eight fabricated donors — names, phone numbers, donation
   // counts and GPS coordinates — used to be seeded into the production
   // database and served as real people. A user in a medical emergency

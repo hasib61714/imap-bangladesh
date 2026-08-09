@@ -438,17 +438,8 @@ router.delete("/promos/:id", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/settings ─────────────────────────────
-const ensureSettingsTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS system_settings (
-      id        INT AUTO_INCREMENT PRIMARY KEY,
-      key_name  VARCHAR(80) NOT NULL UNIQUE,
-      val       TINYINT(1) NOT NULL DEFAULT 1,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB
-  `);
-};
-ensureSettingsTable().catch(() => {});
+// I-01: ensureSettingsTable() used to CREATE TABLE system_settings on
+// import. The table is migration 003; the function is gone with it.
 
 const defaultSettings = [
   { key_name: "system_online",         val: 1 },
