@@ -69,11 +69,15 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
   await admin.query(`CREATE DATABASE \`${SUITE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
 
   const fs = require("node:fs");
-  const schema = fs.readFileSync(path.join(BACKEND, "schema.sql"), "utf8");
 
-  // Baseline for the `USE imap_db` regression below. The engine may
-  // legitimately already hold a database of that name; what must not
-  // happen is schema.sql adding to it.
+  // I-02: the baseline is migration 001, not schema.sql. schema.sql is
+  // archived and executed by nothing, so applying it here would test a file
+  // that no longer participates in building the database.
+  const baseline = fs.readFileSync(path.join(BACKEND, "migrations", "001_baseline.sql"), "utf8");
+
+  // Baseline for the hardcoded-database-name regression below. The engine may
+  // legitimately already hold a database called imap_db; what must not happen
+  // is the migration chain adding to it.
   const countIn = async (name) => {
     const [r] = await admin.query(
       "SELECT COUNT(*) c FROM information_schema.tables WHERE table_schema = ?", [name]
@@ -83,7 +87,7 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
   const imapDbTablesBefore = await countIn("imap_db");
 
   const db = await connect(SUITE);
-  await db.query(schema);
+  await db.query(baseline);
 
   t.after(async () => {
     await db.end();
@@ -99,14 +103,25 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
     return r[0].c > 0;
   };
 
-  await t.test("schema.sql applies to the database the connection selected", async () => {
+  await t.test("the baseline applies to the database the connection selected", async () => {
     assert.equal(await tableExists("users"), true);
-    // Regression: schema.sql used to open with `USE imap_db`, so it wrote
-    // to imap_db no matter which database you selected.
+    // Regression: schema.sql used to open with `USE imap_db`, so it wrote to
+    // imap_db no matter which database you selected. The baseline inherited
+    // that content and must not inherit that behaviour.
     assert.equal(
       await countIn("imap_db"), imapDbTablesBefore,
-      "schema.sql must not create or write to a hardcoded imap_db"
+      "the baseline migration must not create or write to a hardcoded imap_db"
     );
+  });
+
+  await t.test("the migration chain alone builds a working schema — no schema.sql", async () => {
+    // §13: one authoritative mechanism. If this fails, there are two again.
+    const [rows] = await db.query(
+      "SELECT COUNT(*) c FROM information_schema.tables WHERE table_schema = ?", [SUITE]
+    );
+    assert.ok(rows[0].c >= 17, `expected the full baseline, got ${rows[0].c} tables`);
+    const [cats] = await db.query("SELECT COUNT(*) c FROM categories");
+    assert.ok(cats[0].c >= 12, "baseline reference data missing");
   });
 
   await t.test("--status is read-only and does not create schema_migrations", async () => {
@@ -155,7 +170,7 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
     await admin.query(`DROP DATABASE IF EXISTS \`${dupDb}\``);
     await admin.query(`CREATE DATABASE \`${dupDb}\``);
     const d = await connect(dupDb);
-    await d.query(schema);
+    await d.query(baseline);
     await d.query("INSERT INTO users (id,name,phone) VALUES ('u1','A','01799999999')");
     await d.query(
       "INSERT INTO wallet_transactions (user_id,type,amount,ref_id) VALUES ('u1','credit',10,'booking:1:payout'),('u1','credit',10,'booking:1:payout')"
@@ -183,7 +198,7 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
     await admin.query(`DROP DATABASE IF EXISTS \`${nullDb}\``);
     await admin.query(`CREATE DATABASE \`${nullDb}\``);
     const d = await connect(nullDb);
-    await d.query(schema);
+    await d.query(baseline);
     await d.query("INSERT INTO users (id,name,phone) VALUES ('u1','A','01799999998')");
     await d.query("INSERT INTO wallet_transactions (user_id,type,amount,ref_id) VALUES ('u1','credit',5,NULL),('u1','credit',5,NULL),('u1','credit',5,NULL)");
 

@@ -10,7 +10,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "node scripts/initDb.js",
     "admin:reset": "node scripts/resetAdmin.js",
     "test": "node --test \"test/**/*.test.js\"",
     "test:unit": "node --test \"test/*.test.js\"",

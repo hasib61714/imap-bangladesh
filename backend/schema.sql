@@ -1,14 +1,22 @@
 -- ═══════════════════════════════════════════════════════════
---  IMAP Bangladesh — Full MySQL Schema
---  Run: mysql -u root -p <database-name> < schema.sql
+--  IMAP Bangladesh — LEGACY SCHEMA  ·  ARCHIVED, NOT APPLIED
 --
---  Phase 2.75: this file used to open with
---      CREATE DATABASE IF NOT EXISTS imap_db;  USE imap_db;
---  which meant every table landed in a database named `imap_db`
---  regardless of DB_NAME or of which database the client had
---  selected — including when the operator had deliberately chosen
---  a different target. The target database is now chosen by the
---  connection; scripts/initDb.js creates and selects DB_NAME first.
+--  ⚠ THIS FILE IS NO LONGER EXECUTED BY ANYTHING.
+--
+--  As of I-02 the migration chain is the single authoritative schema
+--  mechanism. migrations/001_baseline.sql carries this content and is what
+--  actually builds the database. This file is retained only as the record
+--  of where that baseline came from.
+--
+--  Do not edit it to change the schema — a change here has no effect.
+--  Write a migration.
+--
+--  It also contains two MariaDB-only statements
+--  (ALTER TABLE ... ADD COLUMN IF NOT EXISTS) which MySQL 8 rejects, so it
+--  cannot be applied to the CI service container even if someone tried.
+--  001_baseline.sql uses the portable form.
+--
+--  Disposition: docs/implementation/LEGACY-SCHEMA-DISPOSITION.md
 -- ═══════════════════════════════════════════════════════════
 
 -- ── USERS ────────────────────────────────────────────────

@@ -87,13 +87,21 @@ jobs:
           done
           echo "mysql did not become ready"; exit 1
 
-      - name: Migrations apply to a clean database
+      - name: Migrations build the schema from nothing
+        # I-02: no schema.sql step. The migration chain is the single
+        # authoritative mechanism, so an empty database is the correct input
+        # and this step proves it.
+        #
+        # It also removes a latent failure: schema.sql contains two
+        # MariaDB-only `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements
+        # that MySQL 8 rejects, so piping it into this service container
+        # would have failed. 001_baseline.sql uses the portable form.
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS imap_ci; CREATE DATABASE imap_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -h 127.0.0.1 -P 3306 -u root imap_ci < schema.sql
           node scripts/migrate.js --status
           node scripts/migrate.js
           node scripts/migrate.js   # second run must be a no-op
+          mysql -h 127.0.0.1 -P 3306 -u root -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='imap_ci';" | awk '{ if ($1 < 25) { print "expected >=25 tables, got " $1; exit 1 } else print $1 " tables" }'
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: "3306"
