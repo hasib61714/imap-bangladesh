@@ -17,7 +17,11 @@ const pool = mysql.createPool({
   port:               parseInt(process.env.DB_PORT || "3306"),
   user:               process.env.DB_USER     || "root",
   password:           process.env.DB_PASSWORD || "",
-  database:           process.env.DB_NAME     || "imap_db",
+  // No default: it used to be "imap_db", the production database name.
+  // startup-checks.js makes DB_NAME fatal-in-all-environments, so a started
+  // application always has one; a script run without it now fails loudly
+  // instead of quietly selecting a production-named database.
+  database:           process.env.DB_NAME,
   charset:            "utf8mb4",
   waitForConnections: true,
   connectionLimit:    20,

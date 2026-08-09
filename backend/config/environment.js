@@ -88,7 +88,11 @@ function databaseIdentity() {
   return {
     host: String(process.env.DB_HOST || "localhost").trim().toLowerCase(),
     port: String(process.env.DB_PORT || "3306").trim(),
-    name: String(process.env.DB_NAME || "imap_db").trim(),
+    // No default. It used to fall back to "imap_db" — the PRODUCTION database
+    // name — so an unset DB_NAME silently selected a production-named database
+    // on whatever host was configured. An unnamed database is now visibly
+    // unnamed, and startup refuses without it.
+    name: String(process.env.DB_NAME || "").trim(),
   };
 }
 
@@ -164,6 +168,10 @@ function isProduction() {
  */
 function productionAccessAcknowledged() {
   const { name } = databaseIdentity();
+  // An unnamed database cannot be acknowledged. Without this, an empty
+  // DB_NAME and an empty acknowledgement would compare equal and the
+  // break-glass override would satisfy itself.
+  if (!name) return false;
   return String(process.env.IMAP_I_UNDERSTAND_THIS_IS_PRODUCTION || "").trim() === name;
 }
 

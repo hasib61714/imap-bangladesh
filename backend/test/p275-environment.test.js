@@ -196,3 +196,27 @@ test("describe() exposes no credential", () => {
     assert.doesNotMatch(serialised, /password|user/i);
   });
 });
+
+// ── I-02: DB_NAME no longer defaults to the production database name ──
+
+test("I-02: an unset DB_NAME is visibly unnamed, not silently 'imap_db'", () => {
+  // It used to default to "imap_db" — the production database name — so an
+  // unset DB_NAME selected a production-named database on whatever host was
+  // configured.
+  withEnv({ NODE_ENV: "development", DB_HOST: "127.0.0.1" }, () => {
+    assert.equal(env.databaseIdentity().name, "");
+  });
+});
+
+test("I-02: an unnamed database cannot be acknowledged", () => {
+  // Without the guard, an empty DB_NAME and an empty acknowledgement compare
+  // equal, and the break-glass override satisfies itself.
+  withEnv({
+    NODE_ENV: "development",
+    DB_HOST: "gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+    IMAP_I_UNDERSTAND_THIS_IS_PRODUCTION: "",
+  }, () => {
+    assert.equal(env.productionAccessAcknowledged(), false);
+    assert.throws(() => env.assertEnvironmentIsCoherent(), /Refusing to start/);
+  });
+});
