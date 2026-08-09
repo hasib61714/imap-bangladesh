@@ -69,4 +69,11 @@ module.exports = {
 
   // Audit
   recordDecision: require("./authorizationAudit").recordDecision,
+
+  // I-06: the surface another module reaches for. Marketplace registers
+  // policies and a loader; the executor authorizes. Exposed here so no caller
+  // has to reach past this file for them.
+  registerLoader: resources.registerLoader,
+  PERMISSION: require("./actions").PERMISSION,
+  DENY: require("./decision").DENY,
 };
