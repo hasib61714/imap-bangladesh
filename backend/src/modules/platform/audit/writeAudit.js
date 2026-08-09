@@ -96,19 +96,24 @@ function assertNoForbiddenFields(payload, action) {
   }
 }
 
+// sod_bypass and deny_reason arrive with migration 008 (I-04). Both are
+// defaulted in the schema, so a record written without them is still valid —
+// but they are always supplied here, because "0" and "not recorded" must not
+// be the same value in a log used to count exceptions.
 const INSERT = `
   INSERT INTO audit_log (
     id, occurred_at, correlation_id,
     actor_principal_id, actor_account_id, actor_role, actor_via, on_behalf_of,
     action, resource_type, resource_id, resource_owner,
-    outcome, before_json, after_json, reason, ip, user_agent
-  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    outcome, before_json, after_json, reason, ip, user_agent,
+    sod_bypass, deny_reason
+  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
 function buildRecord(spec, clock) {
   const {
     actor = {}, action, resourceType, resourceId = null, resourceOwner = null,
     outcome = "permitted", before = null, after = null, reason = null,
-    ip = null, userAgent = null,
+    ip = null, userAgent = null, sodBypass = false, denyReason = null,
   } = spec;
 
   if (!action) throw new AuditError("audit record requires an action");
@@ -144,6 +149,8 @@ function buildRecord(spec, clock) {
     reason,
     ip ? String(ip).slice(0, 45) : null,
     userAgent ? String(userAgent).slice(0, 255) : null,
+    sodBypass ? 1 : 0,
+    denyReason ? String(denyReason).slice(0, 40) : null,
   ];
 }
 
