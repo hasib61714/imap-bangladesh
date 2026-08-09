@@ -1,0 +1,133 @@
+name: CI
+
+# I-01. The repository deployed without testing: .github/workflows/deploy.yml
+# built and published the frontend and nothing ran the 59-test backend suite.
+# PRD R-1105 requires tests before deploy; this is that gate.
+#
+# Callable as a reusable workflow so deploy.yml can depend on it rather than
+# duplicating it — GitHub Actions has no clean cross-workflow gate otherwise.
+
+on:
+  push:
+    # main is covered by deploy.yml, which calls this workflow as its gate.
+    # Triggering here too would run every check twice on the same commit.
+    branches-ignore: ["main"]
+  pull_request:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend — boundaries, contract, tests
+    runs-on: ubuntu-latest
+
+    services:
+      # MySQL 8, not MariaDB. TiDB targets MySQL 8.0 compatibility, so CI is
+      # stricter evidence than the local MariaDB rehearsal instance. It still
+      # is not TiDB — PHASE-2.75-DATABASE-REHEARSAL.md §5 stands.
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: imap_ci
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      # Explicit on both axes. The environment guards fail closed, so an
+      # unset APP_ENV would be read as production and the suite would refuse
+      # to touch its own database.
+      APP_ENV: test
+      DATABASE_ENV: test
+      # Loopback only — test/integration/ throws at module load on anything
+      # else, because these tests create and drop databases.
+      IMAP_TEST_DB_HOST: 127.0.0.1
+      IMAP_TEST_DB_PORT: "3306"
+      IMAP_TEST_DB_USER: root
+      IMAP_TEST_DB_PASSWORD: ""
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0000000000000000
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # >=22: the test script relies on node expanding the --test glob,
+          # which Node 20 does not do. Recorded in package.json engines.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+
+      - name: Import boundaries
+        run: npm run lint:boundaries
+
+      - name: API contract
+        run: node scripts/check-openapi.js
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent 2>/dev/null; then
+              echo "mysql is up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "mysql did not become ready"; exit 1
+
+      - name: Migrations apply to a clean database
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS imap_ci; CREATE DATABASE imap_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -h 127.0.0.1 -P 3306 -u root imap_ci < schema.sql
+          node scripts/migrate.js --status
+          node scripts/migrate.js
+          node scripts/migrate.js   # second run must be a no-op
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_USER: root
+          DB_PASSWORD: ""
+          DB_NAME: imap_ci
+          DB_SSL: "false"
+
+      - name: Tests
+        run: npm test
+
+  frontend:
+    name: frontend — build and bundle budget
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 20 to match the existing deploy job. Changing it would change the
+          # produced bundle, which is a separate decision from adding CI.
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Build
+        # The bundle-budget plugin fails the build when an entry exceeds its
+        # ceiling, so this step is the budget gate as well as the build.
+        run: npm run build
+        env:
+          VITE_API_URL: https://imap-backend-mghb.onrender.com/api

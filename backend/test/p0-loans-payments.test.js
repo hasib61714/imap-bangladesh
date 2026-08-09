@@ -106,9 +106,39 @@ test("P0-6: the first disbursement credits exactly once, with an idempotency ref
 });
 
 // ── P0-12 ───────────────────────────────────────────────────────────
+/**
+ * Phase 2.75 made APP_ENV authoritative over NODE_ENV, and made the DATABASE
+ * axis participate in the production decision. This helper originally set
+ * NODE_ENV alone, which simulated production only when APP_ENV and
+ * DATABASE_ENV happened to be absent from the ambient environment. It passed
+ * locally and failed the moment CI set APP_ENV=test at the job level — the
+ * P0-12 fail-closed assertion silently stopped testing anything.
+ *
+ * Both axes are now set explicitly, so the test asserts the same property
+ * whatever the ambient environment is.
+ */
+const ENV_AXES = ["APP_ENV", "NODE_ENV", "DATABASE_ENV"];
+const savedAxes = {};
+
+function setEnvironment(production) {
+  for (const k of ENV_AXES) {
+    if (!(k in savedAxes)) savedAxes[k] = process.env[k];
+  }
+  process.env.APP_ENV = production ? "production" : "test";
+  process.env.NODE_ENV = production ? "production" : "test";
+  process.env.DATABASE_ENV = production ? "production" : "test";
+}
+
+function restoreEnvironment() {
+  for (const k of ENV_AXES) {
+    if (savedAxes[k] === undefined) delete process.env[k];
+    else process.env[k] = savedAxes[k];
+  }
+}
+
 async function bootPayments(pool, { production, configured }) {
   resetModules("../routes/payments", "../utils/payment", "../utils/money", "../middleware/auth");
-  process.env.NODE_ENV = production ? "production" : "test";
+  setEnvironment(production);
   if (configured) {
     process.env.SSLCOMMERZ_STORE_ID = "test-store";
     process.env.SSLCOMMERZ_STORE_PASSWORD = "test-pass";
@@ -126,7 +156,7 @@ async function bootPayments(pool, { production, configured }) {
 test("P0-12: production + unconfigured gateway refuses and credits nothing", async (t) => {
   const pool = makePool([]);
   const srv = await bootPayments(pool, { production: true, configured: false });
-  t.after(async () => { await srv.close(); process.env.NODE_ENV = "test"; });
+  t.after(async () => { await srv.close(); restoreEnvironment(); });
 
   const res = await call(srv.url, "POST", "/initiate", {
     type: "wallet_topup", topup_amount: 100000,

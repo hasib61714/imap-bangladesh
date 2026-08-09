@@ -9,7 +9,17 @@ permissions:
   contents: write
 
 jobs:
+  # I-01: the deploy is now gated. Before this, deploy.yml built and published
+  # the frontend on every push to main and nothing ran the backend suite —
+  # PRD R-1105 ("backend CI runs tests before deploy") was unmet.
+  #
+  # ci.yml is invoked as a reusable workflow rather than duplicated, so the
+  # gate and the checks cannot drift apart.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
   build-and-deploy:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
