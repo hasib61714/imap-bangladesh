@@ -102,6 +102,24 @@ test("§30 GET /bookings/:id", async (t) => {
     assert.equal(asCustomer.body.otp_code, "482913");
   });
 
+  // NEGATIVE CONTROL: change BOOKING_READ_COMPLETION_OTP's relationship to
+  // bookingParticipantOrPlatform and this fails. The `roles` list alone does
+  // NOT cover this case, which is why the relationship is there.
+  await t.test("a provider whose users.role is 'customer' still cannot read the OTP", async (tt) => {
+    // Not hypothetical. POST /api/providers/apply creates a providers row and
+    // never touches users.role, so a person who signed up as a customer and
+    // later applied is a provider with role='customer'. The role gate lets
+    // them through; the relationship is what stops them reading the
+    // customer's proof of delivery for their own job.
+    const applied = { id: "applied-1", name: "Shuvo", role: "customer", is_active: 1 };
+    const pool = bookingPool({ provider_user_id: applied.id });
+    const srv = await boot("../routes/bookings", pool, applied);
+    tt.after(() => srv.close());
+    const res = await call(srv.url, "GET", `/${BOOKING}`);
+    assert.equal(res.status, 200, "they are a participant and may read the booking");
+    assert.equal("otp_code" in res.body, false, "but not the customer's completion code");
+  });
+
   await t.test("the second decision costs no second query (§36)", async (tt) => {
     const pool = bookingPool();
     const srv = await boot("../routes/bookings", pool, CUSTOMER);
