@@ -20,14 +20,17 @@
 const { registerLoader } = require("../../platform").authorization;
 
 const SELECT = `
-  SELECT p.id, p.user_id, p.is_approved, p.is_available, p.provider_source,
-         u.is_active AS account_active
+  SELECT p.id, p.user_id, p.is_approved, p.listing_state, p.is_available,
+         p.provider_source, u.is_active AS account_active
     FROM providers p LEFT JOIN users u ON u.id = p.user_id`;
 
 const shape = (r) => ({
   type: null,   // set by the caller below
   id: String(r.id),
   userId: r.user_id === null ? null : String(r.user_id),
+  // I-07 §9: the authority. `isApproved` travels alongside because the wire
+  // shape still carries it, but no policy decides on it.
+  listingState: r.listing_state || "applied",
   isApproved: r.is_approved === 1 || r.is_approved === true,
   isAvailable: r.is_available === 1 || r.is_available === true,
   accountActive: r.account_active === 1 || r.account_active === true,

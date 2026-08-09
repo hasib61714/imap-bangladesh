@@ -39,8 +39,15 @@ const REAL_USE_CASES = registry.registeredUseCases();
 /** Put the register back the way the composition root built it. */
 function restoreRegister() {
   registry.__resetUseCaseRegistryForTests();
-  delete require.cache[require.resolve("../src/modules/marketplace")];
-  require("../src/modules/marketplace").installMarketplace();
+  // Every module the composition root installs, or the `t.after` assertion
+  // below compares a partial register against a complete one.
+  for (const [path, install] of [
+    ["../src/modules/identity", "installIdentity"],
+    ["../src/modules/marketplace", "installMarketplace"],
+  ]) {
+    delete require.cache[require.resolve(path)];
+    require(path)[install]();
+  }
 }
 
 const BACKEND = path.join(__dirname, "..");
@@ -160,8 +167,10 @@ test("§25 the layers are what they claim to be", async (t) => {
     assert.equal(/\bwriteAudit\b/.test(src), false, "the route writes an audit record");
     assert.equal(/\bauthorize\s*\(/.test(src), false, "the route decides authorization");
     // Every handler reaches the domain through the executor.
+    // Eight I-06 handlers, plus I-07's listing-decision factory (one call
+    // shared by approve/reject/suspend) and the eligibility read.
     const executes = (src.match(/execute\(/g) || []).length;
-    assert.equal(executes, 8, `expected one execute() per handler, found ${executes}`);
+    assert.equal(executes, 10, `expected one execute() per handler, found ${executes}`);
   });
 });
 

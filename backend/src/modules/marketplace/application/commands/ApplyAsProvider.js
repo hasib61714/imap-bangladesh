@@ -14,10 +14,17 @@
  * `CREDENTIAL-INCIDENT.md` §2 is the standing reminder of what it costs to be
  * unable to answer one.
  *
- * NOT SET HERE: `is_approved`. D-005 makes eligibility trust-granted — a
- * provider does not list themselves (P1-7). The column defaults to 0 and
- * nothing in this file can change it. F-12 records that no endpoint grants it
- * yet, which is a gap in the product and not in this use case.
+ * NOT SET HERE: `is_approved`, and now `listing_state` beyond one narrow
+ * move. D-005 makes eligibility trust-granted — a provider does not list
+ * themselves (P1-7).
+ *
+ * The one move this use case may make is `rejected → applied`, and only for
+ * the applicant's own listing. Without it a rejection would be permanent,
+ * which is a business decision nobody made; `STATE-MACHINES.md` §2 gives the
+ * provider that resubmission path and the domain's transition table records
+ * `subject` as the only role that holds it.
+ *
+ * F-12 is closed by `marketplace.ApproveProviderListing`, not by this.
  */
 "use strict";
 
@@ -26,6 +33,7 @@ const { newId } = require("../../../../shared/ids");
 const { ACTION } = require("../../actions");
 const { editableProfile, boundedText } = require("../../domain/providerProfile");
 const { describeArea } = require("../../domain/serviceArea");
+const { LISTING, assertListingTransition } = require("../../domain/listingEligibility");
 
 module.exports = defineUseCase("marketplace.ApplyAsProvider", {
   kind: "command",
@@ -48,8 +56,18 @@ module.exports = defineUseCase("marketplace.ApplyAsProvider", {
 
     const existingId = await repo.findIdByUserId(ctx.tx, userId);
 
+    let reapplied = false;
     if (existingId) {
       await repo.update(ctx.tx, { userId, providerId: existingId, profile });
+      // A rejected applicant correcting their profile is re-applying. The
+      // domain holds the rule; this asks it rather than deciding.
+      const current = await repo.lockById(ctx.tx, existingId);
+      if (current && current.listing_state === LISTING.REJECTED) {
+        assertListingTransition(LISTING.REJECTED, LISTING.APPLIED, "subject");
+        reapplied = await repo.setListingState(ctx.tx, {
+          providerId: existingId, from: LISTING.REJECTED, to: LISTING.APPLIED, userId,
+        });
+      }
     } else {
       await repo.insert(ctx.tx, { id: newId(), userId, profile });
     }
@@ -79,6 +97,7 @@ module.exports = defineUseCase("marketplace.ApplyAsProvider", {
         // rather than the value.
         hourly_rate: profile.hourlyRate,
         nid_supplied: Boolean(nidNumber),
+        ...(reapplied ? { listing_state: LISTING.APPLIED, reapplied: true } : {}),
       },
     });
 

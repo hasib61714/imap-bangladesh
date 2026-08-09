@@ -24,6 +24,7 @@
 // which is how five modules become one.
 const platform = require("../platform");
 const { ACTION } = require("./actions");
+const { LISTING } = require("./domain/listingEligibility");
 
 const { registerPolicy, PERMISSION, ROLE, isPlatformRole, DENY } = platform.authorization;
 
@@ -82,8 +83,12 @@ function installMarketplacePolicies() {
      * from the list. D-005 makes listing trust-granted; a profile page
      * reachable by anyone who knows the id is listing by another route.
      */
+    // I-07 §9: `listingState`, not `isApproved`. The boolean is a mirror and
+    // a policy that read it would be a second definition of "approved".
     conditions: (actor, provider) =>
-      provider.isApproved || ownsProfile(actor, provider) || holdsPlatformRole(actor),
+      provider.listingState === LISTING.APPROVED ||
+      ownsProfile(actor, provider) ||
+      holdsPlatformRole(actor),
     tier: "A",
     audit: "none",
     /**
@@ -164,6 +169,67 @@ function installMarketplacePolicies() {
     audit: "none",
     statusMode: "legacy",
     why: "Their earnings and their booked work. Customer phone numbers appear here, so it is owner-only.",
+  });
+
+  // ── the listing decision (I-07, F-12) ────────────────────
+  //
+  // `TRUST-ARCHITECTURE.md` §5's last conjunct is "approved by a human
+  // reviewer". These three are that human, and until I-07 there was no such
+  // person: nothing but `scripts/seedDemo.js` ever wrote `is_approved`.
+  //
+  // `platform_owner` is deliberately absent, as it is from the verification
+  // decisions. Listing eligibility is a trust decision, and I-04 §6 put trust
+  // decisions with `trust_safety`. `operations` is here because delisting a
+  // provider who is not turning up is an operational reality, not a trust
+  // judgement.
+  const listingDecision = (permission, why, { reasonRequired = false } = {}) => ({
+    resource: "provider_profile",
+    permission,
+    roles: [TRUST_SAFETY, OPERATIONS],
+    cardinality: "instance",
+    relationship: (actor) => (holdsPlatformRole(actor) ? true : DENY.MISSING_PERMISSION),
+    // Approving your own provider listing. Permitted at Gate 1 because one
+    // person holds every role; marked so it can be counted (I-04 §12).
+    sameActor: ownsProfile,
+    reasonRequired,
+    tier: "C",
+    audit: "required",
+    // A reviewer working the approval queue already knows the row exists.
+    statusMode: "legacy",
+    why,
+  });
+
+  registerPolicy(ACTION.PROVIDER_APPROVE_LISTING, listingDecision(
+    PERMISSION.APPROVE,
+    "The human approval TRUST §5 requires, and the endpoint F-12 recorded as missing."
+  ));
+
+  registerPolicy(ACTION.PROVIDER_REJECT_LISTING, listingDecision(
+    PERMISSION.REJECT,
+    "A refusal an applicant can answer only if it has a reason (R-1103).",
+    { reasonRequired: true }
+  ));
+
+  registerPolicy(ACTION.PROVIDER_SUSPEND_LISTING, listingDecision(
+    PERMISSION.UPDATE,
+    "Removing a working provider from the marketplace. Never unexplained.",
+    { reasonRequired: true }
+  ));
+
+  registerPolicy(ACTION.PROVIDER_READ_ELIGIBILITY, {
+    resource: "provider_profile",
+    permission: PERMISSION.READ,
+    // The subject may ask about themselves — the eligibility clauses are the
+    // most actionable thing a provider can be told, and a provider who cannot
+    // find out why they are invisible will ask support, who will guess.
+    roles: [CUSTOMER, PROVIDER, TRUST_SAFETY, OPERATIONS, SUPPORT],
+    cardinality: "instance",
+    relationship: (actor, provider) =>
+      ownsProfile(actor, provider) || holdsPlatformRole(actor) ? true : DENY.NOT_OWNER,
+    tier: "A",
+    audit: "none",
+    statusMode: "legacy",
+    why: "\"Why am I not showing up?\" has one answer, and support guessing at it is worse than none.",
   });
 }
 

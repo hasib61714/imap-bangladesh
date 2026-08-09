@@ -20,6 +20,7 @@
 const cache = require("../../../../../utils/cache");
 const { toCandidate } = require("../../domain/fulfillmentCandidate");
 const { PROVIDER_SOURCE } = require("../../domain/providerSource");
+const { LISTING } = require("../../domain/listingEligibility");
 
 /** Cache keys, unchanged from the route file so behaviour is identical. */
 const LIST_KEY = (sort) => `providers:list:${sort}`;
@@ -33,13 +34,34 @@ const ORDER = Object.freeze({
   new: "p.created_at DESC",
 });
 
+/**
+ * Is this provider's identity currently verified?
+ *
+ * The whole conjunct in one correlated EXISTS, including the expiry check —
+ * a case that says `verified` with a past `expires_at` grants nothing, and
+ * the job that writes `expired` is a tidy-up rather than the control
+ * (`verificationCase.grantsIdentityVerified` says the same thing in JS).
+ *
+ * Written here rather than joined so a provider with no `user_id` — an
+ * INTERNAL provider entered by operations — evaluates to false rather than
+ * dropping out of a LEFT JOIN in a way that reads like a missing row.
+ */
+const IDENTITY_VERIFIED_SQL = `
+  EXISTS (SELECT 1 FROM verification_case v
+           WHERE v.principal_id = p.user_id
+             AND v.kind = 'identity'
+             AND v.state = 'verified'
+             AND (v.expires_at IS NULL OR v.expires_at > NOW()))`;
+
 /** Columns a candidate is built from. One list, so list and detail agree. */
 const CANDIDATE_COLUMNS = `
   p.id, p.user_id, p.provider_source, p.service_type_bn, p.service_type_en,
   p.area_bn, p.area_en, p.hourly_rate, p.rating, p.total_jobs,
-  p.is_available, p.is_approved, p.nid_verified, p.latitude, p.longitude,
+  p.is_available, p.is_approved, p.listing_state, p.nid_verified,
+  p.latitude, p.longitude,
   p.category_id, u.name AS display_name, u.avatar, u.is_active AS account_active,
-  u.kyc_status, c.slug AS category_slug`;
+  u.kyc_status, c.slug AS category_slug,
+  ${IDENTITY_VERIFIED_SQL} AS identity_verified`;
 
 /**
  * Turn a row into the shape `toCandidate` expects.
@@ -57,6 +79,11 @@ function rowToCandidateInput(r, describeArea) {
     categoryId: r.category_id,
     categorySlug: r.category_slug ?? null,
     isApproved: r.is_approved === 1 || r.is_approved === true,
+    listingState: r.listing_state || "applied",
+    // From `verification_case`, not from `users.kyc_status`. The legacy column
+    // is a compatibility MIRROR written by the decision path (I-07 §23) and
+    // reading it back as authority would give "verified" two definitions.
+    identityVerified: r.identity_verified === 1 || r.identity_verified === true,
     nidVerified: r.nid_verified === 1 || r.nid_verified === true,
     kycStatus: r.kyc_status ?? null,
     isAvailable: r.is_available === 1 || r.is_available === true,
@@ -90,12 +117,43 @@ async function search(db, { need, scope, sort = "rating", page = 1, limit = 20, 
   const where = [];
   const params = [];
 
-  // §14: the visibility rule comes from the POLICY, not from here. P1-7 was a
-  // provider appearing in this list the moment they applied, while the
-  // applicant was told review takes 24-48 hours; the rule that fixed it now
-  // lives where "who may see what" is decided.
+  /**
+   * §14: the visibility rule comes from the POLICY, not from here. P1-7 was a
+   * provider appearing in this list the moment they applied, while the
+   * applicant was told review takes 24-48 hours; the rule that fixed it now
+   * lives where "who may see what" is decided.
+   *
+   * I-07 §9: THE FILTER IS NOW THE ARCHITECTURE'S CONJUNCTION
+   * ────────────────────────────────────────────────────────
+   * `TRUST-ARCHITECTURE.md` §5 says listable requires a verified identity as
+   * well as a human approval, and this is where that becomes true rather than
+   * aspirational. `is_approved` is no longer consulted — `listing_state` is —
+   * and identity verification is read from `verification_case`.
+   *
+   * THIS DE-LISTS PROVIDERS, AND THAT IS A DELIBERATE, STATED CHANGE.
+   * A provider carrying `is_approved = 1` from migration 002's grandfathering
+   * but no verified identity case stops appearing. The homepage says
+   * "KYC-verified providers"; listing unverified ones under that copy is the
+   * defect, and P1-7 is the precedent for closing exactly this gap. The
+   * number affected must be counted before deploy — the query is in
+   * I-07-PROVIDER-VERIFICATION.md §9 — because it is a business impact, and
+   * the timing of a business impact has an owner.
+   *
+   * `has_capability`, `has_coverage` and `has_price` are NOT in this WHERE
+   * clause. They are in `evaluateEligibility`, which the candidate shape
+   * carries, and they are omitted here because the two free-text stand-ins
+   * would make the SQL filter on columns the domain has already said are
+   * approximations (§19). A provider missing a rate is visible and unbookable
+   * rather than invisible and unexplained — `utils/pricing.js` refuses the
+   * quote, which is a message the customer can act on.
+   */
   if (scope && scope.visibility === "public") {
-    where.push("p.is_approved = 1", "u.is_active = 1", "p.is_available = 1");
+    where.push(
+      "p.listing_state = 'approved'",
+      "u.is_active = 1",
+      "p.is_available = 1",
+      IDENTITY_VERIFIED_SQL
+    );
   }
 
   if (need.text) {
@@ -265,6 +323,89 @@ async function setAvailability(db, { userId, providerId, isAvailable }) {
   return res.affectedRows;
 }
 
+// ── the listing decision (I-07, F-12) ──────────────────────
+
+/**
+ * Lock the provider row by PRIMARY KEY, as the transaction's first statement.
+ *
+ * I-05's locking discipline. A `SELECT … FOR UPDATE` reaching the row through
+ * a secondary index and then an `UPDATE` on the clustered index takes locks
+ * in two orders and deadlocks — ER_LOCK_DEADLOCK on InnoDB, ER_CHECKREAD on
+ * MariaDB. Resolve the id in autocommit; lock by PK here.
+ */
+async function lockById(db, id) {
+  const [rows] = await db.query(
+    `SELECT p.id, p.user_id, p.listing_state, p.is_approved, p.is_available,
+            p.service_type_en, p.service_type_bn, p.area_en, p.area_bn, p.hourly_rate,
+            u.is_active AS account_active,
+            ${IDENTITY_VERIFIED_SQL} AS identity_verified
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.id = ? FOR UPDATE`,
+    [id]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/**
+ * Move a listing from one state to another.
+ *
+ * `WHERE id = ? AND listing_state = ?` is the concurrency control: two
+ * operators deciding at once produce one update and one `affectedRows === 0`,
+ * and the loser is told the listing moved rather than overwriting the winner.
+ *
+ * `is_approved` moves WITH it, in the same statement. It is the compatibility
+ * mirror (§23) — `scripts/seedDemo.js`, the admin panel and two older tests
+ * still read it — and keeping the two in one UPDATE is what makes them unable
+ * to disagree. Nothing I-07 adds reads it back as authority.
+ */
+async function setListingState(db, { providerId, from, to, userId }) {
+  const [res] = await db.query(
+    "UPDATE providers SET listing_state = ?, is_approved = ? WHERE id = ? AND listing_state = ?",
+    [to, to === LISTING.APPROVED ? 1 : 0, providerId, from]
+  );
+  bustList();
+  cache.del(DETAIL_KEY(providerId));
+  cache.del("admin:stats");
+  if (userId) {
+    cache.del(`provider:analytics:${userId}`);
+    cache.del(`provider:jobs:${userId}`);
+  }
+  return res.affectedRows === 1;
+}
+
+/** Everything `evaluateEligibility` needs, for one provider, in one query. */
+async function findEligibilityInput(db, providerId) {
+  const [rows] = await db.query(
+    `SELECT p.id, p.user_id, p.listing_state, p.is_available, p.hourly_rate,
+            p.service_type_en, p.service_type_bn, p.area_en, p.area_bn,
+            u.is_active AS account_active,
+            ${IDENTITY_VERIFIED_SQL} AS identity_verified
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.id = ? LIMIT 1`,
+    [providerId]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/** The approval queue: applications waiting on a human. */
+async function listByListingState(db, { state = "applied", page = 1, limit = 30 }) {
+  const offset = (page - 1) * limit;
+  const [rows] = await db.query(
+    `SELECT p.id, p.user_id, p.listing_state, p.service_type_en, p.service_type_bn,
+            p.area_en, p.area_bn, p.hourly_rate, p.experience_yrs, p.created_at,
+            u.name, u.phone, u.email, u.is_active AS account_active,
+            ${IDENTITY_VERIFIED_SQL} AS identity_verified
+       FROM providers p LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.listing_state = ?
+      ORDER BY p.created_at ASC LIMIT ? OFFSET ?`,
+    [state, limit, offset]
+  );
+  const [[total]] = await db.query(
+    "SELECT COUNT(*) AS v FROM providers WHERE listing_state = ?", [state]
+  );
+  return { providers: rows, total: Number(total ? total.v : 0) };
+}
+
 /** The NID a provider supplies with an application. Identity data, not marketplace. */
 async function attachNationalId(db, { userId, nidNumber }) {
   const [res] = await db.query("UPDATE users SET nid_number = ? WHERE id = ?", [nidNumber, userId]);
@@ -274,5 +415,6 @@ async function attachNationalId(db, { userId, nidNumber }) {
 module.exports = {
   search, searchCached, findById, findByUserId, findIdByUserId,
   insert, update, setAvailability, attachNationalId,
-  LIST_KEY, DETAIL_KEY, bustList, ORDER,
+  lockById, setListingState, findEligibilityInput, listByListingState,
+  LIST_KEY, DETAIL_KEY, bustList, ORDER, IDENTITY_VERIFIED_SQL,
 };

@@ -29,6 +29,11 @@ const providerRow = (over = {}) => ({
   service_type_bn: "ইলেকট্রিশিয়ান", service_type_en: "Electrician",
   area_bn: "মিরপুর", area_en: "Mirpur", hourly_rate: "450.00",
   rating: "4.5", total_jobs: 12, is_available: 1, is_approved: 1,
+  // I-07: `listing_state` is the authority and `identity_verified` is
+  // computed by the repository's EXISTS against `verification_case`.
+  // `is_approved` stays in the fixture because the wire shape still carries
+  // it — as a mirror, which is exactly what the row now is.
+  listing_state: "approved", identity_verified: 1,
   nid_verified: 1, latitude: null, longitude: null, category_id: 3,
   name: "Karim", avatar: null, account_active: 1, kyc_status: "verified",
   category_slug: "electrician", review_count: 4,
@@ -39,8 +44,8 @@ const providerRow = (over = {}) => ({
 
 /** The loader shape the authorization kernel reads. */
 const loaderRow = (over = {}) => ({
-  id: "p-1", user_id: OWNER.id, is_approved: 1, is_available: 1,
-  provider_source: "external", account_active: 1, ...over,
+  id: "p-1", user_id: OWNER.id, is_approved: 1, listing_state: "approved",
+  is_available: 1, provider_source: "external", account_active: 1, ...over,
 });
 
 function stubAuth(user) {
@@ -112,7 +117,11 @@ function candidateInput(over = {}) {
   return {
     id: "p-1", userId: "u-1", providerSource: "external",
     serviceTypeEn: "Electrician", categoryId: 3, categorySlug: "electrician",
-    isApproved: true, nidVerified: true, kycStatus: "verified",
+    // I-07: `listingState` and `identityVerified` are what decide
+    // offerability now. `isApproved` remains in the shape as the mirror the
+    // wire format still carries.
+    isApproved: true, listingState: "approved", identityVerified: true,
+    nidVerified: true, kycStatus: "verified",
     isAvailable: true, accountActive: true,
     area: describeArea({ label: "Mirpur" }),
     rating: "4.5", totalJobs: 12, reviewCount: 4, hourlyRate: 450,
@@ -122,17 +131,45 @@ function candidateInput(over = {}) {
 
 // ════════════════════════════════════════════════════════════
 test("D-005 a candidate is offerable only once the platform has approved them", async (t) => {
-  // NEGATIVE CONTROL: drop `isApproved` from isOfferable and this passes —
-  // which is P1-7, where an applicant appeared in the directory immediately.
+  // NEGATIVE CONTROL: drop the `human_approved` clause from
+  // `evaluateEligibility` and this passes — which is P1-7, where an applicant
+  // appeared in the directory immediately.
   await t.test("an unapproved provider is not offerable", () => {
-    assert.equal(isOfferable(toCandidate(candidateInput({ isApproved: false }))), false);
+    assert.equal(isOfferable(toCandidate(candidateInput({ listingState: "applied" }))), false);
+    assert.equal(isOfferable(toCandidate(candidateInput({ listingState: "rejected" }))), false);
   });
+
+  // I-07 §9: `is_approved` is no longer the authority, and this is what says
+  // so. A row still carrying the mirror does not become listable through it.
+  await t.test("the legacy boolean does not grant listing on its own", () => {
+    assert.equal(
+      isOfferable(toCandidate(candidateInput({ isApproved: true, listingState: "applied" }))),
+      false,
+      "is_approved is a mirror; the listing state decides"
+    );
+  });
+
+  // NEGATIVE CONTROL: drop the `identity_verified` clause and this passes —
+  // which is a provider listed under a homepage that says "KYC-verified".
+  await t.test("nor is one whose identity is not verified", () => {
+    assert.equal(isOfferable(toCandidate(candidateInput({ identityVerified: false }))), false);
+  });
+
+  // NEGATIVE CONTROL: drop `not_suspended` and the first of these passes.
   await t.test("nor is one who has switched themselves off, or whose account is inactive", () => {
-    assert.equal(isOfferable(toCandidate(candidateInput({ isAvailable: false }))), false);
+    assert.equal(isOfferable(toCandidate(candidateInput({ listingState: "suspended" }))), false);
     assert.equal(isOfferable(toCandidate(candidateInput({ accountActive: false }))), false);
   });
-  await t.test("an approved, available, active provider is", () => {
+
+  await t.test("an approved, verified, active provider is", () => {
     assert.equal(isOfferable(toCandidate(candidateInput())), true);
+  });
+
+  await t.test("a failing candidate says WHICH clause failed", () => {
+    const c = toCandidate(candidateInput({ identityVerified: false, hourlyRate: null }));
+    assert.deepEqual([...c.eligibility.failing].sort(), ["has_price", "identity_verified"]);
+    assert.equal(c.eligibility.approximated.includes("has_capability"), true,
+      "a Gate-1 stand-in must be reported as one");
   });
 });
 
@@ -279,15 +316,22 @@ test("the migrated endpoints", async (t) => {
     tt.after(() => srv.close());
     await call(srv.url, "GET", "/?q=x");
     const listed = pool.all("SELECT p.id, p.user_id, p.provider_source")[0].sql;
-    assert.match(listed, /p\.is_approved = 1/, "an anonymous caller sees approved providers only");
+    assert.match(listed, /p\.listing_state = 'approved'/, "an anonymous caller sees approved providers only");
     assert.match(listed, /u\.is_active = 1/);
     assert.match(listed, /p\.is_available = 1/);
+    // I-07 §9: TRUST §5's first conjunct, in the WHERE clause rather than in
+    // a document. Remove it and an unverified provider is listed under a
+    // homepage that promises KYC-verified ones.
+    assert.match(listed, /verification_case v[\s\S]*v\.state = 'verified'/,
+      "the public list requires a verified identity case");
+    assert.equal(/WHERE[\s\S]*p\.is_approved = 1/.test(listed), false,
+      "the legacy boolean is a mirror and must not be the filter");
   });
 
   await t.test("an unapproved profile is not publicly readable", async (tt) => {
     const pool = makePool([
-      { match: "FROM providers p LEFT JOIN users u ON u.id = p.user_id WHERE p.id", rows: [loaderRow({ is_approved: 0 })] },
-      { match: "SELECT p.id, p.user_id, p.provider_source", rows: [providerRow({ is_approved: 0 })] },
+      { match: "FROM providers p LEFT JOIN users u ON u.id = p.user_id WHERE p.id", rows: [loaderRow({ listing_state: "applied", is_approved: 0 })] },
+      { match: "SELECT p.id, p.user_id, p.provider_source", rows: [providerRow({ listing_state: "applied", is_approved: 0 })] },
     ]);
     const srv = await boot(pool, null);
     tt.after(() => srv.close());

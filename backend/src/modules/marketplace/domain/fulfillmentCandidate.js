@@ -25,6 +25,7 @@
 "use strict";
 
 const { assertProviderSource, isCommissionEligible } = require("./providerSource");
+const { evaluateEligibility } = require("./listingEligibility");
 
 /**
  * Build a candidate from a repository row.
@@ -57,11 +58,18 @@ function toCandidate(row) {
     }),
 
     // ── whether they may be offered at all ────────────────
-    // D-005: eligibility is trust-granted, never self-declared. `isApproved`
-    // is a human decision recorded on the row; `isAvailable` is the
-    // provider's own switch. Both must be true, and the two are separate
-    // because one is the platform's and one is theirs.
+    // D-005: eligibility is trust-granted, never self-declared. `listingState`
+    // is the human decision; `isAvailable` is the provider's own switch; and
+    // I-07 added `identityVerified`, which comes from `verification_case` and
+    // is the conjunct TRUST §5 puts first.
+    //
+    // `isApproved` and `kycStatus` are still carried because the wire shape
+    // the current frontend reads contains them (I-06 §27). They are MIRRORS
+    // — written by the decision path, never read as authority. `isOfferable`
+    // below consults neither.
     verification: Object.freeze({
+      listingState: row.listingState || "applied",
+      identityVerified: Boolean(row.identityVerified),
       isApproved: Boolean(row.isApproved),
       nidVerified: Boolean(row.nidVerified),
       kycStatus: row.kycStatus ?? null,
@@ -93,21 +101,39 @@ function toCandidate(row) {
       currency: "BDT",
       commissionEligible: isCommissionEligible(source),
     }),
+
+    // ── may they be offered ───────────────────────────────
+    //
+    // Computed on every candidate rather than filtered once in SQL, so the
+    // answer travels with the shape. A caller that has a candidate never has
+    // to re-derive eligibility and never has to guess which of the six
+    // clauses a bare `false` meant.
+    eligibility: evaluateEligibility({
+      identityVerified: Boolean(row.identityVerified),
+      listingState: row.listingState || "applied",
+      accountActive: Boolean(row.accountActive),
+      serviceType: row.serviceTypeEn || row.serviceTypeBn,
+      area: row.area ? (row.area.label || row.area.labelBn) : null,
+      hourlyRate: row.hourlyRate === null || row.hourlyRate === undefined ? null : Number(row.hourlyRate),
+    }),
   });
 }
 
 /**
  * May this candidate be offered to a customer?
  *
- * The one invariant that is decided and enforceable today, and the one P1-7
- * was about: a provider who has applied is not a provider who may be booked.
- * `utils/pricing.js` refuses to price an unapproved provider (409) — this is
- * the same rule, one step earlier, so an unapproved provider is never
- * offered rather than being offered and then refused at the quote.
+ * P1-7 was about the first half: a provider who has applied is not a provider
+ * who may be booked. I-07 supplied the second — `TRUST-ARCHITECTURE.md` §5's
+ * conjunction, of which "approved by a human reviewer" is one clause and
+ * "identity verified" is another.
+ *
+ * `utils/pricing.js` refuses to price an unapproved provider (409); this is
+ * the same rule one step earlier, so an ineligible provider is never offered
+ * rather than being offered and then refused at the quote.
+ *
+ * The full clause list is on `eligibility` below, so an operator asking "why
+ * is this provider not showing up" gets the answer rather than a boolean.
  */
-const isOfferable = (candidate) =>
-  candidate.verification.isApproved &&
-  candidate.availability.isAvailable &&
-  candidate.availability.accountActive;
+const isOfferable = (candidate) => candidate.eligibility.listable;
 
 module.exports = { toCandidate, isOfferable };

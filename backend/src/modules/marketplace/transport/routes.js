@@ -172,6 +172,48 @@ router.post("/apply", authMiddleware, handle(async (req, res) => {
   });
 }));
 
+// ══════════════════════════════════════════════════════════
+//  the listing decision (I-07, F-12)
+//
+//  §12: NOT `PATCH /providers/:id {"is_approved": true}`. Three verb-named
+//  routes, three actions, three policies — so "who may approve" and "who may
+//  suspend" are separable answers, and an opaque boolean flip cannot be
+//  constructed by a client that guesses at a body.
+// ══════════════════════════════════════════════════════════
+
+const listingDecision = (path, useCase) =>
+  router.post(path, authMiddleware, handle(async (req, res) => {
+    const out = await execute(useCase, {
+      provider_id: req.params.id,
+      reason: (req.body && req.body.reason) || req.get("x-reason") || null,
+    }, { ...contextFor(req), reason: (req.body && req.body.reason) || req.get("x-reason") || null });
+    res.json({ success: true, provider_id: out.providerId, listing_state: out.listingState });
+  }));
+
+listingDecision("/:id/approve", "marketplace.ApproveProviderListing");
+listingDecision("/:id/reject", "marketplace.RejectProviderListing");
+listingDecision("/:id/suspend", "marketplace.SuspendProviderListing");
+
+/**
+ * GET /api/providers/:id/eligibility — the conjunction, clause by clause.
+ *
+ * Declared before `/:id` so express does not read "eligibility" as part of
+ * the id — the same reason `/me` is declared where it is.
+ */
+router.get("/:id/eligibility", authMiddleware, handle(async (req, res) => {
+  const out = await execute("marketplace.ReadListingEligibility",
+    { provider_id: req.params.id }, contextFor(req));
+  res.json({
+    provider_id: out.providerId,
+    listing_state: out.listingState,
+    listable: out.listable,
+    failing: out.failing,
+    clauses: out.clauses,
+    approximated: out.approximated,
+    is_available: out.isAvailable,
+  });
+}));
+
 // ── GET /api/providers/:id ────────────────────────────────
 router.get("/:id", handle(async (req, res) => {
   const out = await execute("marketplace.ReadProviderProfile",

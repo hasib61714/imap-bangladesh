@@ -25,9 +25,11 @@ const ReadProviderProfile = require("./application/queries/ReadProviderProfile")
 const ReadOwnProviderProfile = require("./application/queries/ReadOwnProviderProfile");
 const ReadOwnEarnings = require("./application/queries/ReadOwnEarnings");
 const ReadOwnJobs = require("./application/queries/ReadOwnJobs");
+const ReadListingEligibility = require("./application/queries/ReadListingEligibility");
 const ApplyAsProvider = require("./application/commands/ApplyAsProvider");
 const UpdateOwnProviderProfile = require("./application/commands/UpdateOwnProviderProfile");
 const SetOwnAvailability = require("./application/commands/SetOwnAvailability");
+const listing = require("./application/commands/decideProviderListing");
 
 const USE_CASES = [
   SearchFulfillmentCandidates,
@@ -35,9 +37,14 @@ const USE_CASES = [
   ReadOwnProviderProfile,
   ReadOwnEarnings,
   ReadOwnJobs,
+  ReadListingEligibility,
   ApplyAsProvider,
   UpdateOwnProviderProfile,
   SetOwnAvailability,
+  // I-07 / F-12: the approval path that did not exist.
+  listing.ApproveProviderListing,
+  listing.RejectProviderListing,
+  listing.SuspendProviderListing,
 ];
 
 /** The repositories this module's use cases are handed. */
@@ -68,4 +75,8 @@ module.exports = {
   PROVIDER_SOURCE: require("./domain/providerSource").PROVIDER_SOURCE,
   isCommissionEligible: require("./domain/providerSource").isCommissionEligible,
   isOfferable: require("./domain/fulfillmentCandidate").isOfferable,
+  // I-07: booking and pricing both ask "may this provider be offered", and
+  // they ask through here rather than reading `is_approved` for themselves.
+  LISTING: require("./domain/listingEligibility").LISTING,
+  evaluateEligibility: require("./domain/listingEligibility").evaluateEligibility,
 };
