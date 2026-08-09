@@ -39,7 +39,8 @@
 
 const logger = require("../../utils/logger");
 const { systemClock } = require("../shared/clock");
-const { AppError, ForbiddenError, NotFoundError, UnauthenticatedError, StartupError } = require("../shared/errors");
+const { AppError, ForbiddenError, NotFoundError, UnauthenticatedError, UnprocessableError, StartupError } =
+  require("../shared/errors");
 const { getUseCase } = require("./registry");
 const platform = require("../modules/platform");
 
@@ -59,6 +60,25 @@ function denialToError(decision) {
   if (reason === DENY.UNAUTHENTICATED) return new UnauthenticatedError();
   if (reason === DENY.NOT_FOUND || reason === DENY.WRONG_RESOURCE) {
     return new NotFoundError(decision.policy ? decision.policy.resource : "resource");
+  }
+  /**
+   * I-07. `toHttpStatus` has mapped `reason_required` to 422 since I-04, and
+   * this function did not — so the same denial answered 422 through the
+   * middleware and 403 through a use case, for the same policy and the same
+   * actor. 403 says "you may not"; the truth is "you may, once you say why",
+   * and a client cannot tell the difference from a 403.
+   *
+   * Found by the first I-07 test to exercise a `reasonRequired` policy
+   * through the executor rather than through the middleware.
+   */
+  if (reason === DENY.REASON_REQUIRED) {
+    return new UnprocessableError(
+      "REASON_REQUIRED",
+      `${decision.action} requires a stated reason`,
+      { userMessage: { en: "Please give a reason for this decision.",
+                       bn: "অনুগ্রহ করে এই সিদ্ধান্তের কারণ লিখুন।" },
+        fields: [{ field: "reason", code: "REASON_REQUIRED" }] }
+    );
   }
   const opaque = decision.policy && decision.policy.statusMode === "indistinguishable";
   if (opaque) return new NotFoundError(decision.policy.resource);
