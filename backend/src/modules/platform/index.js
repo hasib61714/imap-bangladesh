@@ -26,4 +26,15 @@ module.exports = {
   otp: require("./otp"),
   rateLimit: require("./ratelimit"),
   jobs: require("./jobs"),
+  /**
+   * I-07. Private object storage for Sealed evidence: bytes in, a reference
+   * out, and the only way back is a short-lived signed URL.
+   *
+   * It lives in platform rather than in identity because "where sensitive
+   * documents rest" is a substrate decision, not an identity one — a dispute
+   * photo and a capability certificate will use the same port, and two
+   * modules each with their own signing rules is how one of them ends up
+   * without any.
+   */
+  sealedStorage: require("./storage/sealedDocumentStore"),
 };
