@@ -12,6 +12,11 @@ const { authMiddleware } = require("../middleware/auth");
 const { requireAuthorization, wasAuthorized } = require("../middleware/authorize");
 const { ACTION } = require("../src/modules/platform/authorization");
 const { writeAudit } = require("../src/modules/platform/audit/writeAudit");
+// I-07: the KYC decision no longer happens in this file. It calls the use
+// cases that own the verification state machine, so there is one path that
+// can move a case rather than one here and one in the identity module.
+const { execute } = require("../src/application/execute");
+const identity = require("../src/modules/identity");
 
 /**
  * P1-11: the admin panel sent `is_active = -1` for "suspend", and
@@ -332,53 +337,72 @@ router.get("/kyc/:id", authMiddleware,
 });
 
 // ── PATCH /api/admin/kyc/:id — approve or reject KYC ────
+//
+// I-07 §21, §24. This handler used to write `kyc_docs.status` and
+// `users.kyc_status` itself. It no longer writes verification state at all —
+// it calls the use cases that own those transitions, so there is exactly ONE
+// path that can move a verification case and every guard on it applies:
+// the state machine, the mandatory reason on a refusal, the trust_safety-only
+// policy, and the audit record that must commit with the decision.
+//
+// The `requireAuthorization` middleware STAYS in front. The use case
+// authorizes too, on the new `verification_case` resource, so a caller needs
+// both — the legacy policy still guards the legacy id space and still marks
+// the Gate-1 `sod_bypass` on the kyc_docs resource. Two independent grants
+// for one operation is strictly stronger than one; it is not redundancy that
+// can be dropped without deciding which of the two to keep.
+//
+// `auditedByHandler` stays true and now means what it says: the USE CASE
+// writes the record, inside the transaction that carries the decision. A
+// second record from the middleware would count one decision twice, and an
+// audit log that overstates is as unusable as one that omits.
+//
+// The migrated backlog only. A case submitted after I-07 has no `kyc_docs`
+// row, so the kernel's loader will not resolve it here — those are decided
+// through `/api/verification/cases/:id/{approve,reject}`.
 router.patch("/kyc/:id", authMiddleware,
   requireAuthorization(ACTION.VERIFICATION_DECIDE, {
     auditedByHandler: true,
     resource: (req) => req.params.id,
     context: (req) => ({ reason: req.body?.rejection_reason || null }),
-  }), async (req, res) => {
+  }), async (req, res, next) => {
   try {
     const { status, rejection_reason } = req.body;
-    const valid = ["pending", "verified", "rejected"];
+    // `pending` is gone from the accepted set. It was a decision that undid a
+    // decision with no record of why, and `STATE-MACHINES.md` §9 has no edge
+    // back to `submitted` for a reviewer — the SUBJECT resubmits. Callers
+    // sending it now get a 400 instead of a silent state rewrite.
+    const valid = ["verified", "rejected"];
     if (!status || !valid.includes(status)) {
       return res.status(400).json({ error: "Valid status required: " + valid.join(", ") });
     }
-    // Loaded by the kernel, from the database. The subject is not re-queried
-    // and is never taken from the request.
-    const doc = req.authorization.resource;
 
-    // §27: the decision, the user's derived status and the record commit
-    // together. A verification decision gates provider eligibility and, at
-    // Gate 1, can be made by the case's own subject — which is exactly the
-    // event an investigation needs to find, so it must not be able to go
-    // missing while the decision stands.
-    await withTransaction(async (conn) => {
-      await conn.query(
-        `UPDATE kyc_docs
-           SET status = ?, rejection_reason = COALESCE(?, rejection_reason),
-               reviewed_at = NOW(), reviewed_by = ?
-         WHERE id = ?`,
-        [status, rejection_reason || null, req.authorization.actor.principalId, req.params.id]
-      );
-      if (doc.subjectUserId) {
-        await conn.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.subjectUserId]);
-      }
-      await writeAudit(conn, {
-        actor: auditActor(req),
-        action: ACTION.VERIFICATION_DECIDE,
-        resourceType: "kyc_document",
-        resourceId: String(req.params.id),
-        resourceOwner: doc.subjectUserId,
-        outcome: "permitted",
-        before: { status: doc.status },
-        after: { status },
-        reason: rejection_reason || null,
-        ip: req.ip || null,
-        userAgent: req.headers["user-agent"] || null,
-        sodBypass: req.authorization.decision.sodBypass,
-      });
-    });
+    const doc = req.authorization.resource;
+    const ctx = {
+      actor: req.authorization.actor,
+      db: pool,
+      repositories: identity.repositories,
+      correlationId: req.requestId || null,
+      ip: req.ip || null,
+      userAgent: req.headers["user-agent"] || null,
+      reason: rejection_reason || null,
+    };
+
+    // The machine has no `submitted → verified` edge. The old endpoint made
+    // that jump; it is now two recorded steps, which is the difference
+    // between "someone approved this" and "someone reviewed it, then
+    // approved it". A case another reviewer already claimed refuses the
+    // first step, and that is the one failure worth continuing past.
+    try {
+      await execute("identity.StartVerificationReview", { case_id: req.params.id }, ctx);
+    } catch (err) {
+      if (!err || err.code !== "VERIFICATION_TRANSITION_INVALID") throw err;
+    }
+
+    await (status === "verified"
+      ? execute("identity.ApproveVerification", { case_id: req.params.id }, ctx)
+      : execute("identity.RejectVerification",
+          { case_id: req.params.id, reason: rejection_reason }, ctx));
 
     if (doc.subjectUserId) {
       cache.del(`user:profile:${doc.subjectUserId}`);
@@ -389,6 +413,9 @@ router.patch("/kyc/:id", authMiddleware,
     cache.del("admin:kyc:pending"); cache.del("admin:kyc:verified"); cache.del("admin:kyc:rejected");
     res.json({ success: true });
   } catch (err) {
+    // AppErrors from the use case carry their own status; the transport error
+    // boundary maps them. Only a genuine failure becomes a 500 here.
+    if (err && typeof err.status === "number") return next(err);
     logger.error("admin kyc review:", err);
     res.status(500).json({ error: "Server error" });
   }

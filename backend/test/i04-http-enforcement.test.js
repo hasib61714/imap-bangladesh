@@ -49,15 +49,36 @@ async function boot(routePath, pool, user) {
   resetModules();
   installFakeDb(pool);
   stubAuth(user);
+  // I-07: the KYC routes reach the domain through the use-case executor, and
+  // a use case that is not registered is a StartupError rather than a
+  // denial. server.js composes at boot; so does this.
+  require("../src/composition/modules").composeModules();
   return serve(require(routePath), { middleware: [asUser(user)] });
 }
 
 const SUBJECT = { id: "subject-1", role: "customer", is_active: 1 };
 
+const VERIFICATION_CASE = {
+  id: "kyc-1", principal_id: SUBJECT.id, kind: "identity", state: "under_review",
+  submitted_at: "2026-01-01", decided_by: null, decided_at: null,
+  decision_reason: null, expires_at: null, legacy_kyc_id: "kyc-1",
+  correlation_id: null, created_at: "2026-01-01", updated_at: "2026-01-01",
+};
+
 const adminPool = (extra = []) => makePool([
   ...extra,
   { match: "SELECT id, role, is_active FROM users WHERE id = ?", rows: [SUBJECT] },
   { match: "SELECT id, user_id, status, doc_type FROM kyc_docs", rows: [{ id: "kyc-1", user_id: SUBJECT.id, status: "pending", doc_type: "nid" }] },
+  // I-07: the same case, in the model that now owns the decision. `kyc-1` is
+  // both ids because migration 011 reuses the `kyc_docs` id as the case id,
+  // which is what keeps an existing client's link working.
+  //
+  // `under_review` rather than `submitted`, deliberately: the route claims
+  // the case before deciding it, and a case already claimed makes that first
+  // step roll back instead of commit — so the assertions below see ONE
+  // committing transaction rather than two.
+  { match: "FROM verification_case", rows: [VERIFICATION_CASE] },
+  { match: "UPDATE verification_case", rows: { affectedRows: 1 } },
   // The handler fetches the row again, with its images. That is not a
   // duplicated authorization query: the loader deliberately does NOT select
   // the image columns, because an authorization decision has no business

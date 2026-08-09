@@ -138,7 +138,12 @@ app.use("/api/users",     require("./routes/users"));
 // with two implementations of one endpoint.
 app.use("/api/providers", require("./src/modules/marketplace/transport/routes"));
 app.use("/api/bookings",  require("./routes/bookings"));
+// I-07: `/api/kyc` keeps the wire format the current frontend sends and is
+// now an adapter over the same use cases mounted below. `/api/verification`
+// is the canonical surface — the review queue, the audited document reads and
+// the five state transitions.
 app.use("/api/kyc",       require("./routes/kyc"));
+app.use("/api/verification", require("./src/modules/identity/transport/routes"));
 app.use("/api/reviews",   require("./routes/reviews"));
 app.use("/api/services",  require("./routes/services"));
 app.use("/api/admin",     require("./routes/admin"));
