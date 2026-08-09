@@ -192,12 +192,25 @@ CREATE TABLE IF NOT EXISTS identity_document (
   deleted_at   DATETIME(3) NULL,
 
   -- One LIVE document of each kind per case. Same shape as
-  -- otp_challenge.active_slot, for the same reason and with the same CHECK
-  -- keeping the marker and the state from drifting apart.
+  -- otp_challenge.active_slot, and the CHECK keeps the marker and the state
+  -- from drifting apart.
+  --
+  -- `<=>` AND NOT `=`, AND THE REASON IS THREE-VALUED LOGIC
+  -- ------------------------------------------------------
+  -- A CHECK constraint rejects only on FALSE; NULL passes. Written as
+  -- `live_slot = '1'`, a row with `deleted_at IS NULL` and `live_slot IS
+  -- NULL` evaluates to (TRUE AND NULL) OR (FALSE AND …) → NULL → ACCEPTED.
+  -- That row is live and holds no slot, so `uniq_live_document` does not
+  -- constrain it either — NULLs do not collide — and two live front-of-ID
+  -- images could sit on one case with no way to know which the reviewer saw.
+  --
+  -- `<=>` is null-safe: NULL <=> '1' is FALSE, not NULL, so the constraint
+  -- rejects. Verified by probe on MariaDB 12.2.2; migration 012 carries the
+  -- same fix to `otp_challenge`, where I-05 wrote the same hole.
   live_slot    CHAR(1) NULL,
   UNIQUE KEY uniq_live_document (case_id, doc_type, live_slot),
   CONSTRAINT chk_live_slot CHECK (
-    (deleted_at IS NULL AND live_slot = '1') OR
+    (deleted_at IS NULL     AND live_slot <=> '1') OR
     (deleted_at IS NOT NULL AND live_slot IS NULL)
   ),
 
