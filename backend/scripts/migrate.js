@@ -33,6 +33,11 @@ const path = require("path");
 const pool = require("../db");
 const env  = require("../config/environment");
 
+// I-02: db.js refuses DDL at runtime. The migration runner is the one place
+// allowed to issue it, so it lifts the guard explicitly. A boundary rule
+// fails CI if anything outside scripts/ calls this.
+pool.enableDdl();
+
 const DIR = path.join(__dirname, "..", "migrations");
 
 // Re-run tolerance: these mean "this statement's effect already exists".

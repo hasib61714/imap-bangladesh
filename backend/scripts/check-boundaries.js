@@ -146,10 +146,27 @@ const inSrcModules = (r) => r.startsWith("src/modules/");
 const moduleOf = (r) => (inSrcModules(r) ? r.split("/")[2] : null);
 const layerOf = (r) => (inSrcModules(r) ? r.split("/")[3] : null);
 
-const DDL_RE = /\b(?:CREATE|ALTER|DROP)\s+TABLE\b|\bTRUNCATE\s+TABLE\b|\bCREATE\s+(?:UNIQUE\s+)?INDEX\b/i;
+// Multiline and concatenation aware. The I-01 version matched a single line
+// and therefore caught NONE of these, which was verified rather than assumed:
+//
+//   pool.query(`CREATE⏎  TABLE x (...)`)   split across lines
+//   pool.query("CREATE " + "TABLE x")      built by concatenation
+//   pool.query("RENAME TABLE a TO b")      a verb it never mentioned
+//   pool.query("DROP DATABASE x")          database level
+//
+// The verb must precede the object within a short window that may contain
+// newlines, quotes and concatenation operators.
+//
+// STILL UNDETECTABLE, stated rather than left to be discovered: a fully
+// dynamic verb — pool.query(`${verb} TABLE x`) — contains no DDL keyword to
+// match, and no static scanner can see it. That is why db.js also refuses DDL
+// at execution time; assertNotDdl() there catches what this cannot.
+const DDL_RE = /\b(?:CREATE|ALTER|DROP|RENAME|TRUNCATE)\b[\s\S]{0,60}?\b(?:TABLE|DATABASE|SCHEMA)\b|\b(?:CREATE|DROP)\b[\s\S]{0,30}?\bINDEX\b/i;
 
 /** Where DDL is legitimate: migrations, the runner, and test fixtures. */
-const DDL_ALLOWED = [/^scripts\//, /^migrations\//, /^test\//];
+// The guard module is the definition of the rule, so it is exempt from it —
+// the same reason the migration runner is.
+const DDL_ALLOWED = [/^scripts\//, /^migrations\//, /^test\//, /^src\/shared\/ddl-guard\.js$/];
 
 const LINES = (s) => s.split(String.fromCharCode(10));
 
@@ -161,8 +178,30 @@ const RULES = [
     check(file, r, code) {
       if (DDL_ALLOWED.some((p) => p.test(r))) return [];
       const hits = [];
+      const re = new RegExp(DDL_RE.source, "gi");
+      let m;
+      while ((m = re.exec(code)) !== null) {
+        hits.push({
+          line: lineOf(code, m.index),
+          detail: m[0].replace(/\s+/g, " ").trim().slice(0, 72),
+        });
+      }
+      return hits;
+    },
+  },
+  {
+    id: "no-ddl-enable-outside-migration-runner",
+    severity: "error",
+    why: "enableDdl() lifts the runtime DDL guard in db.js. Only the migration runner may call it.",
+    check(file, r, code) {
+      // Exempt: the migration runner (the one legitimate caller), the tests
+      // that prove the guard fires, db.js which re-exports it, and the guard
+      // module itself which defines it.
+      if (/^scripts\//.test(r) || /^test\//.test(r)) return [];
+      if (r === "db.js" || r === "src/shared/ddl-guard.js") return [];
+      const hits = [];
       LINES(code).forEach((line, i) => {
-        if (DDL_RE.test(line)) hits.push({ line: i + 1, detail: line.trim().slice(0, 72) });
+        if (/\benableDdl\s*\(/.test(line)) hits.push({ line: i + 1, detail: line.trim().slice(0, 72) });
       });
       return hits;
     },

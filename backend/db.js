@@ -27,6 +27,21 @@ const pool = mysql.createPool({
   ssl:                sslConfig || undefined,
 });
 
+// ── Runtime DDL guard (I-02) ────────────────────────────────
+// §5's target is "Runtime DDL = 0". The static checker cannot see a fully
+// dynamic verb, so the guard also runs at execution time where the statement
+// is a concrete string. See src/shared/ddl-guard.js for what each control can
+// and cannot catch.
+const ddlGuard = require("./src/shared/ddl-guard");
+
+ddlGuard.guard(pool);
+
+// Pooled connections are reused, so each is wrapped once and remembers it.
+const rawGetConnection = pool.getConnection.bind(pool);
+pool.getConnection = async function () {
+  return ddlGuard.guard(await rawGetConnection());
+};
+
 // Test connection on startup
 pool.getConnection()
   .then(conn => {
@@ -73,3 +88,5 @@ async function withTransaction(fn) {
 
 module.exports = pool;
 module.exports.withTransaction = withTransaction;
+module.exports.enableDdl = ddlGuard.enableDdl;
+module.exports.RuntimeDdlError = ddlGuard.RuntimeDdlError;
