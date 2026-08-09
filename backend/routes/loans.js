@@ -9,9 +9,11 @@
  */
 const router = require("express").Router();
 const pool   = require("../db");
+const { withTransaction } = require("../db");
 const { v4: uuidv4 } = require("uuid");
 const { authMiddleware, requireRole } = require("../middleware/auth");
 const cache  = require("../utils/cache");
+const { parseAmount, MoneyError } = require("../utils/money");
 
 // ── Auto-create table ─────────────────────────────────────
 const initTable = async () => {
@@ -105,10 +107,14 @@ router.post("/apply", authMiddleware, async (req, res) => {
 
     if (!full_name?.trim() || full_name.length > 120) return res.status(400).json({ error: "পূর্ণ নাম প্রয়োজন (সর্বোচ্চ ১২০ অক্ষর)।" });
     if (!phone?.trim() || phone.length > 20)     return res.status(400).json({ error: "ফোন নম্বর প্রয়োজন।" });
-    if (!amount || parseFloat(amount) <= 0)
-      return res.status(400).json({ error: "সঠিক পরিমাণ দিন।" });
-    if (parseFloat(amount) > 100000)
-      return res.status(400).json({ error: "সর্বোচ্চ লোন সীমা ১,০০,০০০ টাকা।" });
+    // P0-4: rejects negative, NaN, Infinity, "1e999", [] and objects —
+    // parseFloat("1e999") is Infinity and used to pass the < 100000 test.
+    let safeAmount;
+    try {
+      safeAmount = parseAmount(amount, "amount", { min: 1, max: 100000 });
+    } catch (e) {
+      return res.status(400).json({ error: "সঠিক পরিমাণ দিন। (Invalid amount)" });
+    }
     if (purpose && purpose.length > 500)
       return res.status(400).json({ error: "purpose max 500 chars" });
     const ALLOWED_TENURES = [3, 6, 12, 24];
@@ -140,7 +146,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [id, req.user.id, prov?.id || null,
        full_name.trim(), phone.trim(), purpose || null,
-       parseFloat(amount), safeTenure, INTEREST_RATE,
+       safeAmount, safeTenure, INTEREST_RATE,
        score, refNo]
     );
 
@@ -150,8 +156,8 @@ router.post("/apply", authMiddleware, async (req, res) => {
       await pool.query(
         "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
         [admins[0].id, "💹", "alert", "নতুন লোন আবেদন", "New Loan Application",
-         `${req.user.name} ৳${parseFloat(amount).toLocaleString()} লোনের আবেদন করেছে`,
-         `${req.user.name} applied for ৳${parseFloat(amount).toLocaleString()} loan`]
+         `${req.user.name} ৳${safeAmount.toLocaleString()} লোনের আবেদন করেছে`,
+         `${req.user.name} applied for ৳${safeAmount.toLocaleString()} loan`]
       );
     }
 
@@ -223,71 +229,119 @@ router.get("/admin", authMiddleware, requireRole("admin"), async (req, res) => {
 });
 
 // ── PATCH /api/loans/:id — update status (admin) ─────────
+// P0-6: this used to write the new status unconditionally and then credit
+// the wallet whenever the requested status was "disbursed" — with no check
+// that it had not already been disbursed. Every repeat of the request (a
+// double-click, a retry, a refresh) credited the borrower again, up to the
+// ৳100,000 application cap each time, in three separate autocommit steps.
+//
+// Now: the transition is guarded on the current status inside a
+// transaction, the credit carries a unique ledger ref, and a repeat
+// returns the existing disbursement instead of moving money.
+const LOAN_STATUSES = ["pending", "approved", "disbursed", "rejected", "repaid"];
+
+/** from → allowed next states. Terminal states accept nothing. */
+const LOAN_TRANSITIONS = {
+  pending:   ["approved", "rejected"],
+  approved:  ["disbursed", "rejected"],
+  disbursed: ["repaid"],
+  rejected:  [],
+  repaid:    [],
+};
+
 router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
   const { status, admin_note } = req.body;
-  const valid = ["pending", "approved", "disbursed", "rejected", "repaid"];
-  if (!valid.includes(status)) return res.status(400).json({ error: "Invalid status" });
+  if (!LOAN_STATUSES.includes(status)) return res.status(400).json({ error: "Invalid status" });
+  if (admin_note && String(admin_note).length > 1000) {
+    return res.status(400).json({ error: "admin_note too long (max 1000)" });
+  }
 
   try {
-    await pool.query(
-      "UPDATE microloans SET status=?, admin_note=?, reviewed_by=?, reviewed_at=NOW() WHERE id=?",
-      [status, admin_note || null, req.user.id, req.params.id]
-    );
+    const outcome = await withTransaction(async (conn) => {
+      const [rows] = await conn.query("SELECT * FROM microloans WHERE id=? FOR UPDATE", [req.params.id]);
+      if (!rows.length) { const e = new Error("Loan not found"); e.status = 404; throw e; }
+      const loan = rows[0];
 
-    // Fetch loan for notifications / disbursement
-    const [[loan]] = await pool.query("SELECT * FROM microloans WHERE id=?", [req.params.id]);
-    if (!loan) return res.status(404).json({ error: "Loan not found" });
+      if (loan.status === status) {
+        // Idempotent no-op: report the existing state, move nothing.
+        return { loan, changed: false, disbursed: false, alreadyInState: true };
+      }
+      const allowed = LOAN_TRANSITIONS[loan.status] || [];
+      if (!allowed.includes(status)) {
+        const e = new Error(`Cannot move a loan from ${loan.status} to ${status}`);
+        e.status = 409;
+        throw e;
+      }
 
-    // User notification on status change
-    const msgs = {
-      approved:  {
-        bn: "🎉 আপনার লোন অনুমোদিত হয়েছে! শীঘ্রই বিতরণ হবে।",
-        en: "🎉 Your loan is approved! Disbursement soon.",
-      },
-      rejected:  {
-        bn: "আপনার লোন আবেদন প্রত্যাখ্যাত হয়েছে।",
-        en: "Your loan application was rejected.",
-      },
-      disbursed: {
-        bn: `✅ ৳${parseFloat(loan.amount).toLocaleString()} আপনার ওয়ালেটে জমা হয়েছে।`,
-        en: `✅ ৳${parseFloat(loan.amount).toLocaleString()} credited to your wallet.`,
-      },
-    };
-
-    if (msgs[status]) {
-      await pool.query(
-        "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
-        [loan.user_id, "💹", "alert", "লোন আপডেট", "Loan Update", msgs[status].bn, msgs[status].en]
+      const [upd] = await conn.query(
+        "UPDATE microloans SET status=?, admin_note=?, reviewed_by=?, reviewed_at=NOW() WHERE id=? AND status=?",
+        [status, admin_note || null, req.user.id, req.params.id, loan.status]
       );
+      if (upd.affectedRows === 0) {
+        const e = new Error("Loan was updated by another request. Please retry.");
+        e.status = 409;
+        throw e;
+      }
+
+      if (status === "disbursed") {
+        const amount = parseAmount(loan.amount, "loan.amount", { max: 100000 });
+        await conn.query("UPDATE users SET balance = balance + ? WHERE id=?", [amount, loan.user_id]);
+        // Unique ref_id: even if the status guard were bypassed, a second
+        // insert violates uniq_wallet_ref and rolls the whole thing back.
+        await conn.query(
+          `INSERT INTO wallet_transactions
+             (user_id, type, amount, description_bn, description_en, method, ref_id)
+           VALUES (?,?,?,?,?,?,?)`,
+          [loan.user_id, "credit", amount,
+           `মাইক্রো-লোন বিতরণ (${loan.reference_no})`,
+           `Microloan disbursed (${loan.reference_no})`,
+           "bank", `loan:${loan.id}:disburse`]
+        );
+        return { loan, changed: true, disbursed: true, amount };
+      }
+      return { loan, changed: true, disbursed: false };
+    });
+
+    const loan = outcome.loan;
+
+    if (outcome.changed) {
+      const msgs = {
+        approved:  { bn: "🎉 আপনার লোন অনুমোদিত হয়েছে! শীঘ্রই বিতরণ হবে।", en: "🎉 Your loan is approved! Disbursement soon." },
+        rejected:  { bn: "আপনার লোন আবেদন প্রত্যাখ্যাত হয়েছে।",           en: "Your loan application was rejected." },
+        disbursed: {
+          bn: `✅ ৳${parseFloat(loan.amount).toLocaleString()} আপনার ওয়ালেটে জমা হয়েছে।`,
+          en: `✅ ৳${parseFloat(loan.amount).toLocaleString()} credited to your wallet.`,
+        },
+        repaid:    { bn: "আপনার লোন পরিশোধিত হিসেবে চিহ্নিত হয়েছে।", en: "Your loan has been marked as repaid." },
+      };
+      if (msgs[status]) {
+        pool.query(
+          "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
+          [loan.user_id, "💹", "alert", "লোন আপডেট", "Loan Update", msgs[status].bn, msgs[status].en]
+        ).catch(e => logger.warn("loan notify failed", { err: e.message }));
+      }
     }
 
-    // On disbursement: credit wallet + write transaction
-    if (status === "disbursed") {
-      await pool.query(
-        "UPDATE users SET balance = balance + ? WHERE id=?",
-        [loan.amount, loan.user_id]
-      );
-      await pool.query(
-        "INSERT INTO wallet_transactions (user_id,type,amount,description_bn,description_en,method) VALUES (?,?,?,?,?,?)",
-        [loan.user_id, "credit", loan.amount,
-         `মাইক্রো-লোন বিতরণ (${loan.reference_no})`,
-         `Microloan disbursed (${loan.reference_no})`,
-         "bank"]
-      );
-    }
-
-    res.json({ ok: true });
-    // Bust affected caches
     cache.del(`loans:user:${loan.user_id}`);
     cache.del(`loans:score:${loan.user_id}`);
-    if (status === "disbursed") {
+    if (outcome.disbursed) {
       cache.del(`user:wallet:${loan.user_id}`);
       cache.del(`user:profile:${loan.user_id}`);
     }
     ["all","pending","approved","disbursed","rejected","repaid"].forEach(s =>
       ["1","2","3"].forEach(p => cache.del(`loans:admin:${s}:p${p}`))
     );
+
+    res.json({
+      ok: true,
+      status,
+      changed: outcome.changed,
+      disbursed: outcome.disbursed,
+      ...(outcome.alreadyInState && { message: `Loan is already ${status}. No change was made.` }),
+    });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message });
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("loan update:", err);
     res.status(500).json({ error: "Server error" });
   }

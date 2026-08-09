@@ -40,7 +40,13 @@ async function sendSMS(phone, message) {
   const provider = process.env.SMS_PROVIDER || "mock";
 
   if (provider === "bulksmsbd") {
-    const url = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(process.env.BULKSMS_API_KEY)}&type=text&number=${encodeURIComponent(phone)}&senderid=${encodeURIComponent(process.env.BULKSMS_SENDER_ID||"IMAP")}&message=${encodeURIComponent(message)}`;
+    // P1-17: render.yaml and .env.example provision BD_SMS_API_KEY /
+    // BD_SMS_SENDER_ID; this only read BULKSMS_*, so the request went out
+    // with api_key=undefined and every OTP silently failed.
+    const apiKey   = process.env.BULKSMS_API_KEY   || process.env.BD_SMS_API_KEY;
+    const senderId = process.env.BULKSMS_SENDER_ID || process.env.BD_SMS_SENDER_ID || "IMAP";
+    if (!apiKey) throw new Error("SMS provider 'bulksmsbd' selected but BD_SMS_API_KEY is not set");
+    const url = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(phone)}&senderid=${encodeURIComponent(senderId)}&message=${encodeURIComponent(message)}`;
     const result = await httpGet(url);
     logger.info(`[SMS][bulksmsbd] ${phone} → ${result}`);
     return { provider: "bulksmsbd", result };
@@ -54,7 +60,13 @@ async function sendSMS(phone, message) {
   }
 
   if (provider === "twilio") {
-    const { TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: tok, TWILIO_PHONE: from } = process.env;
+    const { TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: tok } = process.env;
+    // P1-17: render.yaml provisions SMS_FROM; this only read TWILIO_PHONE,
+    // so the From number was undefined and Twilio rejected every message.
+    const from = process.env.TWILIO_PHONE || process.env.SMS_FROM;
+    if (!sid || !tok || !from) {
+      throw new Error("SMS provider 'twilio' selected but TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / SMS_FROM are not all set");
+    }
     const auth   = Buffer.from(`${sid}:${tok}`).toString("base64");
     const body   = `To=+88${phone}&From=${encodeURIComponent(from)}&Body=${encodeURIComponent(message)}`;
     const result = await httpPost(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, body,

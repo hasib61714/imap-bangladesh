@@ -498,11 +498,10 @@ function BookModal({p,onClose,onSuccess}) {
   const [loadingConfirm,setLoadingConfirm]=useState(false);
   const [bookErr,setBookErr]=useState(null);
   const [bookingRef,setBookingRef]=useState(null);
-  const [otpStep,setOtpStep]=useState(false);
-  const [otpVal,setOtpVal]=useState("");
-  const [otpCode]=useState(()=>String(Math.floor(100000+Math.random()*900000)));
-  const [otpPhone]=useState(()=>"01"+Math.floor(Math.random()*900000000+100000000).toString());
-  const [otpErr,setOtpErr]=useState(false);
+  const [chargedTotal,setChargedTotal]=useState(null);
+  // P0-10: the fake in-browser "payment OTP" step was removed here.
+  // Payment verification belongs to the payment gateway, not to a random
+  // number the page generated and then printed next to a fake phone number.
   const TIMES=[tr.t1,tr.t2,tr.t3,tr.t4,tr.t5,tr.t6];
   const STEPS=[lang==="en"?"Service":"সেবা",lang==="en"?"Time":"সময়",lang==="en"?"Payment":"পেমেন্ট"];
   const baseAmount=parseInt(String(p.price||"").replace(/[৳,]/g,""))||350;
@@ -514,16 +513,6 @@ function BookModal({p,onClose,onSuccess}) {
 
   const handleConfirm=async(force=false)=>{
     if(loadingConfirm)return;
-    // OTP step for digital payments
-    if(pay!=="Cash"&&!otpStep&&!force){
-      setOtpStep(true);
-      return;
-    }
-    if(otpStep&&otpVal!==otpCode){
-      setOtpErr(true);
-      return;
-    }
-    setOtpStep(false);
     setLoadingConfirm(true);
     // Fraud check first
     if(!force){
@@ -538,15 +527,18 @@ function BookModal({p,onClose,onSuccess}) {
     }
     setFraudWarn(null);
     try {
+      // P0-3: the price is no longer sent. The server derives amount and
+      // platform fee from the provider and category and returns the
+      // authoritative figures, which we display below.
       const resp = await bookingsApi.create({
         provider_id:    p.id,
         service_type:   p.svcEn||p.svc||p.service_category||"",
         scheduled_at:   time,
         payment_method: pay,
-        total_amount:   dynPrice?.dynamicPrice||baseAmount,
-        notes:          "",
+        note:           "",
       });
       setBookingRef(resp?.id || null);
+      setChargedTotal(resp?.total ?? null);
     } catch(e){ setLoadingConfirm(false); setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")); return; }
     // Refresh wallet balance in context
     usersApi.getWallet().then(d=>{if(d.balance!=null)setBalance(d.balance);}).catch(()=>{});
@@ -558,34 +550,6 @@ function BookModal({p,onClose,onSuccess}) {
     setLoadingConfirm(false);
     setDone(true);
   };
-
-  // OTP verification UI for digital payments
-  if(otpStep) return (
-    <div style={{padding:24,textAlign:"center"}}>
-      <div style={{fontSize:48,marginBottom:10}}>📲</div>
-      <div style={{fontSize:17,fontWeight:700,marginBottom:6}}>{lang==="en"?"Verify Payment":"পেমেন্ট যাচাই করুন"}</div>
-      <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="en"?`Enter code sent via ${pay}`:pay+" এ পাঠানো কোড দিন"}</div>
-      <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.p}}>{otpPhone}</div>
-      <div style={{background:"rgba(59,130,246,.1)",borderRadius:12,padding:"10px 18px",marginBottom:16,border:"1px solid rgba(59,130,246,.3)",fontSize:13,color:"#1D4ED8"}}>
-        🎯 {lang==="en"?"Demo OTP:":"ডেমো OTP:"} <b style={{fontSize:20,letterSpacing:4}}>{otpCode}</b>
-      </div>
-      <input
-        value={otpVal}
-        onChange={e=>{setOtpVal(e.target.value.replace(/\D/g,"").slice(0,6));setOtpErr(false);}}
-        placeholder="• • • • • •"
-        maxLength={6}
-        style={{width:"100%",padding:"14px",border:`2px solid ${otpErr?"#EF4444":otpVal.length===6?C.p:C.bdr}`,borderRadius:12,fontSize:24,textAlign:"center",letterSpacing:10,fontWeight:700,background:C.bg,color:C.p,marginBottom:6,outline:"none",boxSizing:"border-box"}}
-      />
-      {otpErr&&<div style={{fontSize:12,color:"#EF4444",marginBottom:10}}>{lang==="en"?"Incorrect OTP. Try again.":"ভুল OTP — আবার চেষ্টা করুন"}</div>}
-      {!otpErr&&<div style={{fontSize:11,color:C.muted,marginBottom:14}}>{lang==="en"?"Enter the 6-digit code above":"উপরের ৬ সংখ্যার কোডটি লিখুন"}</div>}
-      <div className="row" style={{gap:8}}>
-        <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={()=>{setOtpStep(false);setOtpVal("");setOtpErr(false);}}>{tr.backBtn}</button>
-        <button className="btn btn-g" style={{flex:2}} disabled={otpVal.length<6||loadingConfirm} onClick={()=>handleConfirm(false)}>
-          {loadingConfirm?"⏳...":(lang==="en"?"Verify & Pay":"যাচাই করে পেমেন্ট করুন")}
-        </button>
-      </div>
-    </div>
-  );
 
   // Show fraud warning overlay
   if(fraudWarn) return (
@@ -617,8 +581,12 @@ function BookModal({p,onClose,onSuccess}) {
         boxShadow:`0 8px 24px ${C.p}12,inset 0 1px 0 rgba(255,255,255,.3)`
       }}>
         <div style={{fontSize:11,color:C.muted}}>{tr.bookId}</div>
-        <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"BK-"+Math.floor(Math.random()*9000+1000)}</div>
-        {dynPrice?.surgeActive&&<div style={{fontSize:10,color:"#F59E0B",marginTop:6}}>⚡ {dynPrice.surgeReason}</div>}
+        <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"—"}</div>
+        {chargedTotal!=null&&(
+          <div style={{fontSize:13,color:C.sub,marginTop:8,fontWeight:700}}>
+            {lang==="en"?"Charged":"চার্জ করা হয়েছে"}: ৳{chargedTotal}
+          </div>
+        )}
       </div>
       {bundles.length>0&&(
         <div style={{marginBottom:14,textAlign:"left"}}>
@@ -3544,16 +3512,17 @@ function WalletPage() {
 }
 
 /* ─── Disaster Alert Mode ────────────────────────────── */
-const ALERTS=[
-  {id:1,type:"flood",icon:"🌊",level:"high",titleBn:"বন্যা সতর্কতা — সিলেট, সুনামগঞ্জ",titleEn:"Flood Warning — Sylhet, Sunamganj",descBn:"নদীর পানি বিপদসীমার ওপরে। নিচু এলাকার বাসিন্দারা নিরাপদ স্থানে যান।",descEn:"River water above danger level. Residents of low-lying areas should move to safety.",time:"2h ago",color:"#1D4ED8",bg:"#EFF6FF"},
-  {id:2,type:"cyclone",icon:"🌀",level:"extreme",titleBn:"ঘূর্ণিঝড় সতর্কতা — চাঁদপুর, বরগুনা",titleEn:"Cyclone Alert — Chandpur, Barguna",descBn:"ঘণ্টায় ১৫০–১৮০ কিমি বেগে বাতাস। সমুদ্র সননিকট এলাকা খালি করুন।",descEn:"Winds at 150–180 km/h. Evacuate coastal areas immediately.",time:"30m ago",color:"#7C3AED",bg:"#F5F3FF"},
-  {id:3,type:"earthquake",icon:"🌍",level:"moderate",titleBn:"ভূমিকম্প — মাতামাতা, চট্টগ্রাম",titleEn:"Earthquake — Matamuhuri, Chattogram",descBn:"4.2 মাত্রার ভূমিকম্প অনুভূত। ভবন ছেড়ে খোলা জায়গায় আশ্রয় নিন।",descEn:"4.2 magnitude felt. Move to open areas away from buildings.",time:"1h ago",color:"#D97706",bg:"#FFFBEB"},
-];
-const SHELTERS=[
-  {name:"ঢাকা স্টেডিয়াম শেল্টার",nameEn:"Dhaka Stadium Shelter",cap:2000,dist:1.2},
-  {name:"মিরপুর শিক্ষা সংস্থা কেন্দ্র",nameEn:"Mirpur Education Centre",cap:800,dist:2.1},
-  {name:"উত্তরা কমিউনিটি হল",nameEn:"Uttara Community Hall",cap:500,dist:3.8},
-];
+// P0-10: `ALERTS` and `SHELTERS` used to be hardcoded here — three
+// fabricated disaster warnings complete with severity levels and
+// instructions such as "Evacuate coastal areas immediately", plus three
+// invented shelters with capacities and distances. They rendered even
+// when the API was reachable, and a user could act on them.
+// Alerts now come only from the API, which labels them as unverified
+// community reports. Shelters have no verified source, so the tab shows
+// an honest empty state instead of invented buildings.
+const ALERTS=[];
+const SHELTERS=[];
+
 const HOTLINES=[
   {label:"999",desc:"Police / Fire / Ambulance",icon:"🚨"},
   {label:"10941",desc:"Flood Helpline (BWDB)",icon:"🌊"},
@@ -3718,10 +3687,16 @@ function DisasterPage() {
               <button style={{padding:"7px 13px",borderRadius:9,background:C.p,border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Navigate":"যান"}</button>
             </div>
           ))}
-          <div style={{background:"rgba(16,185,129,.1)",borderRadius:14,padding:"14px 16px",border:"1px solid rgba(16,185,129,.3)",fontSize:13,color:"#065F46",display:"flex",alignItems:"flex-start",gap:10,marginTop:4}}>
-            <span style={{fontSize:20}}>ℹ️</span>
-            <div style={{lineHeight:1.6}}>{lang==="en"?"All shelters are government-approved and stocked with food, water and medical supplies.":"সকল আশ্রয়কেন্দ্র সরকারি অনুমোদিত এবং খাদ্য, পানি ও চিকিৎসা সরবরাহদে সজ্জিত।"}</div>
-          </div>
+          {SHELTERS.length===0&&(
+            <div style={{background:"rgba(245,158,11,.1)",borderRadius:14,padding:"18px 16px",border:"1px solid rgba(245,158,11,.3)",fontSize:13,color:"#92400E",display:"flex",alignItems:"flex-start",gap:10}}>
+              <span style={{fontSize:20}}>ℹ️</span>
+              <div style={{lineHeight:1.6}}>
+                {lang==="en"
+                  ? "IMAP does not yet have a verified shelter directory. For official shelter locations contact your local Union Parishad or Upazila office, or call 999."
+                  : "IMAP-এ এখনো যাচাইকৃত আশ্রয়কেন্দ্রের তালিকা নেই। সরকারি আশ্রয়কেন্দ্রের তথ্যের জন্য আপনার ইউনিয়ন পরিষদ বা উপজেলা অফিসে যোগাযোগ করুন, অথবা ৯৯৯ নম্বরে কল করুন।"}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3777,16 +3752,13 @@ function DisasterPage() {
 
 /* ─── Blood Donation ─────────────────────────────────── */
 const BLOOD_GROUPS=["A+","A-","B+","B-","AB+","AB-","O+","O-"];
-const DONORS=[
-  {id:1,name:"মো. কাদের",nameEn:"Md. Kader",bg:"A+",loc:"মিরপুর",locEn:"Mirpur",phone:"01700-000001",lastDon:"3",dist:0.8,dons:12,avail:true,lat:23.8041,lng:90.3660},
-  {id:2,name:"রুমা খানম",nameEn:"Ruma Khanam",bg:"O+",loc:"গুলশান",locEn:"Gulshan",phone:"01700-000002",lastDon:"5",dist:1.9,dons:8,avail:true,lat:23.7860,lng:90.4158},
-  {id:3,name:"তারিক ইসলাম",nameEn:"Tariq Islam",bg:"B+",loc:"ধানমন্ডি",locEn:"Dhanmondi",phone:"01700-000003",lastDon:"2",dist:2.4,dons:20,avail:false,lat:23.7461,lng:90.3742},
-  {id:4,name:"সাদিয়া ইসলাম",nameEn:"Sadia Islam",bg:"AB+",loc:"উত্তরা",locEn:"Uttara",phone:"01700-000004",lastDon:"6",dist:5.1,dons:5,avail:true,lat:23.8759,lng:90.3795},
-  {id:5,name:"হাসান আলী",nameEn:"Hasan Ali",bg:"O-",loc:"বারিধারা",locEn:"Baridhara",phone:"01700-000005",lastDon:"4",dist:3.2,dons:15,avail:true,lat:23.7937,lng:90.4241},
-  {id:6,name:"নাজমা বেগম",nameEn:"Najma Begum",bg:"A-",loc:"বনানী",locEn:"Banani",phone:"01700-000006",lastDon:"7",dist:1.5,dons:3,avail:true,lat:23.7936,lng:90.4052},
-  {id:7,name:"রাফিউল আলম",nameEn:"Rafiul Alam",bg:"B-",loc:"মোহাম্মদপুর",locEn:"Mohammadpur",phone:"01700-000007",lastDon:"8",dist:2.8,dons:9,avail:false,lat:23.7528,lng:90.3564},
-  {id:8,name:"সিনথিয়া আক্তার",nameEn:"Sinthy Akter",bg:"AB-",loc:"রামপুরা",locEn:"Rampura",phone:"01700-000008",lastDon:"1",dist:4.0,dons:2,avail:true,lat:23.7628,lng:90.4243},
-];
+// P0-10 / P1-2: eight fabricated donors — names, blood groups, phone
+// numbers and GPS coordinates — used to render here as real volunteers.
+// Someone in a medical emergency could call a number that belongs to
+// nobody. Donors now come only from the API, which requires
+// authentication and masks the phone number until it is explicitly
+// requested.
+const DONORS=[];
 
 /* ── Blood Donor Map (Leaflet) ── */
 const BG_COL_MAP={"A+":"#DC2626","A-":"#EF4444","B+":"#2563EB","B-":"#3B82F6","AB+":"#7C3AED","AB-":"#8B5CF6","O+":"#D97706","O-":"#F59E0B"};
@@ -3820,6 +3792,7 @@ function BloodDonationPage() {
   const [reqMsg,setReqMsg]=useState("");
   const [reqName,setReqName]=useState("");
   const [sent,setSent]=useState(false);
+  const [sentInfo,setSentInfo]=useState(null);
   const [sending,setSending]=useState(false);
   const [contacted,setContacted]=useState(()=>JSON.parse(localStorage.getItem("imap_blood_contacted")||"[]"));
   const [donors,setDonors]=useState(DONORS);
@@ -3835,13 +3808,27 @@ function BloodDonationPage() {
 
   const filtered=donors;
 
+  // P1-2: donor phone numbers arrive masked. The real number is released
+  // one donor at a time through an authenticated, logged endpoint.
+  const revealContact = async (id) => {
+    try {
+      const d = await bloodApi.contact(id);
+      setDonors(list => list.map(x => x.id===id ? { ...x, phone:d.phone, phone_masked:false } : x));
+      return d.phone;
+    } catch (e) {
+      alert(e.data?.error || (lang==="en" ? "Could not get contact details." : "যোগাযোগের তথ্য পাওয়া যায়নি।"));
+      return null;
+    }
+  };
+
   const sendRequest=async()=>{
     if(!reqBg||!reqName.trim()||sending) return;
     setSending(true);
     try{
-      await bloodApi.request({blood_group:reqBg, name:reqName, message:reqMsg});
+      const r = await bloodApi.request({blood_group:reqBg, name:reqName, message:reqMsg});
+      setSentInfo(r||null);
       setSent(true);
-      setTimeout(()=>setSent(false),3000);
+      setTimeout(()=>setSent(false),12000);
       setReqBg(""); setReqMsg(""); setReqName("");
     }catch(e){
       alert(lang==="en"?`Request failed: ${e.data?.error||e.message||"Please try again."}`:`অনুরোধ ব্যর্থ: ${e.data?.error||e.message||"আবার চেষ্টা করুন।"}`);
@@ -3898,6 +3885,19 @@ function BloodDonationPage() {
           )}
 
           {/* Donor cards */}
+          {!donorsLoading&&filtered.length===0&&(
+            <div style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:14,padding:"28px 20px",textAlign:"center"}}>
+              <div style={{fontSize:34,marginBottom:8}}>🩸</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>
+                {lang==="en"?"No verified donors found":"কোনো যাচাইকৃত ডোনার পাওয়া যায়নি"}
+              </div>
+              <div style={{fontSize:12,color:C.muted,lineHeight:1.7}}>
+                {lang==="en"
+                  ? "No registered donor matches this blood group yet. In an emergency, contact a hospital blood bank directly or call 999."
+                  : "এই রক্তের গ্রুপে এখনো কোনো নিবন্ধিত ডোনার নেই। জরুরি অবস্থায় হাসপাতালের ব্লাড ব্যাংকে যোগাযোগ করুন অথবা ৯৯৯ নম্বরে কল করুন।"}
+              </div>
+            </div>
+          )}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {filtered.map((d,i)=>{
               const name=lang==="en"?d.nameEn:d.name;
@@ -3909,8 +3909,18 @@ function BloodDonationPage() {
                   <div style={{width:46,height:46,borderRadius:12,background:d.avail?"#DC2626":"#9CA3AF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize:14}}>{d.bg}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:14,color:C.text}}>{name}</div>
-                    <div style={{fontSize:12,color:C.muted,marginTop:2}}>📍 {loc} · {d.dist} {tr.bdDist}</div>
-                    <div style={{fontSize:11,color:C.sub,marginTop:2}}>💉 {d.dons} {tr.bdDong} · {tr.bdLastDon}: {d.lastDon} {lang==="en"?"mo ago":"মাস আগে"}</div>
+                    <div style={{fontSize:12,color:C.muted,marginTop:2}}>📍 {loc}{d.dist!=null?` · ${d.dist} ${tr.bdDist}`:""}</div>
+                    <div style={{fontSize:11,color:C.sub,marginTop:2}}>💉 {d.dons} {tr.bdDong}{d.lastDon!=null?` · ${tr.bdLastDon}: ${d.lastDon} ${lang==="en"?"mo ago":"মাস আগে"}`:""}</div>
+                    {d.phone&&(
+                      <div style={{fontSize:12,color:d.phone_masked?C.muted:C.p,marginTop:3,fontWeight:d.phone_masked?400:700}}>
+                        📞 {d.phone}
+                      </div>
+                    )}
+                    {d.is_demo&&(
+                      <div style={{fontSize:10,color:"#92400E",background:"rgba(245,158,11,.15)",borderRadius:6,padding:"2px 6px",marginTop:4,display:"inline-block",fontWeight:700}}>
+                        {lang==="en"?"DEMO DATA — not a real donor":"ডেমো ডেটা — প্রকৃত ডোনার নয়"}
+                      </div>
+                    )}
                   </div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
                     {d.avail
@@ -3918,13 +3928,22 @@ function BloodDonationPage() {
                       :<span style={{fontSize:10,background:"rgba(0,0,0,.08)",color:C.muted,borderRadius:6,padding:"2px 7px",fontWeight:600}}>⏸ Unavailable</span>
                     }
                     {d.avail&&(
-                      <button onClick={()=>{
-                        const next=contacted_?contacted.filter(x=>x!==d.id):[...contacted,d.id];
-                        setContacted(next);
-                        localStorage.setItem("imap_blood_contacted",JSON.stringify(next));
+                      <button onClick={async()=>{
+                        if(d.phone_masked!==false){
+                          const phone=await revealContact(d.id);
+                          if(!phone) return;
+                          if(!contacted_){
+                            const next=[...contacted,d.id];
+                            setContacted(next);
+                            localStorage.setItem("imap_blood_contacted",JSON.stringify(next));
+                          }
+                          window.location.href=`tel:${phone.replace(/[^0-9+]/g,"")}`;
+                          return;
+                        }
+                        window.location.href=`tel:${String(d.phone).replace(/[^0-9+]/g,"")}`;
                       }}
-                        style={{padding:"5px 11px",borderRadius:8,border:`1.5px solid ${contacted_?"#DC2626":C.bdr}`,background:contacted_?"#DC2626":C.card,color:contacted_?"#fff":C.text,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-                        {contacted_?"✓ Sent":tr.bdContact}
+                        style={{padding:"5px 11px",borderRadius:8,border:`1.5px solid ${C.bdr}`,background:C.card,color:C.text,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
+                        {d.phone_masked===false?(lang==="en"?"📞 Call":"📞 কল"):(lang==="en"?"Show number":"নম্বর দেখুন")}
                       </button>
                     )}
                   </div>
@@ -3940,7 +3959,17 @@ function BloodDonationPage() {
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
           <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>🆘 {tr.bdReq}</div>
           {sent&&(
-            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}>✅ {tr.bdSent}</div>
+            <div style={{background:"rgba(245,158,11,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#92400E",fontWeight:600,border:"1px solid rgba(245,158,11,.3)",lineHeight:1.7}}>
+              {/* P0-10: this used to say "Request sent to donors". No donor was
+                  ever contacted. Report what the server actually did. */}
+              ✅ {lang==="en" ? "Your request has been recorded" : "আপনার অনুরোধ রেকর্ড করা হয়েছে"}
+              {sentInfo?.request_id ? ` (#${sentInfo.request_id})` : ""}
+              <div style={{fontWeight:400,marginTop:6}}>
+                {lang==="en"
+                  ? (sentInfo?.message || "Automatic donor notification is not available yet — please contact donors directly from the donor list, and call 999 in an emergency.")
+                  : (sentInfo?.message_bn || "স্বয়ংক্রিয় ডোনার নোটিফিকেশন এখনো চালু হয়নি — ডোনার তালিকা থেকে সরাসরি যোগাযোগ করুন, এবং জরুরি অবস্থায় ৯৯৯ নম্বরে কল করুন।")}
+              </div>
+            </div>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>

@@ -10,9 +10,20 @@
  */
 const SSLCommerz = require("sslcommerz-lts");
 
-const storeId   = process.env.SSLCOMMERZ_STORE_ID;
-const storePass = process.env.SSLCOMMERZ_STORE_PASSWORD;
-const isSandbox = process.env.NODE_ENV !== "production";
+// P1-17: backend/.env.example documented these as SSL_STORE_ID /
+// SSL_STORE_PASSWORD while the code only ever read SSLCOMMERZ_*. Anyone
+// following the documented setup silently ran with no gateway, which was
+// the precondition for P0-12 (free wallet top-ups). Both spellings are
+// accepted now and .env.example has been corrected.
+const storeId   = process.env.SSLCOMMERZ_STORE_ID       || process.env.SSL_STORE_ID;
+const storePass = process.env.SSLCOMMERZ_STORE_PASSWORD || process.env.SSL_STORE_PASSWORD;
+
+// P1-17: render.yaml provisions SSL_IS_SANDBOX and nothing read it, so
+// sandbox mode was inferred from NODE_ENV alone. The explicit flag now
+// wins when it is set.
+const isSandbox = process.env.SSL_IS_SANDBOX !== undefined && process.env.SSL_IS_SANDBOX !== ""
+  ? String(process.env.SSL_IS_SANDBOX).toLowerCase() === "true"
+  : process.env.NODE_ENV !== "production";
 
 async function initiatePayment({ orderId, amount, currency = "BDT", customer, product, successUrl, failUrl, cancelUrl }) {
   if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");

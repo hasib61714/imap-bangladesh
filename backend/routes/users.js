@@ -1,8 +1,10 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const { withTransaction } = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
+const { parseAmount, MoneyError } = require("../utils/money");
 
 // ── GET /api/users/profile ────────────────────────────────
 router.get("/profile", authMiddleware, async (req, res) => {
@@ -34,15 +36,29 @@ router.get("/profile", authMiddleware, async (req, res) => {
 });
 
 // ── PUT /api/users/profile ────────────────────────────────
+// P1-15: `phone` and `email` are login identifiers. This endpoint used to
+// change them with no proof that the user controls the new address or
+// number — so an account could be silently re-pointed at an attacker's
+// contact details. Identity changes now require a verified flow, which
+// does not exist yet, so they are refused here rather than accepted
+// unverified. Display name remains editable.
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const { name, phone, email } = req.body;
-    if (name   && name.length   > 120) return res.status(400).json({ error: "Name too long (max 120)" });
-    if (email  && email.length  > 200) return res.status(400).json({ error: "Email too long (max 200)" });
-    if (phone  && phone.length  > 20)  return res.status(400).json({ error: "Phone too long (max 20)" });
+    if (name && name.length > 120) return res.status(400).json({ error: "Name too long (max 120)" });
+
+    const wantsPhoneChange = phone !== undefined && phone !== null && String(phone) !== String(req.user.phone ?? "");
+    const wantsEmailChange = email !== undefined && email !== null && String(email) !== String(req.user.email ?? "");
+    if (wantsPhoneChange || wantsEmailChange) {
+      return res.status(400).json({
+        error: "Phone and email cannot be changed here. Contact support to update your login details.",
+        code: "IDENTITY_CHANGE_REQUIRES_VERIFICATION",
+      });
+    }
+
     await pool.query(
-      "UPDATE users SET name = COALESCE(?, name), phone = COALESCE(?, phone), email = COALESCE(?, email) WHERE id = ?",
-      [name || null, phone || null, email || null, req.user.id]
+      "UPDATE users SET name = COALESCE(?, name) WHERE id = ?",
+      [name || null, req.user.id]
     );
     // Return updated user so frontend can refresh auth state
     const [[user]] = await pool.query(
@@ -94,6 +110,16 @@ router.get("/wallet", authMiddleware, async (req, res) => {
 // This endpoint is only allowed in dev/mock mode.
 const paymentGateway = require("../utils/payment");
 router.post("/wallet/topup", authMiddleware, async (req, res) => {
+  // P0-12 (related): this credits a balance with no payment behind it.
+  // It is now refused in production regardless of gateway configuration —
+  // previously an unconfigured gateway was enough to unlock free money.
+  if (process.env.NODE_ENV === "production") {
+    return res.status(403).json({
+      error: "Use the payment gateway for wallet top-up.",
+      useGateway: true,
+      hint: "POST /api/payments/initiate with { type: 'wallet_topup', topup_amount }",
+    });
+  }
   if (paymentGateway.isConfigured()) {
     return res.status(400).json({
       error: "Use the payment gateway for wallet top-up.",
@@ -102,20 +128,24 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
     });
   }
   try {
-    const { amount, method = "bKash" } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum top-up is ৳1,00,000" });
+    const amt = parseAmount(req.body.amount, "amount", { min: 1, max: 100000 });
+    const method = String(req.body.method || "bKash").slice(0, 30);
 
-    await pool.query("UPDATE users SET balance = balance + ? WHERE id = ?", [amount, req.user.id]);
-    const [b] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-    await pool.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-      [req.user.id, "credit", amount, "টপআপ", "Top-up", method, b[0].balance]
-    );
+    const balance = await withTransaction(async (conn) => {
+      await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [amt, req.user.id]);
+      const [[b]] = await conn.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+      await conn.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [req.user.id, "topup", amt, "টপআপ (dev)", "Top-up (dev)", method, b.balance]
+      );
+      return b.balance;
+    });
+
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    res.json({ success: true, balance: b[0].balance });
+    res.json({ success: true, balance, devMode: true });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
     logger.error("topup:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -124,26 +154,33 @@ router.post("/wallet/topup", authMiddleware, async (req, res) => {
 // ── POST /api/users/wallet/withdraw ───────────────────────
 router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
   try {
-    const { amount, method = "bKash" } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (parseFloat(amount) < 50) return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
-    if (parseFloat(amount) > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
+    // P0-4: rejects negative / NaN / Infinity before it can reach a balance.
+    const amt = parseAmount(req.body.amount, "amount", { min: 50, max: 100000 });
+    const method = String(req.body.method || "bKash").slice(0, 30);
 
-    // Atomic deduction — prevents concurrent double-spend (balance >= amount is checked atomically)
-    const [result] = await pool.query(
-      "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
-      [amount, req.user.id, amount]
-    );
-    if (result.affectedRows === 0) return res.status(400).json({ error: "Insufficient balance" });
-    const [[nb]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-    await pool.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-      [req.user.id, "debit", amount, "উত্তোলন", "Withdrawal", method, nb[0].balance]
-    );
+    // P0-11: the debit and its ledger row are now one atomic unit.
+    const balance = await withTransaction(async (conn) => {
+      const [result] = await conn.query(
+        "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+        [amt, req.user.id, amt]
+      );
+      if (result.affectedRows === 0) {
+        const e = new Error("Insufficient balance"); e.status = 400; throw e;
+      }
+      const [[nb]] = await conn.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+      await conn.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [req.user.id, "withdrawal", amt, "উত্তোলন", "Withdrawal", method, nb.balance]
+      );
+      return nb.balance;
+    });
+
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    res.json({ success: true, balance: nb[0].balance });
+    res.json({ success: true, balance });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("withdraw:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -289,26 +326,36 @@ router.patch("/notifications/:id/read", authMiddleware, async (req, res) => {
 // ── POST /api/users/loyalty/redeem — redeem points ───────
 router.post("/loyalty/redeem", authMiddleware, async (req, res) => {
   try {
-    const { pts, code } = req.body;
-    if (!pts || pts <= 0) return res.status(400).json({ error: "Invalid points" });
+    const { code } = req.body;
+    const pts = parseInt(req.body.pts, 10);
+    if (!Number.isSafeInteger(pts) || pts <= 0 || pts > 1_000_000) {
+      return res.status(400).json({ error: "Invalid points" });
+    }
+    const safeCode = String(code || "").slice(0, 40);
 
-    // Deduct points atomically — prevents concurrent double-spend
+    // P0-11: the points debit, the wallet credit and the log entry are one unit.
     const walletCredit = Math.round(pts * 0.5);
-    const [redeemResult] = await pool.query(
-      "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ? AND points >= ?",
-      [pts, walletCredit, req.user.id, pts]
-    );
-    if (redeemResult.affectedRows === 0) return res.status(400).json({ error: "Insufficient points" });
-    await pool.query(
-      "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en) VALUES (?,?,?,?)",
-      [req.user.id, -pts, `রিডিম করা হয়েছে (${code})`, `Redeemed (${code})`]
-    );
-    const [[b]] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
+    const b = await withTransaction(async (conn) => {
+      const [redeem] = await conn.query(
+        "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ? AND points >= ?",
+        [pts, walletCredit, req.user.id, pts]
+      );
+      if (redeem.affectedRows === 0) {
+        const e = new Error("Insufficient points"); e.status = 400; throw e;
+      }
+      await conn.query(
+        "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en) VALUES (?,?,?,?)",
+        [req.user.id, -pts, `রিডিম করা হয়েছে (${safeCode})`, `Redeemed (${safeCode})`]
+      );
+      const [[row]] = await conn.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
+      return row;
+    });
     cache.del(`user:loyalty:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
     cache.del(`user:wallet:${req.user.id}`);
-    res.json({ success: true, points: b[0].points, balance: b[0].balance, walletCredit });
+    res.json({ success: true, points: b.points, balance: b.balance, walletCredit });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("loyalty redeem:", err);
     res.status(500).json({ error: "Server error" });
   }

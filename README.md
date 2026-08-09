@@ -67,7 +67,8 @@ This platform integrates emergency support, household services, professional ass
 - Helmet (security headers) + express-rate-limit
 
 ### Database
-- MySQL 8+ (InnoDB, utf8mb4)
+- MySQL 8+ / TiDB Serverless (InnoDB, utf8mb4)
+- Forward-only migrations in `backend/migrations/`, applied with `npm run db:migrate`
 
 ---
 
@@ -124,10 +125,27 @@ npm install
 npm run dev       # http://localhost:5173
 ```
 
-### Create Admin Account
+### 4. Apply Migrations
 ```bash
 cd backend
-node scripts/initDb.js
+npm run db:migrate          # apply pending migrations
+npm run db:migrate:status   # show applied / pending
+```
+
+### Create the Administrator Account
+No administrator is seeded any more — the previous `admin123` default was a
+published credential (see `docs/audit/SECURITY-GAPS.md` P0-9).
+
+```bash
+cd backend
+ADMIN_BOOTSTRAP_EMAIL=you@example.com npm run admin:reset
+# prints a generated password once, or set ADMIN_BOOTSTRAP_PASSWORD yourself
+```
+
+### Run the Tests
+```bash
+cd backend
+npm test        # P0 security regression suite (node:test, no extra deps)
 ```
 
 ---
@@ -198,19 +216,38 @@ sudo certbot --nginx -d yourdomain.com -d api.yourdomain.com
 
 ---
 
-## 🔐 Security Checklist
+## 🔐 Security
 
-- [x] `.env` is in `.gitignore` — never committed to git
-- [x] JWT authentication on all protected routes
-- [x] bcrypt password hashing
-- [x] Helmet security headers (HSTS, X-Frame-Options, etc.)
-- [x] Rate limiting: 200 req/15min general, 20 req/15min for auth
-- [x] CORS restricted to `FRONTEND_URL` in production
-- [x] Input validation with express-validator
-- [x] SQL injection protection via parameterized queries
-- [x] HTTPS in production (Render TLS on backend, GitHub Pages TLS on frontend)
-- [x] Strong random JWT_SECRET configured in Render environment
-- [x] Admin-only auth on AI analytics endpoints (`/forecast`, `/churn`, `/heatmap`, `/debug`)
+**Do not treat this section as an assurance.** A full audit is in
+[`docs/audit/`](docs/audit/). The previous version of this checklist implied a
+posture the code did not have — it claimed "JWT authentication on all protected
+routes" while several endpoints were unauthenticated, and while a password-less
+account accepted any password.
+
+**Current state:** Phase 0 found 12 P0 and 18 P1 findings. Phase 0.5 contained
+the P0 set — see
+[`docs/audit/PHASE-0.5-SECURITY-REGRESSION.md`](docs/audit/PHASE-0.5-SECURITY-REGRESSION.md)
+for what was fixed, how it was verified, and what risk remains.
+
+Controls that are in place and verified by `npm test`:
+
+- Password login fails closed when no password hash is stored
+- Unverified social login is disabled (410); Google sign-in verifies the ID token and audience
+- Booking prices, fees and totals are computed server-side — client values are ignored
+- Negative / `NaN` / `Infinity` money values are rejected at every financial entry point
+- Booking and loan state transitions are guarded, so financial side effects run once
+- Money paths run inside database transactions with unique ledger references
+- An unconfigured payment gateway returns 503 in production; it never credits a wallet
+- Socket booking rooms require verified participation; SOS alerts go to a DB-verified admin room
+- No administrator or demo credential is seeded — see "Create the Administrator Account"
+
+Standing controls (present before this phase): bcrypt hashing, Helmet headers,
+rate limiting, parameterised queries, CORS allow-list, `express-validator`,
+TLS in production.
+
+**Known open items** are listed in the regression report — the largest are
+Content-Security-Policy (disabled), in-process OTP/cache state (blocks
+horizontal scaling), and KYC images stored as base64 in the primary database.
 
 ---
 

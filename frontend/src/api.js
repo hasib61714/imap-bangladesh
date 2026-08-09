@@ -88,9 +88,13 @@ export const auth = {
   googleLogin: (credential) =>
     post("/auth/google", { credential }),
 
-  /** Social login (Facebook mock) */
-  socialLogin: (provider, socialId, email, name, avatar) =>
-    post("/auth/social-login", { provider, socialId, email, name, avatar }),
+  /**
+   * @deprecated Removed in Phase 0.5 (P0-2). The server returns 410 Gone.
+   * A client-supplied socialId was never proof of identity. Use
+   * `googleLogin` (verified ID token), phone OTP, or email + password.
+   */
+  socialLogin: () =>
+    Promise.reject(Object.assign(new Error("Social login has been disabled"), { status: 410 })),
 
   /** Send OTP to phone */
   sendOtp: (phone) =>
@@ -197,6 +201,8 @@ export const admin = {
   updateUser:  (id, data)      => patch(`/admin/users/${id}`, data),
   bookings:    (p = {})        => get(`/admin/bookings?${new URLSearchParams(p)}`),
   kyc:         (p = {})        => get(`/admin/kyc?${new URLSearchParams(p)}`),
+  /** One KYC document including its images. The list omits them (P1-12). */
+  kycDoc:      (id)            => get(`/admin/kyc/${id}`),
   complaints:  (p = {})        => get(`/admin/complaints?${new URLSearchParams(p)}`),
   resolveComp: (id, data)      => patch(`/admin/complaints/${id}`, data),
   notify:      (data)          => post("/admin/notify", data),
@@ -294,8 +300,10 @@ export const ai = {
 };
 
 export const blood = {
-  /** List donors, optionally filter by blood_group */
+  /** List donors (auth required; phone numbers arrive masked) */
   getDonors: (group) => get(`/blood${group && group !== "all" ? `?group=${encodeURIComponent(group)}` : ""}`),
+  /** Release one donor's real phone number. Authenticated and logged. */
+  contact:   (id) => post(`/blood/${id}/contact`, {}),
   /** Register current user as a donor */
   register:  (data) => post("/blood/register", data),
   /** Send a blood request */

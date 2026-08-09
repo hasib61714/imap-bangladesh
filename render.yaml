@@ -89,6 +89,8 @@ services:
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
+      # Read as R2_BUCKET or R2_BUCKET_NAME (P1-17 — the code previously
+      # only read R2_BUCKET_NAME, so uploads silently used "imap-media").
       - key: R2_BUCKET
         value: imap-uploads
       - key: R2_PUBLIC_URL
@@ -104,9 +106,15 @@ services:
       - key: AWS_S3_BUCKET
         sync: false
 
-      # ── Seed / Admin ──────────────────────────────────
-      - key: SEED_SECRET
-        generateValue: true
+      # ── Platform economics ────────────────────────────
+      # Commission percent applied server-side to every booking (P0-3).
+      - key: PLATFORM_FEE_PCT
+        value: "0"
+
+      # SEED_SECRET removed in Phase 0.5 (P0-9): the endpoint it guarded,
+      # GET /api/admin/seed-demo, no longer exists. It seeded provider
+      # accounts with a shared password and ran without the secret whenever
+      # the database had fewer than four providers.
 
     healthCheckPath: /api/health
     autoDeploy: true

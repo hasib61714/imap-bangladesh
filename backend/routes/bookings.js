@@ -1,23 +1,43 @@
-﻿const logger = require('../utils/logger');
+const logger = require('../utils/logger');
 const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
+const { withTransaction } = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
 const { sendPush } = require("../utils/push");
 const { validate, body } = require("../middleware/validate");
+const { quoteBooking, PricingError } = require("../utils/pricing");
+const { MoneyError } = require("../utils/money");
+const { assertTransition, isValidStatus, ledgerRef, TransitionError } = require("../utils/bookingState");
+const { getParticipation } = require("../utils/bookingAccess");
 
+// NOTE (P0-3): `amount`, `total_amount` and `platform_fee` are deliberately
+// absent from this schema. They are no longer read from the request at all —
+// the server derives every money value from the provider and category.
+// See backend/utils/pricing.js.
 const createBookingRules = validate([
-  body("provider_id").notEmpty().withMessage("provider_id required"),
-  body("amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("amount must be a positive number"),
-  body("total_amount").optional({ checkFalsy: true }).isFloat({ min: 1 }).withMessage("total_amount must be a positive number"),
-  body("payment_method").optional().isIn(["bKash","Nagad","Rocket","card","cash"]).withMessage("Invalid payment method"),
+  body("provider_id").isString().trim().notEmpty().isLength({ max: 36 }).withMessage("provider_id required"),
+  body("payment_method").optional().isIn(["bKash","Nagad","Rocket","card","cash","wallet"]).withMessage("Invalid payment method"),
   body("service_name_en").optional().isString().isLength({ max: 120 }).withMessage("service_name_en too long"),
   body("service_name_bn").optional().isString().isLength({ max: 120 }).withMessage("service_name_bn too long"),
   body("service_type").optional().isString().isLength({ max: 120 }).withMessage("service_type too long"),
   body("address").optional().isString().isLength({ max: 300 }).withMessage("address too long"),
   body("note").optional().isString().isLength({ max: 1000 }).withMessage("note too long"),
+  body("category_id").optional({ checkFalsy: true }).isInt({ min: 1 }).withMessage("category_id must be a positive integer"),
 ]);
+
+/** Methods that settle immediately against the in-app wallet balance. */
+const WALLET_METHODS = new Set(["bKash", "Nagad", "Rocket", "card", "wallet"]);
+const isCash = (m) => String(m || "").toLowerCase() === "cash";
+
+/** Map a thrown domain error onto an HTTP response; returns true if handled. */
+function sendDomainError(res, err) {
+  if (err instanceof PricingError || err instanceof MoneyError || err instanceof TransitionError) {
+    return res.status(err.status || 400).json({ error: err.message }), true;
+  }
+  return false;
+}
 
 // ── POST /api/bookings ────────────────────────────────────
 router.post("/", authMiddleware, createBookingRules, async (req, res) => {
@@ -25,90 +45,122 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     const {
       provider_id, category_id,
       service_name_bn, service_name_en,
-      // accept legacy field names sent by some frontend pages
-      service_type,
+      service_type,                       // legacy field name from some pages
       address,
       scheduled_time, scheduled_at,
-      amount, total_amount,
-      platform_fee = 0,
       payment_method = "bKash",
       is_urgent = 0, note = ""
     } = req.body;
 
-    const finalAmount = amount || total_amount;
     const finalServiceEn = service_name_en || service_type || null;
     const finalServiceBn = service_name_bn || null;
     const finalScheduled = scheduled_time || scheduled_at || null;
 
-    if (!finalAmount) return res.status(400).json({ error: "amount required" });
+    // ── P0-3 / P0-4: the price is computed here, from server data only.
+    // Fails closed (409) when no price can be resolved.
+    const quote = await quoteBooking(pool, {
+      providerId: provider_id,
+      categoryId: category_id ? parseInt(category_id, 10) : null,
+    });
 
-    // Atomic balance deduction before booking insert — prevents concurrent double-spend race
-    const total = parseFloat(finalAmount) + parseFloat(platform_fee);
-    if (payment_method !== "cash" && payment_method !== "Cash") {
-      const [deductResult] = await pool.query(
-        "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
-        [total, req.user.id, total]
-      );
-      if (deductResult.affectedRows === 0) {
-        return res.status(400).json({ error: "Insufficient wallet balance. Please top up first." });
+    if (quote.provider_user_id === req.user.id) {
+      return res.status(400).json({ error: "You cannot book your own service" });
+    }
+
+    const id  = uuidv4();
+    const otp = String(require("crypto").randomInt(100000, 1000000));
+    const settleFromWallet = !isCash(payment_method) && WALLET_METHODS.has(payment_method);
+
+    // ── P0-11: one transaction covers the debit, the booking row, the
+    // ledger entry and the loyalty award. Previously these were four
+    // independent autocommit statements, so a failure after the debit
+    // took the customer's money without creating a booking.
+    const result = await withTransaction(async (conn) => {
+      if (settleFromWallet) {
+        const [deduct] = await conn.query(
+          "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+          [quote.total, req.user.id, quote.total]
+        );
+        if (deduct.affectedRows === 0) {
+          const e = new Error("Insufficient wallet balance. Please top up first.");
+          e.status = 400;
+          throw e;
+        }
       }
-    }
 
-    const id     = uuidv4();
-    const otp    = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await pool.query(
-      `INSERT INTO bookings
-        (id, customer_id, provider_id, category_id, service_name_bn, service_name_en,
-         address, scheduled_time, amount, platform_fee, payment_method, is_urgent, otp_code, note)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, req.user.id, provider_id, category_id || null,
-       finalServiceBn, finalServiceEn,
-       address || null, finalScheduled,
-       finalAmount, platform_fee, payment_method,
-       is_urgent ? 1 : 0, otp, note]
-    );
-
-    // Add wallet transaction
-    await pool.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
-      [req.user.id, "debit", total, `সেবা বুকিং #${id.slice(0,8)}`, `Service Booking #${id.slice(0,8)}`, payment_method]
-    );
-
-    // Notify provider
-    const [prov] = await pool.query("SELECT user_id FROM providers WHERE id = ?", [provider_id]);
-    if (prov.length) {
-      await pool.query(
-        "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
-        [prov[0].user_id, "💼", "booking", "নতুন বুকিং", "New Booking",
-         `${req.user.name} সেবা বুক করেছে`, `${req.user.name} booked a service`]
+      await conn.query(
+        `INSERT INTO bookings
+          (id, customer_id, provider_id, category_id, service_name_bn, service_name_en,
+           address, scheduled_time, amount, platform_fee, payment_method, payment_status,
+           is_urgent, otp_code, note)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [id, req.user.id, quote.provider_row_id, quote.category_id,
+         finalServiceBn, finalServiceEn,
+         address || null, finalScheduled,
+         quote.amount, quote.platform_fee, payment_method,
+         // P1-5: recording the wallet settlement here stops
+         // /api/payments/initiate from charging the same booking again.
+         settleFromWallet ? "paid" : "pending",
+         is_urgent ? 1 : 0, otp, note]
       );
-    }
 
-    // Award loyalty points
-    const pts = Math.floor(parseFloat(finalAmount) / 100);
-    if (pts > 0) {
-      await pool.query("UPDATE users SET points = points + ? WHERE id = ?", [pts, req.user.id]);
-      await pool.query(
-        "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en, booking_id) VALUES (?,?,?,?,?)",
-        [req.user.id, pts, "বুকিং পয়েন্ট", "Booking points", id]
-      );
-    }
+      if (settleFromWallet) {
+        await conn.query(
+          `INSERT INTO wallet_transactions
+             (user_id, type, amount, description_bn, description_en, method, ref_id)
+           VALUES (?,?,?,?,?,?,?)`,
+          [req.user.id, "debit", quote.total,
+           `সেবা বুকিং #${id.slice(0, 8)}`, `Service Booking #${id.slice(0, 8)}`,
+           payment_method, ledgerRef("charge", id)]
+        );
+      }
 
-    // Bust admin stats cache — new booking changes counts/revenue
+      // Loyalty is derived from the server-side amount, so it can no
+      // longer be inflated by a client-chosen price.
+      const pts = Math.floor(quote.amount / 100);
+      if (pts > 0) {
+        await conn.query("UPDATE users SET points = points + ? WHERE id = ?", [pts, req.user.id]);
+        await conn.query(
+          "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en, booking_id) VALUES (?,?,?,?,?)",
+          [req.user.id, pts, "বুকিং পয়েন্ট", "Booking points", id]
+        );
+      }
+      return { pts };
+    });
+
+    // ── Post-commit, best-effort side effects. Deliberately outside the
+    // transaction: a failed notification must not undo a paid booking.
+    pool.query(
+      "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
+      [quote.provider_user_id, "💼", "booking", "নতুন বুকিং", "New Booking",
+       `${req.user.name} সেবা বুক করেছে`, `${req.user.name} booked a service`]
+    ).catch(e => logger.warn("booking notify failed", { err: e.message }));
+
     cache.del("admin:stats");
     cache.del("admin:revenue");
     cache.del("admin:bookings:default");
     cache.delPattern(new RegExp(`^bookings:user:${req.user.id}:`));
-    // Bust customer wallet + loyalty + profile (balance and points changed)
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:loyalty:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    // Bust provider job list (new booking visible in their portal)
-    if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
+    cache.del(`provider:jobs:${quote.provider_user_id}`);
 
-    res.status(201).json({ id, otp, status: "pending", message: "Booking created" });
+    res.status(201).json({
+      id,
+      otp,
+      status: "pending",
+      // The authoritative figures, echoed back so the client can reconcile
+      // whatever it displayed against what was actually charged.
+      amount: quote.amount,
+      platform_fee: quote.platform_fee,
+      total: quote.total,
+      payment_status: settleFromWallet ? "paid" : "pending",
+      points_awarded: result.pts,
+      message: "Booking created",
+    });
   } catch (err) {
+    if (sendDomainError(res, err)) return;
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("create booking:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -118,9 +170,14 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const cacheKey = `bookings:user:${req.user.id}:${status||'all'}:${page}:${limit}`;
+    const safePage  = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    if (status && status !== "all" && !isValidStatus(status)) {
+      return res.status(400).json({ error: "Invalid status filter" });
+    }
+    const cacheKey = `bookings:user:${req.user.id}:${status || 'all'}:${safePage}:${safeLimit}`;
     const result = await cache.getOrSet(cacheKey, async () => {
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const offset = (safePage - 1) * safeLimit;
 
       let where = ["b.customer_id = ?"];
       let params = [req.user.id];
@@ -143,9 +200,9 @@ router.get("/", authMiddleware, async (req, res) => {
          WHERE ${where.join(" AND ")}
          ORDER BY b.created_at DESC
          LIMIT ? OFFSET ?`,
-        [...params, parseInt(limit), offset]
+        [...params, safeLimit, offset]
       );
-      return { bookings: rows, total, page: parseInt(page), limit: parseInt(limit) };
+      return { bookings: rows, total, page: safePage, limit: safeLimit };
     }, 30);
     res.json(result);
   } catch (err) {
@@ -155,18 +212,29 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // ── GET /api/bookings/:id ─────────────────────────────────
+// Readable by either participant or an admin. Previously customer-only,
+// which left the assigned provider unable to read their own booking.
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
+    const part = await getParticipation(req.params.id, req.user);
+    if (!part.customerId) return res.status(404).json({ error: "Booking not found" });
+    if (!part.allowed)    return res.status(403).json({ error: "Access denied" });
+
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
        FROM bookings b
        LEFT JOIN providers p ON p.id = b.provider_id
        LEFT JOIN users u ON u.id = p.user_id
-       WHERE b.id = ? AND b.customer_id = ?`,
-      [req.params.id, req.user.id]
+       WHERE b.id = ?`,
+      [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Booking not found" });
-    res.json(rows[0]);
+
+    const booking = rows[0];
+    // The completion OTP is the customer's proof of delivery — the
+    // provider must not be able to read it from the API.
+    if (part.role !== "customer" && part.role !== "admin") delete booking.otp_code;
+    res.json(booking);
   } catch (err) {
     logger.error("booking detail:", err);
     res.status(500).json({ error: "Server error" });
@@ -174,29 +242,93 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 // ── PATCH /api/bookings/:id/status ───────────────────────
+// P0-5 / P0-11: the transition is validated against an explicit state
+// machine, applied as a conditional UPDATE guarded on the status we read,
+// and any financial effect happens in the same transaction. A repeated
+// request loses the race on `affectedRows` and returns 409 without moving
+// money. Previously every repeat of `completed` paid the provider again.
 router.patch("/:id/status", authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
-    const allowed = ["pending","confirmed","active","completed","cancelled"];
-    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });
+    if (!isValidStatus(status)) return res.status(400).json({ error: "Invalid status" });
 
-    const [rows] = await pool.query("SELECT * FROM bookings WHERE id = ?", [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: "Booking not found" });
+    const part = await getParticipation(req.params.id, req.user);
+    if (!part.customerId) return res.status(404).json({ error: "Booking not found" });
+    if (!part.allowed)    return res.status(403).json({ error: "Access denied" });
 
-    const booking = rows[0];
-    // customers can cancel; providers confirm/complete
-    const isCustomer = booking.customer_id === req.user.id;
-    const [prov]     = await pool.query("SELECT user_id FROM providers WHERE id = ?", [booking.provider_id]);
-    const isProvider = prov.length && prov[0].user_id === req.user.id;
-    const isAdmin    = req.user.role === "admin";
+    const outcome = await withTransaction(async (conn) => {
+      const [rows] = await conn.query(
+        "SELECT id, customer_id, provider_id, amount, platform_fee, status, payment_status FROM bookings WHERE id = ? FOR UPDATE",
+        [req.params.id]
+      );
+      if (!rows.length) { const e = new Error("Booking not found"); e.status = 404; throw e; }
+      const booking = rows[0];
 
-    if (!isCustomer && !isProvider && !isAdmin) {
-      return res.status(403).json({ error: "Access denied" });
-    }
+      // Throws TransitionError (403/409) for illegal or unauthorized moves.
+      const { financialEffect } = assertTransition(booking.status, status, part.role);
 
-    await pool.query("UPDATE bookings SET status = ? WHERE id = ?", [status, req.params.id]);
+      const [upd] = await conn.query(
+        "UPDATE bookings SET status = ? WHERE id = ? AND status = ?",
+        [status, req.params.id, booking.status]
+      );
+      if (upd.affectedRows === 0) {
+        // Another request changed the status between our read and write.
+        const e = new Error("Booking was updated by another request. Please retry.");
+        e.status = 409;
+        throw e;
+      }
 
-    // ✅ Emit real-time booking update via Socket.io
+      const amount = Number(booking.amount) || 0;
+      const fee    = Number(booking.platform_fee) || 0;
+
+      if (financialEffect === "payout") {
+        await conn.query("UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?", [booking.provider_id]);
+        const earnings = Math.max(0, amount - fee);
+        if (earnings > 0 && part.providerUserId) {
+          await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [earnings, part.providerUserId]);
+          // Unique ref_id — a duplicate payout aborts the transaction
+          // instead of crediting twice, even if the status guard is
+          // somehow bypassed.
+          await conn.query(
+            `INSERT INTO wallet_transactions
+               (user_id, type, amount, description_bn, description_en, method, ref_id)
+             VALUES (?,?,?,?,?,?,?)`,
+            [part.providerUserId, "payout", earnings,
+             `সেবা সম্পন্ন - বুকিং #${booking.id.slice(0, 8)}`,
+             `Service completed - Booking #${booking.id.slice(0, 8)}`,
+             "wallet", ledgerRef("payout", booking.id)]
+          );
+        }
+        return { financialEffect, earnings };
+      }
+
+      if (financialEffect === "refund") {
+        // Only refund what was actually taken. A booking that never
+        // settled from the wallet has nothing to return.
+        if (booking.payment_status === "paid") {
+          const refundAmt = amount + fee;
+          if (refundAmt > 0) {
+            await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [refundAmt, booking.customer_id]);
+            await conn.query(
+              `INSERT INTO wallet_transactions
+                 (user_id, type, amount, description_bn, description_en, method, ref_id)
+               VALUES (?,?,?,?,?,?,?)`,
+              [booking.customer_id, "refund", refundAmt,
+               `বুকিং বাতিল রিফান্ড #${booking.id.slice(0, 8)}`,
+               `Booking cancellation refund #${booking.id.slice(0, 8)}`,
+               "refund", ledgerRef("refund", booking.id)]
+            );
+            await conn.query("UPDATE bookings SET payment_status = 'refunded' WHERE id = ?", [booking.id]);
+          }
+          return { financialEffect, refunded: refundAmt };
+        }
+        return { financialEffect, refunded: 0 };
+      }
+
+      return { financialEffect: null };
+    });
+
+    // ── Post-commit side effects (never inside the transaction) ──
     const io = req.app.get("io");
     if (io) {
       io.to(`booking_${req.params.id}`).emit("booking_updated", {
@@ -206,96 +338,38 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       });
     }
 
-    // Status-based notifications
     const pushMessages = {
-      confirmed:  { title: "✅ বুকিং নিশ্চিত",   body: "আপনার বুকিং নিশ্চিত হয়েছে।" },
-      active:     { title: "🔄 সেবা শুরু হয়েছে",  body: "সেবা প্রদানকারী কাজ শুরু করেছেন।" },
-      completed:  { title: "🎉 সেবা সম্পন্ন",   body: "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন!" },
-      cancelled:  { title: "❌ বুকিং বাতিল",   body: "আপনার বুকিং বাতিল করা হয়েছে।" },
+      confirmed: { title: "✅ বুকিং নিশ্চিত",  body: "আপনার বুকিং নিশ্চিত হয়েছে।" },
+      active:    { title: "🔄 সেবা শুরু হয়েছে", body: "সেবা প্রদানকারী কাজ শুরু করেছেন।" },
+      completed: { title: "🎉 সেবা সম্পন্ন",  body: "আপনার সেবা সম্পন্ন হয়েছে। রিভিউ দিন!" },
+      cancelled: { title: "❌ বুকিং বাতিল",   body: "আপনার বুকিং বাতিল করা হয়েছে।" },
     };
     const pushMsg = pushMessages[status];
     if (pushMsg) {
-      // Push to customer
-      sendPush(booking.customer_id, { ...pushMsg, url: "/" }).catch(() => {});
-      // Insert DB notification
-      await pool.query(
+      sendPush(part.customerId, { ...pushMsg, url: "/" }).catch(() => {});
+      pool.query(
         "INSERT INTO notifications (user_id, icon, type, title_bn, title_en, body_bn, body_en) VALUES (?,?,?,?,?,?,?)",
-        [booking.customer_id, pushMsg.title.slice(0,2), "booking",
+        [part.customerId, pushMsg.title.slice(0, 2), "booking",
          pushMsg.title, pushMsg.title, pushMsg.body, pushMsg.body]
       ).catch(() => {});
     }
 
-    // On complete — update provider stats + credit earnings
-    if (status === "completed") {
-      await pool.query(
-        "UPDATE providers SET total_jobs = total_jobs + 1 WHERE id = ?",
-        [booking.provider_id]
-      );
-      // Credit provider wallet (amount minus platform fee)
-      if (prov.length) {
-        const earnings = parseFloat(booking.amount) - parseFloat(booking.platform_fee || 0);
-        if (earnings > 0) {
-          await pool.query(
-            "UPDATE users SET balance = balance + ? WHERE id = ?",
-            [earnings, prov[0].user_id]
-          );
-          await pool.query(
-            "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
-            [prov[0].user_id, "credit", earnings,
-             `সেবা সম্পন্ন - বুকিং #${req.params.id.slice(0,8)}`,
-             `Service completed - Booking #${req.params.id.slice(0,8)}`, "wallet"]
-          );
-        }
-      }
-      cache.del("admin:stats");
-      cache.del("admin:revenue");
-      cache.del("admin:bookings:default");
-      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
-      if (prov.length) cache.del(`user:wallet:${prov[0].user_id}`); // bust provider wallet after earnings credit
-      if (prov.length) cache.del(`user:profile:${prov[0].user_id}`); // bust provider profile (balance changed)
-      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
-      // Notify via socket too
-      if (io) {
-        io.emit(`user_${booking.customer_id}`, {
-          type: "notification",
-          title: "সেবা সম্পন্ন ✅",
-          body: "আপনার সেবা সম্পন্ন হয়েছে।",
-        });
-      }
+    cache.del("admin:stats");
+    cache.del("admin:revenue");
+    cache.del("admin:bookings:default");
+    cache.delPattern(new RegExp(`^bookings:user:${part.customerId}:`));
+    if (part.providerUserId) {
+      cache.del(`provider:jobs:${part.providerUserId}`);
+      cache.del(`user:wallet:${part.providerUserId}`);
+      cache.del(`user:profile:${part.providerUserId}`);
     }
+    cache.del(`user:wallet:${part.customerId}`);
+    cache.del(`user:profile:${part.customerId}`);
 
-    // On cancellation — refund customer if booking not yet active
-    if (status === "cancelled" && ["pending", "confirmed"].includes(booking.status)) {
-      const refundAmt = parseFloat(booking.amount) + parseFloat(booking.platform_fee || 0);
-      await pool.query(
-        "UPDATE users SET balance = balance + ? WHERE id = ?",
-        [refundAmt, booking.customer_id]
-      );
-      await pool.query(
-        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method) VALUES (?,?,?,?,?,?)",
-        [booking.customer_id, "credit", refundAmt,
-         `বুকিং বাতিল রিফান্ড #${req.params.id.slice(0,8)}`,
-         `Booking cancellation refund #${req.params.id.slice(0,8)}`, "refund"]
-      );
-      cache.del("admin:stats");
-      cache.del("admin:revenue");
-      cache.del("admin:bookings:default");
-      if (prov.length) cache.del(`provider:jobs:${prov[0].user_id}`);
-      cache.del(`user:wallet:${booking.customer_id}`); // bust customer wallet after cancellation refund
-      cache.del(`user:profile:${booking.customer_id}`); // bust customer profile (balance changed)
-      cache.delPattern(new RegExp(`^bookings:user:${booking.customer_id}:`));
-      // Socket-notify provider so their jobs view updates immediately
-      if (io && prov.length) {
-        io.emit(`user_${prov[0].user_id}`, {
-          type: "notification",
-          title: "❌ বুকিং বাতিল",
-          body: "একটি বুকিং বাতিল হয়েছে।",
-        });
-      }
-    }
-
-    res.json({ success: true, status });
+    res.json({ success: true, status, ...outcome });
   } catch (err) {
+    if (sendDomainError(res, err)) return;
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("update booking status:", err);
     res.status(500).json({ error: "Server error" });
   }

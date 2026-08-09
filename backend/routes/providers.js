@@ -1,8 +1,10 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
+const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
+const { parseOptionalAmount, MoneyError } = require("../utils/money");
 
 // Helper: flush all cached providers list keys
 const bustProvidersCache = () => {
@@ -18,7 +20,10 @@ router.get("/", async (req, res) => {
     const safeQ        = q        ? String(q).slice(0, 100)        : null;
     const safeCategory = category ? String(category).slice(0, 80)  : null;
 
-    let where = ["p.is_available = 1", "u.is_active = 1"];
+    // P1-7: is_approved gate. A provider application used to appear in this
+    // list immediately, while the applicant was told review takes 24-48 hours
+    // and the marketing copy promised "KYC-verified providers".
+    let where = ["p.is_available = 1", "u.is_active = 1", "p.is_approved = 1"];
     let params = [];
 
     if (safeQ) {
@@ -69,7 +74,10 @@ router.get("/", async (req, res) => {
 // SQL builder helpers (shared by hot-path cache and regular path)
 function buildSql(w, ord) {
   return `
-      SELECT p.id, p.user_id, u.name, u.avatar, u.phone,
+      SELECT p.id, p.user_id, u.name, u.avatar,
+             -- P1-1: u.phone removed. This endpoint is unauthenticated, so it
+             -- published every provider's phone number; combined with the login
+             -- bypass (P0-1) that was a direct account-takeover input.
              p.service_type_bn, p.service_type_en,
              p.area_bn, p.area_en,
              p.hourly_rate, p.rating, p.total_jobs,
@@ -111,7 +119,12 @@ router.get("/:id", async (req, res) => {
   try {
     const data = await cache.getOrSet(`provider:detail:${req.params.id}`, async () => {
       const [rows] = await pool.query(
-        `SELECT p.*, u.name, u.avatar, u.phone, u.kyc_status,
+        `SELECT p.id, p.user_id, p.service_type_bn, p.service_type_en,
+                p.area_bn, p.area_en, p.bio_bn, p.bio_en, p.hourly_rate,
+                p.is_available, p.is_verified, p.rating, p.total_jobs,
+                p.trust_score, p.experience_yrs, p.nid_verified, p.category_id,
+                p.created_at,
+                u.name, u.avatar, u.kyc_status,
                 c.name_bn AS cat_bn, c.name_en AS cat_en, c.icon AS cat_icon
          FROM providers p
          LEFT JOIN users u ON u.id = p.user_id
@@ -195,6 +208,8 @@ router.put("/me", authMiddleware, async (req, res) => {
     if (area_en && area_en.length > 200)        return res.status(400).json({ error: "area_en max 200 chars" });
     if (service_type_bn && service_type_bn.length > 100) return res.status(400).json({ error: "service_type_bn max 100 chars" });
     if (service_type_en && service_type_en.length > 100) return res.status(400).json({ error: "service_type_en max 100 chars" });
+    // Feeds server-side booking pricing — validated as money (P0-4).
+    const putRate = parseOptionalAmount(hourly_rate, "hourly_rate", 0, { max: 100000 });
     const [rows] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
     if (!rows.length) return res.status(404).json({ error: "Provider profile not found" });
 
@@ -211,7 +226,7 @@ router.put("/me", authMiddleware, async (req, res) => {
         experience_yrs = COALESCE(?, experience_yrs)
        WHERE user_id = ?`,
       [service_type_bn||null, service_type_en||null, area_bn||null, area_en||null,
-       bio_bn||null, bio_en||null, hourly_rate||null,
+       bio_bn||null, bio_en||null, putRate > 0 ? putRate : null,
        is_available !== undefined ? is_available : null,
        experience_yrs||null, req.user.id]
     );
@@ -229,6 +244,7 @@ router.put("/me", authMiddleware, async (req, res) => {
     );
     res.json({ success: true, provider: fresh || null });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
     logger.error("update provider:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -273,6 +289,11 @@ router.post("/apply", authMiddleware, async (req, res) => {
     if (bio_en && bio_en.length > 1000)                  return res.status(400).json({ error: "bio_en max 1000 chars" });
     if (nid_number && nid_number.length > 30)            return res.status(400).json({ error: "nid_number max 30 chars" });
 
+    // hourly_rate feeds server-side booking pricing, so it is validated as
+    // money (P0-4) even though a provider setting their own rate is legitimate.
+    const rate = parseOptionalAmount(hourly_rate, "hourly_rate", 0, { max: 100000 });
+    const safeRate = rate > 0 ? rate : null;
+
     // Check if provider row already exists
     const [existing] = await pool.query("SELECT id FROM providers WHERE user_id = ?", [req.user.id]);
 
@@ -290,17 +311,19 @@ router.post("/apply", authMiddleware, async (req, res) => {
           experience_yrs = COALESCE(?, experience_yrs)
          WHERE user_id = ?`,
         [service_type_bn||null, service_type_en||null, area_bn||null, area_en||null,
-         bio_bn||null, bio_en||null, hourly_rate||null, experience_yrs||null, req.user.id]
+         bio_bn||null, bio_en||null, safeRate, experience_yrs||null, req.user.id]
       );
     } else {
       // Create new provider row
+      // P1-8: providers.id is VARCHAR(36) PRIMARY KEY with no default, so
+      // omitting it made every new provider application fail with a 500.
       await pool.query(
         `INSERT INTO providers
-          (user_id, service_type_bn, service_type_en, area_bn, area_en, bio_bn, bio_en,
+          (id, user_id, service_type_bn, service_type_en, area_bn, area_en, bio_bn, bio_en,
            hourly_rate, experience_yrs)
-         VALUES (?,?,?,?,?,?,?,?,?)`,
-        [req.user.id, service_type_bn||null, service_type_en||null, area_bn||null, area_en||null,
-         bio_bn||null, bio_en||null, hourly_rate||null, experience_yrs||null]
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [uuidv4(), req.user.id, service_type_bn||null, service_type_en||null, area_bn||null, area_en||null,
+         bio_bn||null, bio_en||null, safeRate, experience_yrs||null]
       );
     }
 
@@ -322,6 +345,7 @@ router.post("/apply", authMiddleware, async (req, res) => {
     cache.del("admin:stats"); // pending provider count changes
     res.status(201).json({ success: true, message: "Application submitted for review" });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
     logger.error("provider apply:", err);
     res.status(500).json({ error: "Server error" });
   }

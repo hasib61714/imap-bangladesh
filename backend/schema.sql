@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
   social_id     VARCHAR(120),
   kyc_status    ENUM('not_submitted','pending','verified','rejected') DEFAULT 'not_submitted',
   verified      TINYINT(1) DEFAULT 0,
-  balance       DECIMAL(12,2) DEFAULT 500.00,
+  -- Phase 0.5: was DEFAULT 500.00 — every new account was created with
+  -- spendable money and no corresponding ledger entry.
+  balance       DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   points        INT DEFAULT 0,
   referral_code VARCHAR(12) UNIQUE,
   referred_by   VARCHAR(36),
@@ -349,8 +351,19 @@ CREATE TABLE IF NOT EXISTS microloans (
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER note;
 ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;
 
--- Demo Admin user (password: admin123)
-INSERT IGNORE INTO users (id,name,email,phone,password_hash,role,kyc_status,verified,balance,points,referral_code) VALUES
-('admin-001','Admin User','admin@imap.bd','01700000000',
- '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
- 'admin','verified',1,0,0,'ADMIN001');
+-- ── ADMIN BOOTSTRAP ──────────────────────────────────────
+-- REMOVED in Phase 0.5 (P0-9).
+--
+-- This file used to seed an administrator with the password `admin123`.
+-- Both the plaintext and its bcrypt hash were committed to this
+-- repository, so any deployment created from it shipped with a publicly
+-- known administrator credential.
+--
+-- Create the first administrator explicitly instead:
+--
+--     cd backend
+--     node scripts/resetAdmin.js
+--
+-- It requires ADMIN_BOOTSTRAP_EMAIL (or _PHONE) and will either use
+-- ADMIN_BOOTSTRAP_PASSWORD or generate a strong password and print it
+-- once. Nothing is hardcoded.

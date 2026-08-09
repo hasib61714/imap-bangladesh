@@ -152,11 +152,41 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     try { await adminApi.updateUser(id, {is_active:0}); } catch(e) { console.warn(e.message); }
   };
   const toggleSuspend = async (type, id) => {
-    if (type==="provider") setProviders(p => p.map(x => x.id===id ? {...x, status:x.status==="suspended"?"active":"suspended"} : x));
-    else                   setUsers(p   => p.map(x => x.id===id ? {...x, status:x.status==="suspended"?"active":"suspended"} : x));
-    toast(lang==="bn" ? "✅ অবস্থা পরিবর্তিত" : "✅ Status updated");
-    try { await adminApi.updateUser(id, {is_active:-1}); } catch(e) { console.warn(e.message); }
+    // P1-11: this used to send is_active:-1 for both directions. The API
+    // stored -1, and the auth middleware treats -1 as active — so the row
+    // showed "suspended" while the account kept working. Send the real
+    // target state, and only update the UI once the server confirms.
+    const list = type === "provider" ? providers : users;
+    const current = list.find(x => x.id === id);
+    const nextActive = current?.status === "suspended" ? 1 : 0;
+    try {
+      await adminApi.updateUser(id, { is_active: nextActive });
+      const nextStatus = nextActive ? "active" : "suspended";
+      if (type==="provider") setProviders(p => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
+      else                   setUsers(p   => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
+      toast(lang==="bn" ? "✅ অবস্থা পরিবর্তিত" : "✅ Status updated");
+    } catch(e) {
+      toast((lang==="bn" ? "পরিবর্তন ব্যর্থ: " : "Update failed: ") + (e.data?.error || e.message), "error");
+    }
   };
+  // Load one document's images only when a reviewer asks to see them.
+  const loadKycImages = async (id) => {
+    setKycList(k => k.map(x => x.id===id ? {...x, imagesLoading:true} : x));
+    try {
+      const doc = await adminApi.kycDoc(id);
+      setKycList(k => k.map(x => x.id===id ? {
+        ...x,
+        frontImg:  doc.front_image  || null,
+        backImg:   doc.back_image   || null,
+        selfieImg: doc.selfie_image || null,
+        imagesLoaded: true, imagesLoading: false,
+      } : x));
+    } catch (e) {
+      setKycList(k => k.map(x => x.id===id ? {...x, imagesLoading:false} : x));
+      toast((lang==="bn" ? "ছবি লোড ব্যর্থ: " : "Could not load images: ") + (e.data?.error || e.message), "error");
+    }
+  };
+
   const kycApprove = id => {
     setKycList(k => k.map(x => x.id===id ? {...x, status:"verified"} : x));
     toast(lang==="bn" ? "✅ KYC অনুমোদিত" : "✅ KYC Approved");
@@ -369,9 +399,15 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           submittedAt: k.submitted_at ? new Date(k.submitted_at).toLocaleDateString("bn-BD") : "—",
           status: k.status,
           rejectionReason: k.rejection_reason || "",
-          frontImg:  k.front_image  || null,
-          backImg:   k.back_image   || null,
-          selfieImg: k.selfie_image || null,
+          // P1-12: the list no longer ships base64 ID scans. It reports
+          // which images exist; the images themselves load on demand.
+          hasFront:  !!k.has_front,
+          hasBack:   !!k.has_back,
+          hasSelfie: !!k.has_selfie,
+          frontImg:  null,
+          backImg:   null,
+          selfieImg: null,
+          imagesLoaded: false,
         })));
       }
     } catch(e) { console.warn("load kyc:", e.message); }
@@ -835,6 +871,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                             <Alert message={`${lang==="bn"?"কারণ":"Reason"}: ${kyc.rejectionReason}`}
                               type="error" showIcon style={{marginTop:10,padding:"4px 10px",fontSize:12}} />
                           )}
+                          {!kyc.imagesLoaded && (kyc.hasFront||kyc.hasBack||kyc.hasSelfie) && (
+                            <Button size="small" style={{marginTop:12}} loading={!!kyc.imagesLoading}
+                              onClick={()=>loadKycImages(kyc.id)}>
+                              {lang==="bn"?"🖼️ ডকুমেন্ট ছবি দেখুন":"🖼️ Load document images"}
+                            </Button>
+                          )}
+                          {kyc.imagesLoaded && (
                           <Row gutter={8} style={{marginTop:12}}>
                             {[
                               {label:lang==="bn"?"সামনে":"Front",  src:kyc.frontImg},
@@ -855,6 +898,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                               </Col>
                             ))}
                           </Row>
+                          )}
                         </Card>
                       </Col>
                     );

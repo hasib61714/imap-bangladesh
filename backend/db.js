@@ -31,4 +31,34 @@ pool.getConnection()
     console.error("❌ MySQL connection failed:", err.message);
   });
 
+/**
+ * Run `fn` inside a single database transaction.
+ *
+ * Phase 0.5 containment for P0-11: before this, every money path was a
+ * sequence of independent autocommit statements, so a failure between
+ * them left a balance debited with no booking (or credited with no
+ * ledger row) and no way to detect the drift.
+ *
+ * Scope is deliberately narrow — only the critical financial boundaries
+ * listed in docs/audit/PHASE-0.5-CONTAINMENT-PLAN.md §2 use this.
+ *
+ * @param {(conn: import('mysql2/promise').PoolConnection) => Promise<any>} fn
+ * @returns {Promise<any>} whatever `fn` resolves to
+ */
+async function withTransaction(fn) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await fn(conn);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    try { await conn.rollback(); } catch { /* connection already gone */ }
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = pool;
+module.exports.withTransaction = withTransaction;

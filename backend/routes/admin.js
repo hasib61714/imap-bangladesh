@@ -114,10 +114,32 @@ router.patch("/users/:id", ...auth, async (req, res) => {
     const validRoles = ["customer", "provider", "admin"];
     if (role && !validRoles.includes(role))
       return res.status(400).json({ error: "Invalid role" });
+
+    // P1-11: the admin panel sent is_active = -1 for "suspend", and
+    // middleware/auth.js tests `!rows[0].is_active` — -1 is truthy, so the
+    // suspended user kept full access while the UI showed them as blocked.
+    // Only a strict 0/1 is accepted now.
+    let activeFlag = null;
+    if (is_active !== undefined && is_active !== null) {
+      if (is_active === 0 || is_active === false || is_active === "0" || is_active === "false") activeFlag = 0;
+      else if (is_active === 1 || is_active === true || is_active === "1" || is_active === "true") activeFlag = 1;
+      else return res.status(400).json({ error: "is_active must be 0 or 1" });
+    }
+    if (activeFlag === null && !role) {
+      return res.status(400).json({ error: "Nothing to update" });
+    }
+    // An administrator must not lock themselves out.
+    if (activeFlag === 0 && String(req.params.id) === String(req.user.id)) {
+      return res.status(400).json({ error: "You cannot deactivate your own account" });
+    }
+
     await pool.query(
       "UPDATE users SET is_active = COALESCE(?, is_active), role = COALESCE(?, role) WHERE id = ?",
-      [is_active !== undefined ? is_active : null, role || null, req.params.id]
+      [activeFlag, role || null, req.params.id]
     );
+    logger.info("admin updated user", {
+      adminId: req.user.id, targetUserId: req.params.id, is_active: activeFlag, role: role || null,
+    });
     cache.del("admin:stats");
     cache.del("admin:users:default");
     cache.del("admin:providers:default");
@@ -172,10 +194,19 @@ router.get("/kyc", ...auth, async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const isDefault = parseInt(page) === 1 && parseInt(limit) === 30;
     const fetchKyc = async () => {
+      // Image columns are deliberately excluded here (P1-12): they are
+      // LONGTEXT base64 blobs of up to ~5 MB each. Fetch one document's
+      // images through GET /api/admin/kyc/:id when a reviewer opens it.
       const [rows] = await pool.query(
-        `SELECT k.*, u.name, u.email, u.phone FROM kyc_docs k
-         LEFT JOIN users u ON u.id = k.user_id
-         WHERE k.status = ? ORDER BY k.submitted_at DESC LIMIT ? OFFSET ?`,
+        `SELECT k.id, k.user_id, k.doc_type, k.doc_number, k.status,
+                k.rejection_reason, k.reviewed_by, k.submitted_at, k.reviewed_at,
+                (k.front_image  IS NOT NULL) AS has_front,
+                (k.back_image   IS NOT NULL) AS has_back,
+                (k.selfie_image IS NOT NULL) AS has_selfie,
+                u.name, u.email, u.phone
+           FROM kyc_docs k
+           LEFT JOIN users u ON u.id = k.user_id
+          WHERE k.status = ? ORDER BY k.submitted_at DESC LIMIT ? OFFSET ?`,
         [status, parseInt(limit), offset]
       );
       const [[total]] = await pool.query(
@@ -189,6 +220,25 @@ router.get("/kyc", ...auth, async (req, res) => {
     res.json(data);
   } catch (err) {
     logger.error("admin kyc:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /api/admin/kyc/:id — one document, including its images ──
+// Split out from the list (P1-12) so reviewers load images one at a time.
+router.get("/kyc/:id", ...auth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT k.*, u.name, u.email, u.phone
+         FROM kyc_docs k LEFT JOIN users u ON u.id = k.user_id
+        WHERE k.id = ? LIMIT 1`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: "KYC document not found" });
+    logger.info("admin viewed KYC document", { adminId: req.user.id, kycId: req.params.id });
+    res.json(rows[0]);
+  } catch (err) {
+    logger.error("admin kyc detail:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

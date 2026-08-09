@@ -87,68 +87,65 @@ async function callOpenAI(messages, lang = "bn") {
   return data.choices?.[0]?.message?.content || null;
 }
 
-/* ── Smart Bangla/English fallback responses ─────────────────── */
+/* ── Offline fallback responses ───────────────────────────────
+ *
+ * SAFETY (Phase 0.5, P0 AI-safety): these strings previously asserted
+ * specific facts that were never read from the database and in several
+ * cases were simply untrue — "45+ verified electricians", "dispatched
+ * within 3 minutes", "cancel up to 1 hour before at no charge",
+ * "refunds in 3-5 business days", and worst of all
+ * "Your IMAP credit score is 82/100 — eligible for instant microloan up
+ * to ৳50,000", which stated a user-specific financial fact to every
+ * person who typed the word "loan".
+ *
+ * This path runs when no model is reachable. It therefore cannot know
+ * anything, and must not pretend to. Every reply now routes the user to
+ * a screen where the real, server-computed answer lives.
+ */
 const FALLBACK_BN = {
-  ইলেকট্রি: "⚡ ইলেকট্রিক্যাল সমস্যার জন্য আমাদের কাছে ৪৫+ যাচাইকৃত ইলেকট্রিশিয়ান আছেন। এখনই বুকিং করুন! গড় সময়: ৩০ মিনিট।",
-  প্লাম্ব:  "🔧 প্লাম্বিং সমস্যা? আমাদের ২৮+ দক্ষ প্লাম্বার সবসময় প্রস্তুত। জরুরি হলে ১৫ মিনিটে পৌঁছাবে!",
-  নার্স:    "🏥 অভিজ্ঞ নার্স দরকার? ৩২+ NID-যাচাইকৃত নার্স available। বাড়িতে সেবা প্রদান সম্ভব।",
-  পরিষ্কার: "🧹 বাড়ি/অফিস পরিষ্কারের জন্য ৫৬+ trained কর্মী আছেন। ঘণ্টা হিসেবে বা প্যাকেজে বুক করুন।",
-  রাঁধুনি:  "👨‍🍳 অনুষ্ঠান বা দৈনন্দিন রান্নার জন্য ২৪+ পেশাদার রাঁধুনি। আজই বুক করুন!",
-  ড্রাইভার: "🚗 বিশ্বস্ত ড্রাইভার চাই? ১৮+ verified ড্রাইভার available। মাসিক চুক্তিতেও নেওয়া যায়।",
-  দাম:      "💰 সেবার দাম নির্ভর করে কাজের ধরন ও এলাকার উপর। সাধারণত ৳২৫০-৳১৫০০ এর মধ্যে। আজ বুক করলে ১০% ছাড়!",
-  জরুরি:   "🚨 জরুরি সেবা? এখনই ৯৯৯ বা আমাদের Emergency বাটন চাপুন! ৩ মিনিটের মধ্যে নিকটতম professional ডিসপ্যাচ।",
-  লোন:     "💹 আপনার credit score IMAP-এ ৮২/১০০। এই স্কোর দিয়ে ৳৫০,০০০ পর্যন্ত instant microloan নেওয়া সম্ভব!",
-  পেমেন্ট: "💳 আমরা bKash, Nagad, Rocket এবং cash on delivery সাপোর্ট করি। ১০০% নিরাপদ লেনদেন।",
-  রেটিং:   "⭐ সেবা পাওয়ার পর রেটিং দিন। আপনার রিভিউ অন্যদের সঠিক provider বেছে নিতে সাহায্য করে।",
-  নিকট:    "📍 আপনার অবস্থান দিন, নিকটতম provider খুঁজে দেব। Nearby বাটন ব্যবহার করুন!",
-  বুকিং:   "📋 বুকিং করতে Services পেজে যান, provider বেছে নিন ও সময় সিলেক্ট করুন। ৩ ধাপে সহজেই হয়!",
-  হ্যালো:  "😊 আস্সালামুয়ালাইকুম! আমি IMAP AI। কোন সেবা দরকার? ইলেকট্রিশিয়ান, নার্স, প্লাম্বার, পরিষ্কার... যেকোনো কিছু বলুন।",
-  ধন্যবাদ: "🌿 আপনাকে স্বাগতম! আরো কিছু প্রয়োজন হলে জিজ্ঞেস করুন। ভালো থাকুন! 😊",
-  কার্পেন: "🪚 কার্পেন্টার দরকার? আমাদের ২০+ দক্ষ কার্পেন্টার আসবাব মেরামত থেকে নতুন নির্মাণে সাহায্য করেন।",
-  রং:      "🎨 পেইন্টিং সেবা? ঘরের ভেতর-বাইরে পেইন্টিংয়ের জন্য ১৫+ অভিজ্ঞ painter। বিনামূল্যে কোটেশন!",
-  এসি:     "❄️ AC সমস্যা? ইনস্টলেশন, সার্ভিসিং বা মেরামতের জন্য আমাদের AC technician ডাকুন। ২৪ ঘণ্টা সেবা!",
-  গার্ড:   "🔒 নিরাপত্তা রক্ষী দরকার? ট্রেনড সিকিউরিটি গার্ড ইভেন্ট বা বাড়ি/অফিসের জন্য পাওয়া যায়।",
-  কাজ:     "💼 কোন কাজে সাহায্য লাগবে? ইলেকট্রিক, প্লাম্বিং, পরিষ্কার, রান্না, নার্সিং — সব সেবাই আমাদের কাছে আছে!",
-  সেবা:    "🌟 IMAP-এ ৫০+ ধরনের সেবা পাওয়া যায়। Services পেজে গিয়ে দেখুন এবং নিজের পছন্দের সেবা বুক করুন!",
-  সমস্যা:  "🛠️ কোন সমস্যায় পড়েছেন? আমাকে বলুন কোন ধরনের সেবা দরকার, আমি সঠিক professional খুঁজে দেব।",
-  কতক্ষণ: "⏱️ সাধারণত বুকিং কনফার্মের ৩০-৬০ মিনিটের মধ্যে provider পৌঁছে যান। জরুরি ক্ষেত্রে আরও দ্রুত!",
+  ইলেকট্রি: "⚡ ইলেকট্রিক্যাল কাজের জন্য Services পেজে গিয়ে উপলব্ধ প্রোভাইডার দেখুন — সেখানে বর্তমান তালিকা ও দাম দেখানো হয়।",
+  প্লাম্ব:  "🔧 প্লাম্বিং সেবার জন্য Services পেজ দেখুন — কারা এখন উপলব্ধ তা সেখানে দেখতে পাবেন।",
+  নার্স:    "🏥 নার্সিং ও হোম কেয়ারের জন্য Services পেজ দেখুন।",
+  পরিষ্কার: "🧹 পরিষ্কার সেবার জন্য Services পেজ দেখুন।",
+  দাম:      "💰 প্রতিটি প্রোভাইডারের দাম তাদের প্রোফাইলে দেখানো হয়। বুকিং কনফার্ম করার আগে চূড়ান্ত দাম দেখানো হবে। আমি এখানে দাম বলতে পারছি না।",
+  জরুরি:   "🚨 তাৎক্ষণিক বিপদে ৯৯৯ নম্বরে কল করুন। অ্যাপের Emergency বাটন আপনার অনুরোধ রেকর্ড করে অ্যাডমিন টিমকে জানায়।",
+  লোন:     "💹 আপনার প্রকৃত লোন স্কোর ও যোগ্যতা Loans পেজে দেখানো হয় — সেটিই একমাত্র সঠিক তথ্য। আমি আপনার স্কোর দেখতে পাচ্ছি না।",
+  পেমেন্ট: "💳 উপলব্ধ পেমেন্ট মাধ্যম চেকআউট পেজে দেখানো হয়।",
+  রেটিং:   "⭐ সেবা সম্পন্ন হওয়ার পর My Bookings থেকে রিভিউ দিতে পারবেন।",
+  বুকিং:   "📋 Services পেজে যান → প্রোভাইডার বেছে নিন → সময় নির্বাচন করুন।",
+  হ্যালো:  "😊 আস্সালামুয়ালাইকুম! আমি IMAP AI। এই মুহূর্তে আমি সীমিত মোডে চলছি, তাই সরাসরি তথ্য দিতে পারছি না — Services পেজ থেকে দেখুন।",
+  ধন্যবাদ: "🌿 আপনাকে স্বাগতম!",
+  বাতিল:   "↩️ বাতিল ও রিফান্ডের নিয়ম আপনার বুকিং-এর বিস্তারিত পেজে দেখানো হয়।",
+  রিফান্ড: "💸 রিফান্ডের অবস্থা My Bookings ও Wallet পেজে দেখা যায়।",
 };
 
 const FALLBACK_EN = {
-  electr:  "⚡ Need electrical work? We have 45+ verified electricians. Average response: 30 min. Book now!",
-  plumb:   "🔧 Plumbing issue? Our 28+ skilled plumbers are ready 24/7. Emergency dispatch in 15 minutes!",
-  nurse:   "🏥 Looking for a nurse? 32+ NID-verified nursing professionals available for home visits.",
-  clean:   "🧹 Home/office cleaning? 56+ trained cleaners available. Book by hour or package deal.",
-  cook:    "👨‍🍳 Need a cook? 24+ professional cooks for events or daily service. Book today!",
-  driver:  "🚗 Trusted driver? 18+ verified drivers available, including monthly packages.",
-  price:   "💰 Prices range ৳250-৳1500 depending on service & area. Book today for 10% off!",
-  urgent:  "🚨 Emergency? Hit the Emergency button! Nearest professional dispatched within 3 minutes.",
-  loan:    "💹 Your IMAP credit score is 82/100 — eligible for instant microloan up to ৳50,000!",
-  payment: "💳 We support bKash, Nagad, Rocket & cash on delivery. 100% secure transactions.",
-  rating:  "⭐ Rate your provider after service. Your review helps others choose the best professional.",
-  near:    "📍 Share your location to find the nearest provider. Use the Nearby button!",
-  book:    "📋 Go to Services → choose provider → select time. Done in 3 easy steps!",
-  hello:   "😊 Hello! I'm IMAP AI. What service do you need? Electrician, Nurse, Plumber, Cleaning...",
-  thank:   "🌿 You're welcome! Let me know if you need anything else. Stay well! 😊",
-  carpen:  "🪚 Need carpentry? 20+ skilled carpenters for furniture repair or new installations.",
-  paint:   "🎨 Painting service? 15+ experienced painters for interior & exterior. Free quote!",
-  ac:      "❄️ AC problem? Installation, servicing or repair — our AC technicians are available 24/7!",
-  guard:   "🔒 Need security? Trained security guards available for events, homes & offices.",
-  service: "🌟 IMAP offers 50+ service types. Visit our Services page to browse and book!",
-  how:     "📱 How it works: 1️⃣ Choose service → 2️⃣ Select provider → 3️⃣ Pick time → Done! Payment after service.",
-  long:    "⏱️ Providers typically arrive within 30-60 minutes of booking. Emergency slots even faster!",
-  cancel:  "↩️ You can cancel a booking up to 1 hour before the scheduled time at no charge.",
-  refund:  "💸 Refunds are processed within 3-5 business days to your original payment method.",
+  electr:  "⚡ For electrical work, open the Services page — it shows who is actually available right now and their rates.",
+  plumb:   "🔧 For plumbing, open the Services page to see currently available providers.",
+  nurse:   "🏥 For nursing and home care, open the Services page.",
+  clean:   "🧹 For cleaning services, open the Services page.",
+  price:   "💰 Each provider's rate is shown on their profile, and the final price is confirmed before you book. I can't quote a price from here.",
+  urgent:  "🚨 If you are in immediate danger, call 999. The in-app Emergency button records your request and alerts the admin team.",
+  loan:    "💹 Your real loan score and eligibility are shown on the Loans page — that is the only accurate source. I can't see your score from here.",
+  payment: "💳 Available payment methods are shown at checkout.",
+  rating:  "⭐ You can leave a review from My Bookings once a service is completed.",
+  book:    "📋 Services page → choose a provider → pick a time.",
+  hello:   "😊 Hello! I'm IMAP AI. I'm running in limited mode right now, so I can't look things up — the Services page has the live information.",
+  thank:   "🌿 You're welcome!",
+  cancel:  "↩️ Cancellation terms for your booking are shown on its detail page.",
+  refund:  "💸 Refund status appears in My Bookings and in your Wallet.",
 };
 
 function smartFallback(text, lang) {
-  const t = text.toLowerCase();
+  const t = String(text || "").toLowerCase();
   if (lang === "bn") {
     const k = Object.keys(FALLBACK_BN).find(k => t.includes(k));
-    return k ? FALLBACK_BN[k] : "🤖 বুঝেছি! আমি IMAP AI সহায়ক। ইলেকট্রিক, প্লাম্বিং, নার্স, পরিষ্কার, রান্না — যেকোনো সেবার জন্য জিজ্ঞেস করুন অথবা Services পেজ থেকে সরাসরি বুক করুন! 😊";
+    return k ? FALLBACK_BN[k]
+      : "🤖 এই মুহূর্তে আমি সীমিত মোডে চলছি এবং আপনার প্রশ্নের সঠিক উত্তর খুঁজে দিতে পারছি না। Services পেজ থেকে সরাসরি দেখুন, অথবা একটু পরে আবার চেষ্টা করুন।";
   }
   const k = Object.keys(FALLBACK_EN).find(k => t.includes(k));
-  return k ? FALLBACK_EN[k] : "🤖 I'm IMAP AI! I can help with Electrical, Plumbing, Nursing, Cleaning, Cooking and more. What service do you need today? Or visit our Services page to browse! 😊";
+  return k ? FALLBACK_EN[k]
+    : "🤖 I'm running in limited mode right now and can't look up an answer for you. Please browse the Services page directly, or try again shortly.";
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -171,7 +168,7 @@ router.get("/debug", ...adminOnly, async (req, res) => {
   } catch (e) { return res.json({ gemini: false, reason: e.message }); }
 });
 
-router.post("/chat", async (req, res) => {
+router.post("/chat", authMiddleware, async (req, res) => {
   try {
     let { messages = [], lang = "bn" } = req.body;
     // Cap message history and individual message length to limit token abuse
@@ -205,7 +202,7 @@ router.post("/chat", async (req, res) => {
    body: { messages: [{role, content}], lang: "bn"|"en" }
    Client reads: data: {"text":"chunk"}\n\n  then  data: [DONE]\n\n
 ═══════════════════════════════════════════════════════════ */
-router.post("/chat/stream", async (req, res) => {
+router.post("/chat/stream", authMiddleware, async (req, res) => {
   let { messages = [], lang = "bn" } = req.body;
   const apiKey    = process.env.GEMINI_API_KEY;
   // Cap message history and content length
@@ -416,7 +413,7 @@ router.post("/dynamic-price", async (req, res) => {
       discount: dynamicPrice < basePrice ? basePrice - dynamicPrice : 0,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -462,7 +459,7 @@ router.post("/fraud-check", async (req, res) => {
     const riskLevel = score >= 60 ? "high" : score >= 30 ? "medium" : "low";
     res.json({ riskScore: Math.min(score, 100), riskLevel, flags, blocked: score >= 80 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -520,7 +517,7 @@ router.post("/review-check", async (req, res) => {
       recommendation: isSuspicious ? "manual_review" : "approve",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -598,7 +595,7 @@ router.get("/forecast", ...adminOnly, async (req, res) => {
     }, 300);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -655,7 +652,7 @@ router.get("/churn", ...adminOnly, async (req, res) => {
     }, 300);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -701,7 +698,7 @@ router.get("/heatmap", ...adminOnly, async (req, res) => {
     }, 300);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -744,7 +741,7 @@ router.post("/bundle-suggest", async (req, res) => {
 
     res.json({ suggestions, basedOn: serviceType });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

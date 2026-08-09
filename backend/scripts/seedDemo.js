@@ -1,14 +1,36 @@
 /**
- * seedDemo.js  –  Populates the database with realistic demo providers/users
+ * seedDemo.js  –  Populates the database with demo providers/users
  * Safe to run multiple times (idempotent – uses INSERT IGNORE / ON DUPLICATE KEY)
  * Run: node scripts/seedDemo.js
+ *
+ * ⚠ DEVELOPMENT ONLY (Phase 0.5, P0-9).
+ * This seeder creates accounts that share a single known password and
+ * providers with fabricated ratings and job counts. It refuses to run
+ * when NODE_ENV=production, and the HTTP endpoint that used to invoke
+ * it (GET /api/admin/seed-demo) has been removed.
+ *
+ * The demo password is read from DEMO_SEED_PASSWORD so that no literal
+ * credential lives in this repository; if unset, a random one is
+ * generated and printed once.
  */
 require("dotenv").config();
 const mysql  = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 
 const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
+
+if (process.env.NODE_ENV === "production") {
+  console.error("❌ Refusing to seed demo data with NODE_ENV=production.");
+  console.error("   Demo providers use a shared password and fabricated statistics.");
+  process.exit(1);
+}
+
+// Never a literal credential in the repository.
+const DEMO_PASSWORD = process.env.DEMO_SEED_PASSWORD ||
+  crypto.randomBytes(12).toString("base64url");
+const DEMO_PASSWORD_GENERATED = !process.env.DEMO_SEED_PASSWORD;
 
 async function seed() {
   const conn = await mysql.createConnection({
@@ -45,7 +67,11 @@ async function seed() {
   console.log("✅ Categories seeded");
 
   // ── 2. DEMO PROVIDER DEFINITIONS ────────────────────────────────
-  const hash = await bcrypt.hash("demo1234", 10);
+  const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  if (DEMO_PASSWORD_GENERATED) {
+    console.log("🔑 Generated demo account password (shown once):", DEMO_PASSWORD);
+    console.log("   Set DEMO_SEED_PASSWORD to choose your own.");
+  }
   const providers = [
     {
       phone: "01700000001", name: "মো. রাকিব হোসেন",
@@ -137,6 +163,7 @@ async function seed() {
           hourly_rate=?, experience_yrs=?,
           rating=?, total_jobs=?,
           is_available=1, nid_verified=1, trust_score=90,
+          is_approved=1,
           category_id=?
          WHERE user_id=?`,
         [p.service_type_bn, p.service_type_en,
@@ -155,8 +182,8 @@ async function seed() {
            area_bn, area_en, bio_bn, bio_en,
            hourly_rate, experience_yrs,
            rating, total_jobs,
-           is_available, nid_verified, trust_score, category_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,?)`,
+           is_available, nid_verified, trust_score, is_approved, category_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,1,?)`,
         [pid, userId,
          p.service_type_bn, p.service_type_en,
          p.area_bn, p.area_en,

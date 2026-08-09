@@ -7,6 +7,7 @@ const pool     = require("../db");
 const sms      = require("../utils/sms");
 const otpStore = require("../utils/otp-store");
 const { validate, body } = require("../middleware/validate");
+const { parseOptionalAmount, MoneyError } = require("../utils/money");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 const makeToken = (user) =>
@@ -34,11 +35,19 @@ const otpRules = validate([
 // ── POST /api/auth/register ───────────────────────────────
 router.post("/register", registerRules, async (req, res) => {
   try {
-    const { name, email, phone, password, role = "customer", loginMethod = "email", socialId, avatar } = req.body;
+    const { name, email, phone, password, role = "customer", avatar } = req.body;
+
+    // SECURITY (P0-2 related): `socialId` and `loginMethod` are no longer
+    // accepted here. Allowing a client to assert a social identity at
+    // registration let an attacker pre-register a victim's provider
+    // subject id and capture their account on first social sign-in.
+    // social_id is now written only by POST /api/auth/google, after the
+    // provider's ID token has been verified.
+    const loginMethod = phone && !email ? "phone" : "email";
 
     if (!name?.trim())  return res.status(400).json({ error: "Name required" });
-    if (!email && !phone && !socialId)
-      return res.status(400).json({ error: "Email, phone, or social ID required" });
+    if (!email && !phone)
+      return res.status(400).json({ error: "Email or phone required" });
     if (avatar && avatar.length > 2_700_000)
       return res.status(400).json({ error: "Avatar too large (max ~2 MB)" });
 
@@ -58,21 +67,26 @@ router.post("/register", registerRules, async (req, res) => {
 
     await pool.query(
       `INSERT INTO users (id, name, email, phone, password_hash, role, avatar, login_method, social_id, referral_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name.trim(), email || null, phone || null, hash, role, avatar || null, loginMethod, socialId || null, refCode]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+      [id, name.trim(), email || null, phone || null, hash, role, avatar || null, loginMethod, refCode]
     );
 
-    // If provider role → create provider profile
+    // If provider role → create provider profile.
+    // is_approved defaults to 0: a new provider is not publicly listed
+    // or bookable until an admin approves them (P1-7).
     if (role === "provider") {
       const pid = uuidv4();
       const { service_type_bn, service_type_en, area_bn, area_en, hourly_rate } = req.body;
+      // A provider setting their own rate is legitimate, but it feeds
+      // server-side pricing, so it is validated as money (P0-4).
+      const rate = parseOptionalAmount(hourly_rate, "hourly_rate", 0, { max: 100000 });
       await pool.query(
         `INSERT INTO providers (id, user_id, service_type_bn, service_type_en, area_bn, area_en, hourly_rate)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [pid, id,
          service_type_bn || null, service_type_en || null,
          area_bn || null, area_en || null,
-         hourly_rate || null]
+         rate > 0 ? rate : null]
       );
     }
 
@@ -83,12 +97,28 @@ router.post("/register", registerRules, async (req, res) => {
 
     res.status(201).json({ user: rows[0], token: makeToken(rows[0]) });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
     logger.error("register:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ── POST /api/auth/login ──────────────────────────────────
+// SECURITY (P0-1): this handler previously skipped password verification
+// entirely when `password_hash` was NULL — which is the case for every
+// account created through OTP or a social provider. Knowing a phone
+// number was therefore enough to obtain that user's token.
+//
+// It now fails closed: a password login requires a stored hash, and an
+// account without one must authenticate through the flow that owns it
+// (OTP or Google). Responses are deliberately uniform so they cannot be
+// used to enumerate accounts or discover which credential type an
+// account uses.
+const INVALID_CREDENTIALS = "Invalid credentials";
+// Real bcrypt hash of a random string, compared against when no account
+// or no stored hash exists so the response time does not reveal which.
+const DUMMY_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 router.post("/login", loginRules, async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -98,13 +128,22 @@ router.post("/login", loginRules, async (req, res) => {
       "SELECT * FROM users WHERE (email = ? OR phone = ?) AND is_active = 1",
       [identifier, identifier]
     );
-    if (!rows.length) return res.status(401).json({ error: "Account not found" });
 
     const user = rows[0];
+    const storedHash =
+      user && typeof user.password_hash === "string" && user.password_hash.length > 0
+        ? user.password_hash
+        : null;
 
-    if (user.password_hash) {
-      const ok = await bcrypt.compare(password || "", user.password_hash);
-      if (!ok) return res.status(401).json({ error: "Wrong password" });
+    // Always run a comparison, even with no account / no hash, so that
+    // timing does not distinguish the three cases.
+    const ok = await bcrypt.compare(String(password || ""), storedHash || DUMMY_HASH);
+
+    if (!user || !storedHash || !ok) {
+      if (user && !storedHash) {
+        logger.warn("login rejected: account has no password credential", { userId: user.id });
+      }
+      return res.status(401).json({ error: INVALID_CREDENTIALS });
     }
 
     const { password_hash, ...safeUser } = user;
@@ -116,29 +155,27 @@ router.post("/login", loginRules, async (req, res) => {
 });
 
 // ── POST /api/auth/social-login ───────────────────────────
-router.post("/social-login", async (req, res) => {
-  try {
-    const { socialId, provider, email, name, avatar } = req.body;
-    if (!socialId || !provider) return res.status(400).json({ error: "socialId and provider required" });
-    if (socialId.length > 200 || provider.length > 30)
-      return res.status(400).json({ error: "Invalid socialId or provider" });
-
-    const [rows] = await pool.query(
-      "SELECT * FROM users WHERE social_id = ?",
-      [socialId]
-    );
-
-    if (rows.length) {
-      const { password_hash, ...safeUser } = rows[0];
-      return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
-    }
-
-    // New — needs profile step (return partial, no save yet)
-    res.json({ isNew: true, prefill: { name, email, socialId } });
-  } catch (err) {
-    logger.error("social-login:", err);
-    res.status(500).json({ error: "Server error" });
-  }
+// DISABLED (P0-2). This endpoint issued a full session token to anyone
+// who supplied a `socialId` that existed in the database, with no
+// verification against the social provider. Google's `sub` — which
+// /api/auth/google stores in that same column — is a public identifier,
+// not a secret, so this was a direct account-takeover path.
+//
+// It fails closed rather than being "fixed", because there is no way to
+// verify an identity from client-supplied fields alone. Google sign-in
+// continues to work through POST /api/auth/google, which verifies the
+// ID token and its audience with Google before issuing anything.
+//
+// Providers disabled by this change: Facebook (the client generated its
+// own socialId — it was never a real OAuth flow) and any other caller
+// of this endpoint. Re-enabling requires a server-side token exchange
+// with the provider.
+router.post("/social-login", (_req, res) => {
+  logger.warn("social-login called — endpoint disabled in Phase 0.5 (P0-2)");
+  res.status(410).json({
+    error: "This sign-in method has been disabled. Please use Google sign-in, phone OTP, or email and password.",
+    code: "SOCIAL_LOGIN_DISABLED",
+  });
 });
 
 // ── POST /api/auth/send-otp ───────────────────────────────
@@ -202,10 +239,19 @@ router.post("/google", async (req, res) => {
     const { sub: googleId, email, name, picture } = gUser;
     if (!googleId) return res.status(401).json({ error: "Invalid token payload" });
 
-    // Find existing user by google social_id or email
+    // Google returns email_verified as the string "true"/"false" on the
+    // tokeninfo endpoint. Only an address Google has actually verified may
+    // be used to match an existing local account — otherwise an attacker
+    // who registered that email first would capture the sign-in.
+    const emailVerified = String(gUser.email_verified) === "true";
+    const matchEmail = emailVerified && email ? email : null;
+
+    // Match on the verified subject id first, then on a verified email.
     const [rows] = await pool.query(
-      "SELECT * FROM users WHERE social_id = ? OR (email = ? AND email IS NOT NULL AND email <> '')",
-      [googleId, email || ""]
+      matchEmail
+        ? "SELECT * FROM users WHERE social_id = ? OR (email = ? AND email IS NOT NULL AND email <> '') LIMIT 1"
+        : "SELECT * FROM users WHERE social_id = ? LIMIT 1",
+      matchEmail ? [googleId, matchEmail] : [googleId]
     );
 
     if (rows.length) {
