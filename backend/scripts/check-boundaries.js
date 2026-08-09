@@ -201,6 +201,30 @@ const ADHOC_AUTHZ_PATTERNS = [
  * transitions are legal, which is the state machine's question, not the
  * kernel's (§19). Renaming it would touch the socket layer that §42 defers.
  */
+// ── I-06: the application layer is transport-independent ─────
+//
+// `SYSTEM-ARCHITECTURE.md` §4.1 gives the application layer one prohibition
+// that matters more than the rest: it may not "know about HTTP, sockets or
+// AI". That is what makes D-002 structural — an AI tool that creates a
+// booking calls the SAME use case the controller calls, so the two cannot
+// diverge, and a use case holding a `res` is one only HTTP can reach.
+const APPLICATION_PATHS = [
+  /^src\/application\//,
+  /^src\/modules\/[^/]+\/application\//,
+];
+
+const TRANSPORT_IN_APPLICATION = [
+  // express / socket.io imported anywhere in the layer
+  /require\(\s*["'](?:express|socket\.io)(?:\/[^"']*)?["']\s*\)/,
+  // the request/response objects, by any of their conventional names
+  /\breq\s*\.\s*(?:body|params|query|headers|user|app)\b/,
+  /\bres\s*\.\s*(?:status|json|send|setHeader|redirect)\b/,
+  // SQL: a use case orchestrates repositories, it does not query
+  /\b(?:pool|conn|connection|db|tx)\s*\.\s*(?:query|execute)\s*\(/,
+  // an HTTP status decided in the application layer
+  /\bstatus\s*:\s*(?:200|201|204|400|401|403|404|409|422|429|500|503)\b/,
+];
+
 /**
  * Where security-critical state lives, and therefore must not be kept in the
  * process (I-05 §6, §35).
@@ -326,6 +350,22 @@ const RULES = [
             hits.push({ line: i + 1, detail: m[0].trim().slice(0, 72) });
             break;
           }
+        }
+      });
+      return hits;
+    },
+  },
+  {
+    id: "application-layer-is-transport-free",
+    severity: "error",
+    why: "A use case that knows about `res` is a use case only HTTP can call. The job runner, the socket layer and the Gate-2 tool layer must reach the same one (SYSTEM-ARCHITECTURE §4.1).",
+    check(file, r, code) {
+      if (!APPLICATION_PATHS.some((p) => p.test(r))) return [];
+      const hits = [];
+      LINES(code).forEach((line, i) => {
+        for (const re of TRANSPORT_IN_APPLICATION) {
+          const m = new RegExp(re.source, re.flags.replace("g", "")).exec(line);
+          if (m) { hits.push({ line: i + 1, detail: m[0].trim().slice(0, 72) }); break; }
         }
       });
       return hits;

@@ -133,7 +133,10 @@ app.use("/api", generalLimiter);
 // ── Routes ────────────────────────────────────────────────
 app.use("/api/auth",      authLimiter, require("./routes/auth"));
 app.use("/api/users",     require("./routes/users"));
-app.use("/api/providers", require("./routes/providers"));
+// I-06: the marketplace module's own transport. routes/providers.js is
+// deleted in the same commit that mounts this, so there is never a moment
+// with two implementations of one endpoint.
+app.use("/api/providers", require("./src/modules/marketplace/transport/routes"));
 app.use("/api/bookings",  require("./routes/bookings"));
 app.use("/api/kyc",       require("./routes/kyc"));
 app.use("/api/reviews",   require("./routes/reviews"));
@@ -185,6 +188,12 @@ app.get("/api/health", async (_req, res) => {
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
 
+// ── Error boundary ────────────────────────────────────────
+// I-06 (§23): an AppError becomes its status and its envelope here, and
+// nowhere else. Anything that is not one falls through to the handler below,
+// which is what the routes that have not migrated still rely on.
+app.use(require("./src/transport/http/errorBoundary").errorBoundary);
+
 // ── Global error handler ──────────────────────────────────
 app.use((err, req, res, _next) => {
   logger.error("Unhandled error", { method: req.method, url: req.originalUrl, err: err.message, stack: err.stack });
@@ -196,9 +205,9 @@ app.use((err, req, res, _next) => {
 // these checks refuses to listen rather than accepting requests and failing
 // on each one. I-03 registers "every use case has an authorization policy"
 // here, and I-05 registers "every job declares idempotency".
-// I-05: composing the platform modules is what registers their startup
-// checks — see src/composition/platform.js.
-require("./src/composition/platform").composePlatform();
+// I-05/I-06: composing the modules is what registers their startup checks —
+// see src/composition/modules.js.
+require("./src/composition/modules").composeModules();
 const { runStartupChecks } = require("./src/composition/startup-checks");
 
 let startup;
