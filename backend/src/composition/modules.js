@@ -21,14 +21,20 @@ const useCaseRegistry = require("../application/registry");
 const authorization = require("../modules/platform/authorization");
 
 const marketplace = require("../modules/marketplace");
+const identity = require("../modules/identity");
 
 let composed = false;
 
 function composeModules() {
-  if (composed) return { marketplace };
+  if (composed) return { marketplace, identity };
   composed = true;
 
   composePlatform();
+  // Identity before marketplace, and it is not arbitrary: marketplace's
+  // listing eligibility is computed from a verification case, so the module
+  // that owns that concept installs first. Neither imports the other's
+  // internals — the dependency is on the vocabulary, through `index.js`.
+  identity.installIdentity();
   marketplace.installMarketplace();
 
   registerStartupCheck("use-case-register", () => {
@@ -42,7 +48,7 @@ function composeModules() {
     authorization.assertRegistryIsSound();
   });
 
-  return { marketplace };
+  return { marketplace, identity };
 }
 
-module.exports = { composeModules, marketplace };
+module.exports = { composeModules, marketplace, identity };
