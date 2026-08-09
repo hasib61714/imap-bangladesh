@@ -39,6 +39,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "js-yaml": "^5.2.3",
     "nodemon": "^3.1.4"
   }
 }
