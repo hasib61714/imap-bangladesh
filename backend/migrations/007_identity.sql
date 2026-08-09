@@ -109,7 +109,23 @@ CREATE TABLE IF NOT EXISTS credential (
   created_at       DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   last_used_at     DATETIME(3) NULL,
   -- One password credential per principal; one link per provider.
-  UNIQUE KEY uniq_credential_kind (principal_id, kind, provider),
+  --
+  -- The obvious form of this constraint DOES NOT WORK, and it was caught by
+  -- the backfill failing its idempotency check rather than by review:
+  --
+  --     UNIQUE KEY (principal_id, kind, provider)
+  --
+  -- A password credential has provider IS NULL, and MySQL-family engines do
+  -- not collide NULLs in a unique index. That constraint therefore permits
+  -- UNLIMITED password credentials per principal — verified by inserting a
+  -- third one. A constraint that silently does not constrain is worse than
+  -- none, because it is relied upon.
+  --
+  -- The generated column gives NULL a value the index can compare, while
+  -- leaving `provider` genuinely NULL for a password credential rather than
+  -- carrying a sentinel that means "not applicable" but reads as a provider.
+  provider_key     VARCHAR(40) AS (IFNULL(provider, '')) STORED,
+  UNIQUE KEY uniq_credential_kind (principal_id, kind, provider_key),
   -- A provider subject identifies exactly one principal. Without this, two
   -- principals could claim the same Google account.
   UNIQUE KEY uniq_provider_subject (provider, provider_subject),
