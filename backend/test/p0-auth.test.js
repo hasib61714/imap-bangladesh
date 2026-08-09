@@ -7,7 +7,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
-const { makePool, installFakeDb, resetModules, serve, call } = require("./helpers/harness");
+const { makePool: rawMakePool, installFakeDb, resetModules, serve, call } = require("./helpers/harness");
+const R = require("./helpers/reliability");
+
+// I-05: /login and /register count against the shared rate limiter before
+// the handler runs, so every pool here answers it. The limiter is
+// permitting throughout — these tests are about credentials, and a 429
+// would hide what they check rather than prove it.
+const makePool = (handlers = []) => rawMakePool([...R.rateLimitAllowing(), ...handlers]);
 
 const AUTH_ROUTE = "../routes/auth";
 

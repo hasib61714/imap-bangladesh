@@ -26,10 +26,27 @@ const ACTIVE = {
 };
 const DEACTIVATED = { ...ACTIVE, id: "u-off", is_active: 0 };
 
+const R = require("./helpers/reliability");
+
 function bootAuth(pool) {
-  resetModules("../routes/auth", "../utils/otp-store", "../utils/sms", "../middleware/auth", "../utils/money");
+  resetModules();
   installFakeDb(pool);
   return serve(require("../routes/auth"));
+}
+
+/**
+ * I-05: the OTP is a row now, not a Map entry, so these tests hand the route
+ * a challenge through the store instead of injecting one into a module. The
+ * assertions below are unchanged — what they check is still whether
+ * `is_active` gates the OTP path.
+ */
+async function otpPool({ code, principalId = null, userHandlers = [] }) {
+  const challenge = await R.liveChallenge({ code, principalId });
+  return makePool([
+    ...R.rateLimitAllowing(),
+    ...R.otpVerifyHandlers(challenge),
+    ...userHandlers,
+  ]);
 }
 
 // ── §14: account state gates EVERY authentication path ────────
@@ -41,15 +58,15 @@ test("P0-ADJACENT: a deactivated account cannot obtain a session by OTP", async 
   //
   // The fake pool returns rows only for the query that carries the filter, so
   // this test fails if the filter is removed.
-  const pool = makePool([
-    { match: "FROM users WHERE phone = ? AND is_active = 1", rows: [] },
-    { match: "FROM users WHERE phone = ?", rows: [DEACTIVATED] },
-  ]);
+  const pool = await otpPool({
+    code: "123456",
+    userHandlers: [
+      { match: "FROM users WHERE phone = ? AND is_active = 1", rows: [] },
+      { match: "FROM users WHERE phone = ?", rows: [DEACTIVATED] },
+    ],
+  });
   const srv = await bootAuth(pool);
   t.after(() => srv.close());
-
-  const otpStore = require("../utils/otp-store");
-  otpStore.setOtp(DEACTIVATED.phone, "123456");
 
   const res = await call(srv.url, "POST", "/verify-otp", {
     phone: DEACTIVATED.phone, otp: "123456",
@@ -60,14 +77,12 @@ test("P0-ADJACENT: a deactivated account cannot obtain a session by OTP", async 
 });
 
 test("an ACTIVE account still authenticates by OTP", async (t) => {
-  const pool = makePool([
-    { match: "FROM users WHERE phone = ? AND is_active = 1", rows: [ACTIVE] },
-  ]);
+  const pool = await otpPool({
+    code: "654321",
+    userHandlers: [{ match: "FROM users WHERE phone = ? AND is_active = 1", rows: [ACTIVE] }],
+  });
   const srv = await bootAuth(pool);
   t.after(() => srv.close());
-
-  const otpStore = require("../utils/otp-store");
-  otpStore.setOtp(ACTIVE.phone, "654321");
 
   const res = await call(srv.url, "POST", "/verify-otp", { phone: ACTIVE.phone, otp: "654321" });
   assert.ok(res.body.token, "a valid OTP for an active account must still work");
@@ -77,14 +92,13 @@ test("an ACTIVE account still authenticates by OTP", async (t) => {
 test("the OTP response never reveals that a number is registered", async (t) => {
   // Deactivated and unknown must be indistinguishable, or the endpoint becomes
   // an account-existence oracle for anyone who can receive an SMS.
-  const deactivated = makePool([
-    { match: "FROM users WHERE phone = ? AND is_active = 1", rows: [] },
-  ]);
+  const deactivated = await otpPool({
+    code: "111111",
+    userHandlers: [{ match: "FROM users WHERE phone = ? AND is_active = 1", rows: [] }],
+  });
   const srv = await bootAuth(deactivated);
   t.after(() => srv.close());
 
-  const otpStore = require("../utils/otp-store");
-  otpStore.setOtp("01799999999", "111111");
   const res = await call(srv.url, "POST", "/verify-otp", { phone: "01799999999", otp: "111111" });
 
   assert.equal(res.status, 200);
@@ -156,9 +170,13 @@ test("every JWT verification site pins the algorithm", () => {
     for (const v of verifies) {
       assert.match(v, /algorithms:\s*\[/, `${f}: jwt.verify without a pinned algorithm — ${v}`);
     }
-    const signs = src.match(/jwt\.sign\([\s\S]{0,200}?\)/g) || [];
-    for (const s of signs) {
-      assert.match(s, /algorithm:/, `${f}: jwt.sign without an explicit algorithm`);
+    // A fixed window forward from each call site, not a lazy match to the
+    // first `)`. I-05 added `Math.floor(...)` inside the payload and the lazy
+    // form stopped at that inner bracket, so the test failed on a call whose
+    // algorithm IS pinned — a false alarm is how a real one gets ignored.
+    for (let i = src.indexOf("jwt.sign("); i !== -1; i = src.indexOf("jwt.sign(", i + 1)) {
+      const window = src.slice(i, i + 400);
+      assert.match(window, /algorithm:/, `${f}: jwt.sign without an explicit algorithm at index ${i}`);
     }
   }
 });
@@ -179,6 +197,9 @@ test("P0-9: no default or seeded credential is accepted", async (t) => {
   // migration 002, so there is no credential row and the null-hash rule refuses
   // it. This asserts the outcome rather than the mechanism.
   const pool = makePool([
+    // I-05: /login counts against the shared limiter before it reaches the
+    // handler, so the fixture answers it. Four attempts, well under the limit.
+    ...R.rateLimitAllowing(),
     { match: "FROM users WHERE (email = ? OR phone = ?)", rows: [{ ...ACTIVE, id: "admin-001", phone: "01700000000", role: "admin", password_hash: null }] },
   ]);
   const srv = await bootAuth(pool);

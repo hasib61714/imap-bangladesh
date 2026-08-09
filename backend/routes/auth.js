@@ -5,7 +5,14 @@ const jwt      = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const pool     = require("../db");
 const sms      = require("../utils/sms");
-const otpStore = require("../utils/otp-store");
+// I-05 (F-9): utils/otp-store.js was a module-level Map. With two instances a
+// code issued by one did not exist on the other, and `attempts` — the only
+// thing between a six-digit number and an exhaustive search — counted per
+// instance. The store is now a table every instance shares.
+const otp      = require("../src/modules/platform/otp");
+const limiter  = require("../src/modules/platform/ratelimit");
+const { rateLimit } = require("../middleware/rateLimit");
+const { REFRESH_TTL_MS } = require("../src/modules/identity/domain/session");
 const { validate, body } = require("../middleware/validate");
 const { parseOptionalAmount, MoneyError } = require("../utils/money");
 const env      = require("../config/environment");
@@ -41,11 +48,36 @@ const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUppe
 // removes the mismatch and makes the accepted set reviewable in one place.
 const JWT_ALG = "HS256";
 
-const makeToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    algorithm: JWT_ALG,
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  });
+/**
+ * I-05 (§19, F-10): the absolute deadline for the whole session.
+ *
+ * `/auth/refresh` exchanged any still-valid token for a fresh seven-day one,
+ * with nothing bounding how many times. A token captured once could be
+ * refreshed forever, so "seven days" was the gap between refreshes and not
+ * the life of the session.
+ *
+ * `sae` — session absolute expiry — is carried across refreshes rather than
+ * recomputed, so thirty days after sign-in the session ends whatever the
+ * client does. It is thirty days because that is REFRESH_TTL_MS, the session
+ * lifetime I-03 already chose.
+ *
+ * The claim is ADDITIVE. A token issued before this deploy has no `sae`; it
+ * keeps working and acquires a deadline on its first refresh, so nobody is
+ * signed out by the change and every session is bounded within one cycle.
+ */
+const MAX_SESSION_MS = REFRESH_TTL_MS;
+
+function makeToken(user, { sessionExpiresAt = null } = {}) {
+  const deadline = sessionExpiresAt || new Date(Date.now() + MAX_SESSION_MS);
+  return jwt.sign(
+    { id: user.id, role: user.role, sae: Math.floor(deadline.getTime() / 1000) },
+    process.env.JWT_SECRET,
+    { algorithm: JWT_ALG, expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+  );
+}
+
+/** The OTP purpose for this endpoint pair. Server-side, never from the client (§10). */
+const OTP_PURPOSE = otp.PURPOSE.LOGIN;
 
 // ── Validation schemas ──────────────────────────────────
 const registerRules = validate([
@@ -64,8 +96,20 @@ const otpRules = validate([
   body("phone").matches(/^01[0-9]{9}$/).withMessage("Valid 11-digit phone required"),
 ]);
 
+const verifyOtpRules = validate([
+  body("phone").matches(/^01[0-9]{9}$/).withMessage("Valid 11-digit phone required"),
+  body("otp").isString().trim().isLength({ min: 6, max: 6 }).withMessage("6-digit code required"),
+]);
+
+/** The rate-limit dimension for a phone. Normalised, so formatting cannot buy extra attempts. */
+const phoneDimension = (req) => ({
+  destination: otp.normaliseDestination("phone", req.body?.phone),
+});
+
 // ── POST /api/auth/register ───────────────────────────────
-router.post("/register", registerRules, async (req, res) => {
+router.post("/register", registerRules,
+  rateLimit("auth.register"),
+  async (req, res) => {
   try {
     const { name, email, phone, password, role = "customer", avatar } = req.body;
 
@@ -151,7 +195,9 @@ const INVALID_CREDENTIALS = "Invalid credentials";
 // or no stored hash exists so the response time does not reveal which.
 const DUMMY_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
 
-router.post("/login", loginRules, async (req, res) => {
+router.post("/login", loginRules,
+  rateLimit("auth.login", (req) => ({ identifier: String(req.body?.identifier || "").trim().toLowerCase() })),
+  async (req, res) => {
   try {
     const { identifier, password } = req.body;
     if (!identifier) return res.status(400).json({ error: "Email or phone required" });
@@ -236,35 +282,98 @@ router.post("/social-login", async (req, res) => {
 });
 
 // ── POST /api/auth/send-otp ───────────────────────────────
-router.post("/send-otp", otpRules, async (req, res) => {
+//
+// The code was generated with Math.random(). V8 seeds xorshift128+ from a
+// weak source and its state is recoverable from a modest number of outputs,
+// so an attacker requesting codes for their own number could predict the next
+// one issued to somebody else. SECURITY-ARCHITECTURE §3 says
+// "cryptographically random"; domain/challenge.js uses crypto.randomInt.
+router.post("/send-otp", otpRules,
+  rateLimit("auth.otp_request", phoneDimension),
+  async (req, res) => {
   try {
     const { phone } = req.body;
-    const otp    = Math.floor(100000 + Math.random() * 900000).toString();
-    const stored = otpStore.setOtp(phone, otp);
-    if (!stored) {
-      const secs = otpStore.getSecondsLeft(phone);
-      return res.status(429).json({ error: `OTP ইতিমধ্যে পাঠানো হয়েছে। ${secs} সেকেন্ড পর আবার চেষ্টা করুন।`, retryAfter: secs });
+
+    // §11: the principal is resolved SERVER-SIDE at issue, so the challenge
+    // is bound to an identity rather than only to a string the caller sent.
+    // NULL is a legitimate registration case, not an unknown principal.
+    const [owner] = await pool.query(
+      "SELECT id FROM users WHERE phone = ? AND is_active = 1 LIMIT 1", [phone]
+    );
+
+    const issued = await otp.issue(pool, {
+      purpose: OTP_PURPOSE,
+      channel: "phone",
+      destination: phone,
+      principalId: owner.length ? owner[0].id : null,
+      correlationId: req.requestId || null,
+      ip: requestIp(req),
+    });
+
+    if (!issued.issued) {
+      return res.status(429).json({
+        error: `OTP ইতিমধ্যে পাঠানো হয়েছে। ${issued.retryAfterSeconds} সেকেন্ড পর আবার চেষ্টা করুন।`,
+        retryAfter: issued.retryAfterSeconds,
+      });
     }
-    const message = `আপনার IMAP OTP কোড: ${otp}। এই কোড ৫ মিনিট বৈধ। কাউকে শেয়ার করবেন না।`;
+
+    const message = `আপনার IMAP OTP কোড: ${issued.code}। এই কোড ৫ মিনিট বৈধ। কাউকে শেয়ার করবেন না।`;
     await sms.sendSMS(phone, message);
+
+    // §12: unchanged. The gate is the two-axis environment guard, so a
+    // production process cannot reach this branch whatever SMS_PROVIDER says.
     const isMock = env.allowsDevelopmentBehaviour() && (process.env.SMS_PROVIDER || "mock") === "mock";
-    res.json({ success: true, expiresIn: 300, ...(isMock && { mockOtp: otp, note: "Dev only — never sent in production" }) });
+    res.json({
+      success: true,
+      expiresIn: Math.floor(otp.TTL_MS / 1000),
+      ...(isMock && { mockOtp: issued.code, note: "Dev only — never sent in production" }),
+    });
   } catch (err) {
+    if (err instanceof otp.OtpStoreUnavailable) {
+      // §35: fail closed. No in-memory fallback — a code nobody else can
+      // verify is worse than no code.
+      logger.error("send-otp: OTP store unavailable");
+      return res.status(503).json({ error: "সেবা সাময়িকভাবে অনুপলব্ধ। পরে চেষ্টা করুন।" });
+    }
     logger.error("send-otp:", err);
     res.status(500).json({ error: "SMS পাঠাতে সমস্যা হয়েছে। পরে চেষ্টা করুন।" });
   }
 });
 
 // ── POST /api/auth/verify-otp ─────────────────────────────
-router.post("/verify-otp", async (req, res) => {
+//
+// §13: every failure answers the same way.
+//
+// Distinguishing "expired" from "wrong code" tells a caller whether a
+// challenge exists for a number right now — which is to say whether its owner
+// is mid-sign-in. That is a useful window for a real-time phishing or
+// SIM-swap attempt, and it is not worth the marginally better error message.
+// The precise reason goes to the audit log, where it belongs.
+//
+// This mirrors /login, which has answered uniformly since Phase 0.5 for the
+// same reason.
+const OTP_REJECTED = "OTP সঠিক নয় বা মেয়াদ শেষ। নতুন OTP নিন।";
+
+router.post("/verify-otp", verifyOtpRules,
+  rateLimit("auth.otp_verify", phoneDimension),
+  async (req, res) => {
   try {
-    const { phone, otp } = req.body;
-    if (!phone || !otp) return res.status(400).json({ error: "Phone and OTP required" });
-    if (!/^01[0-9]{9}$/.test(phone)) return res.status(400).json({ error: "Valid 11-digit phone required" });
-    const result = otpStore.verifyOtp(phone, String(otp));
-    if (result === "expired")  return res.status(400).json({ error: "OTP মেয়াদ শেষ। নতুন OTP নিন।" });
-    if (result === "blocked")  return res.status(429).json({ error: "অনেকবার ভুল হয়েছে। নতুন OTP নিন।" });
-    if (result === "invalid")  return res.status(400).json({ error: "OTP ভুল। আবার চেষ্টা করুন।" });
+    const { phone } = req.body;
+    const result = await otp.verify(pool, {
+      purpose: OTP_PURPOSE,
+      channel: "phone",
+      destination: phone,
+      code: req.body.otp,
+    });
+
+    if (!result.ok) {
+      await recordAuth(req, {
+        action: "session.authenticate",
+        outcome: "denied",
+        reason: `otp:${result.reason}`,
+      });
+      return res.status(400).json({ error: OTP_REJECTED });
+    }
     // I-03 (§14): `AND is_active = 1` was missing here. /login checked it;
     // this path did not, so a deactivated account could still obtain a full
     // session by proving control of its phone number. Account state must gate
@@ -272,11 +381,19 @@ router.post("/verify-otp", async (req, res) => {
     //
     // A deactivated account is treated as absent rather than refused, so the
     // response cannot be used to discover that a number is registered.
-    const [rows] = await pool.query(
-      "SELECT * FROM users WHERE phone = ? AND is_active = 1",
-      [phone]
-    );
+    // The principal this challenge was issued for (§11). Re-resolved by phone
+    // only when the challenge carried none, which is the registration case —
+    // and covers a user who completed sign-up between issue and verify.
+    const [rows] = result.principalId
+      ? await pool.query("SELECT * FROM users WHERE id = ? AND is_active = 1", [result.principalId])
+      : await pool.query("SELECT * FROM users WHERE phone = ? AND is_active = 1", [phone]);
     if (rows.length) {
+      // A successful authentication clears this destination's own counter, so
+      // a user who mistyped four times is not locked out for the rest of the
+      // window. Deliberately not the IP counter: clearing that would let an
+      // attacker reset their own limit using an account they control.
+      await limiter.forget(pool, "auth.otp_verify", "destination",
+        otp.normaliseDestination("phone", phone)).catch(() => {});
       await recordAuth(req, {
         action: "session.authenticate",
         outcome: "permitted",
@@ -289,13 +406,17 @@ router.post("/verify-otp", async (req, res) => {
     }
     res.json({ isNew: true, verified: true });
   } catch (err) {
+    if (err instanceof otp.OtpStoreUnavailable) {
+      logger.error("verify-otp: OTP store unavailable");
+      return res.status(503).json({ error: "সেবা সাময়িকভাবে অনুপলব্ধ। পরে চেষ্টা করুন।" });
+    }
     logger.error("verify-otp:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ── POST /api/auth/google — verify Google ID token ─────────
-router.post("/google", async (req, res) => {
+router.post("/google", rateLimit("auth.social"), async (req, res) => {
   try {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ error: "Google credential required" });
@@ -367,12 +488,28 @@ router.get("/me", authMiddleware, (req, res) => {
 // Requires: Authorization: Bearer <token>
 router.post("/refresh", authMiddleware, async (req, res) => {
   try {
+    // I-05 (F-10). The session's absolute deadline, carried across refreshes
+    // rather than recomputed. Without it this endpoint renewed forever and
+    // "expires in 7 days" described the interval between refreshes, not the
+    // life of the session.
+    const sae = req.tokenClaims && typeof req.tokenClaims.sae === "number" ? req.tokenClaims.sae : null;
+    if (sae !== null && Date.now() >= sae * 1000) {
+      return res.status(401).json({
+        error: "Session expired. Please sign in again.",
+        code: "SESSION_EXPIRED",
+      });
+    }
+
     const [rows] = await pool.query(
       "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points FROM users WHERE id = ? AND is_active = 1",
       [req.user.id]
     );
     if (!rows.length) return res.status(401).json({ error: "User not found or inactive" });
-    const token = makeToken(rows[0]);
+    // A token issued before this deploy has no deadline; it gets one now
+    // rather than being rejected, so the change signs nobody out.
+    const token = makeToken(rows[0], {
+      sessionExpiresAt: sae !== null ? new Date(sae * 1000) : new Date(Date.now() + MAX_SESSION_MS),
+    });
     res.json({ token, user: rows[0] });
   } catch (err) {
     logger.error("token refresh:", err);

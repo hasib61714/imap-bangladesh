@@ -196,6 +196,9 @@ app.use((err, req, res, _next) => {
 // these checks refuses to listen rather than accepting requests and failing
 // on each one. I-03 registers "every use case has an authorization policy"
 // here, and I-05 registers "every job declares idempotency".
+// I-05: composing the platform modules is what registers their startup
+// checks — see src/composition/platform.js.
+require("./src/composition/platform").composePlatform();
 const { runStartupChecks } = require("./src/composition/startup-checks");
 
 let startup;

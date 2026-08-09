@@ -201,6 +201,27 @@ const ADHOC_AUTHZ_PATTERNS = [
  * transitions are legal, which is the state machine's question, not the
  * kernel's (§19). Renaming it would touch the socket layer that §42 defers.
  */
+/**
+ * Where security-critical state lives, and therefore must not be kept in the
+ * process (I-05 §6, §35).
+ *
+ * `jobs/registry.js` is deliberately absent: a handler registry is
+ * configuration populated at boot and identical on every instance, which is
+ * not shared state — the same reason the authorization register is a Map and
+ * is fine. `utils/cache.js` is absent too, and for a stated reason: it caches
+ * read results under short TTLs, so a second instance makes it stale rather
+ * than incorrect. Moving it is the Redis decision at the 10K scale point
+ * (SYSTEM-ARCHITECTURE §9), not a correctness fix.
+ */
+const SECURITY_STATE_PATHS = [
+  /^src\/modules\/platform\/otp\//,
+  /^src\/modules\/platform\/ratelimit\//,
+  /^src\/modules\/identity\//,
+  /^routes\/auth\.js$/,
+  /^middleware\/rateLimit\.js$/,
+  /^utils\/otp-store\.js$/,
+];
+
 const AUTHZ_EXEMPT = [
   /^src\/modules\/platform\/authorization\//,
   /^test\//,
@@ -305,6 +326,26 @@ const RULES = [
             hits.push({ line: i + 1, detail: m[0].trim().slice(0, 72) });
             break;
           }
+        }
+      });
+      return hits;
+    },
+  },
+  {
+    id: "no-process-local-security-state",
+    severity: "error",
+    why: "Security state in a process is wrong the moment there are two of them: an OTP issued by one instance did not exist on the other, and its attempt counter reset per instance (F-9).",
+    check(file, r, code) {
+      if (!SECURITY_STATE_PATHS.some((p) => p.test(r))) return [];
+      const hits = [];
+      LINES(code).forEach((line, i) => {
+        // A mutable module-level collection. Constant lookups in these modules
+        // are frozen objects and Sets; a Map here is somewhere to keep things.
+        if (/new\s+(?:Map|WeakMap)\s*\(/.test(line)) {
+          hits.push({ line: i + 1, detail: line.trim().slice(0, 72) });
+        }
+        if (/require\(\s*["'][^"']*otp-store["']\s*\)/.test(line)) {
+          hits.push({ line: i + 1, detail: "the deleted in-process OTP store" });
         }
       });
       return hits;

@@ -12,6 +12,11 @@ async function authMiddleware(req, res, next) {
     // I-03 (§16): never accept an arbitrary algorithm. Without this list,
     // any HS* variant verifies against a service that only issues HS256.
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    // I-05 (§19): the verified claims, so /auth/refresh can read the session's
+    // absolute deadline. Attached only after jwt.verify has succeeded — an
+    // unverified payload on the request object is an invitation to read it as
+    // though it meant something.
+    req.tokenClaims = decoded;
     // Fetch fresh user from DB
     const [rows] = await pool.query(
       "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
