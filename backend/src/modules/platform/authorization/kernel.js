@@ -64,8 +64,13 @@ async function authorize(actor, action, resourceRef = null, ctx = {}) {
   const anonymousOnly = actor.roles.length === 0
     || (actor.roles.length === 1 && actor.roles[0] === ROLE.ANONYMOUS);
 
-  if (!wildcard && (anonymousOnly || !actor.principalId)) {
-    return deny(DENY.UNAUTHENTICATED, policy);
+  if (!wildcard) {
+    // Two different failures, and conflating them sends the wrong answer.
+    // No principal at all is `unauthenticated` — signing in would help.
+    // A principal holding nothing is `no_membership` — signing in again
+    // would not, and telling them to try produces a login loop.
+    if (!actor.principalId) return deny(DENY.UNAUTHENTICATED, policy);
+    if (anonymousOnly) return deny(DENY.NO_MEMBERSHIP, policy);
   }
 
   // 3 ── role.

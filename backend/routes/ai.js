@@ -15,8 +15,13 @@ const express = require("express");
 const router  = express.Router();
 const db      = require("../db");
 const cache   = require('../utils/cache');
-const { authMiddleware, requireRole } = require("../middleware/auth");
-const adminOnly = [authMiddleware, requireRole("admin")];
+const { authMiddleware } = require("../middleware/auth");
+// I-04: these are operational SQL aggregates, not AI capability (Gate 1 has
+// none). /debug describes the server's configuration to whoever calls it,
+// so it is the platform owner's alone.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
+const analyticsOnly = [authMiddleware, requireAuthorization(ACTION.ANALYTICS_READ)];
 
 /* ── Google Gemini helper (free tier — try first) ─────────── */
 async function callGemini(messages, lang = "bn") {
@@ -153,7 +158,7 @@ function smartFallback(text, lang) {
    body: { messages: [{role, content}], lang: "bn"|"en" }
 ═══════════════════════════════════════════════════════════ */
 /* GET /api/ai/debug — check if Gemini key is configured (admin only) */
-router.get("/debug", ...adminOnly, async (req, res) => {
+router.get("/debug", authMiddleware, requireAuthorization(ACTION.DIAGNOSTIC_READ), async (req, res) => {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return res.json({ gemini: false, reason: "GEMINI_API_KEY not set" });
   try {
@@ -525,7 +530,7 @@ router.post("/review-check", async (req, res) => {
    GET /api/ai/forecast
    Returns: demand forecast, revenue forecast, top services
 ═══════════════════════════════════════════════════════════ */
-router.get("/forecast", ...adminOnly, async (req, res) => {
+router.get("/forecast", ...analyticsOnly, async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:forecast', async () => {
     // Monthly revenue last 6 months
@@ -603,7 +608,7 @@ router.get("/forecast", ...adminOnly, async (req, res) => {
    GET /api/ai/churn
    Returns: at-risk providers and customers
 ═══════════════════════════════════════════════════════════ */
-router.get("/churn", ...adminOnly, async (req, res) => {
+router.get("/churn", ...analyticsOnly, async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:churn', async () => {
     // Providers at risk: active but no booking in 30 days
@@ -660,7 +665,7 @@ router.get("/churn", ...adminOnly, async (req, res) => {
    GET /api/ai/heatmap
    Returns service demand count per area/city
 ═══════════════════════════════════════════════════════════ */
-router.get("/heatmap", ...adminOnly, async (req, res) => {
+router.get("/heatmap", ...analyticsOnly, async (req, res) => {
   try {
     const data = await cache.getOrSet('ai:heatmap', async () => {
     const [rows] = await db.query(`

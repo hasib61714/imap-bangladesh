@@ -156,6 +156,10 @@ function registerPolicy(action, spec) {
     );
   }
 
+  if (spec.conditionMessage && typeof spec.conditionMessage !== "string") {
+    throw new AuthorizationConfigError(`policy "${action}" conditionMessage must be a string`);
+  }
+
   const statusMode = spec.statusMode || "indistinguishable";
   if (!STATUS_MODES.has(statusMode)) {
     throw new AuthorizationConfigError(`policy "${action}" has unknown statusMode "${statusMode}"`);
@@ -174,6 +178,20 @@ function registerPolicy(action, spec) {
     relationship: spec.relationship || null,
     scope: spec.scope || null,
     conditions: spec.conditions || null,
+    /**
+     * A safe message for a CONDITION failure only.
+     *
+     * A relationship denial must stay opaque — saying "this booking belongs to
+     * someone else" confirms the booking exists and that the caller is not its
+     * owner. A condition denial is different in kind: the state it names is one
+     * the actor already knows, because it is a fact about the actor or about a
+     * resource they are entitled to reach. "You cannot deactivate your own
+     * account" tells an operator nothing they did not just type.
+     *
+     * Used ONLY when the deny reason is `invalid_state`. Any other reason
+     * ignores it.
+     */
+    conditionMessage: spec.conditionMessage || null,
     shadowConditions: spec.shadowConditions || null,
     shadowConditionsReason: spec.shadowConditionsReason || null,
     sameActor: spec.sameActor || null,

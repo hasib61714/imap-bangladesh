@@ -15,7 +15,12 @@ const router          = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool            = require("../db");
 const { withTransaction } = require("../db");
-const { authMiddleware, requireRole } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
+// I-04: reconciliation is `finance`. GET /:id already answered 404 for both
+// "no such payment" and "not yours", so it keeps the architecture's
+// indistinguishable mapping rather than an exception to it.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const payment         = require("../utils/payment");
 const { parseAmount, MoneyError } = require("../utils/money");
 const env            = require("../config/environment");
@@ -282,7 +287,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 /* ── GET /api/payments/admin/all ── */
-router.get("/admin/all", authMiddleware, requireRole("admin"), async (req, res) => {
+router.get("/admin/all", authMiddleware, requireAuthorization(ACTION.PAYMENT_READ_ALL), async (req, res) => {
   try {
     const { status } = req.query;
     const page  = Math.max(1, parseInt(req.query.page) || 1);
@@ -311,11 +316,16 @@ router.get("/admin/all", authMiddleware, requireRole("admin"), async (req, res) 
 });
 
 /* ── GET /api/payments/:id ── */
-router.get("/:id", authMiddleware, async (req, res) => {
+router.get("/:id", authMiddleware,
+  requireAuthorization(ACTION.PAYMENT_OBSERVE, { resource: (req) => req.params.id }),
+  async (req, res) => {
   try {
+    // Ownership was decided by the kernel against the loaded row. The query
+    // below no longer carries OR ?='admin' — a role smuggled into a WHERE
+    // clause is an authorization rule that no reviewer thinks to look for.
     const [rows] = await pool.query(
-      "SELECT p.*, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN bookings b ON b.id=p.booking_id WHERE p.id=? AND (p.user_id=? OR ?='admin')",
-      [req.params.id, req.user.id, req.user.role]
+      "SELECT p.*, b.service_name_bn, b.service_name_en FROM payments p LEFT JOIN bookings b ON b.id=p.booking_id WHERE p.id=?",
+      [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Payment not found" });
     res.json(rows[0]);

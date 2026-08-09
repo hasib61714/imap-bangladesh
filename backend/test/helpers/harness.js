@@ -125,6 +125,16 @@ async function serve(router, { basePath = "/", middleware = [] } = {}) {
   const express = require("express");
   const app = express();
   app.use(express.json());
+  // server.js sets this on every request and the audit writer requires it —
+  // a record with no correlation id cannot be tied to anything. The harness
+  // omitted it, so a route under test behaved differently from the same route
+  // in production. I-04 found that when authorization denials began writing
+  // audit rows and every one failed here and nowhere else.
+  app.use((req, res, next) => {
+    req.requestId = req.headers["x-request-id"] || `test-${Math.random().toString(36).slice(2, 10)}`;
+    res.setHeader("X-Request-ID", req.requestId);
+    next();
+  });
   for (const mw of middleware) app.use(mw);
   app.use(basePath, router);
   app.use((_req, res) => res.status(404).json({ error: "Route not found" }));

@@ -3,6 +3,11 @@ const router = require("express").Router();
 const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+// I-04: an inline role comparison inside this handler was the second
+// authorization implementation the file carried. There is one now, and it
+// is not in this file.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const { validate, body } = require("../middleware/validate");
 const cache = require('../utils/cache');
 
@@ -90,9 +95,13 @@ router.post("/", authMiddleware, kycRules, async (req, res) => {
 });
 
 // ── PATCH /api/kyc/:id  (admin only) ─────────────────────
-router.patch("/:id", authMiddleware, async (req, res) => {
+router.patch("/:id", authMiddleware,
+  requireAuthorization(ACTION.VERIFICATION_DECIDE, {
+    resource: (req) => req.params.id,
+    context: (req) => ({ reason: req.body?.rejection_reason || null }),
+  }),
+  async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ error: "Admin only" });
     const { status, rejection_reason } = req.body;
     if (!["verified","rejected"].includes(status)) return res.status(400).json({ error: "Invalid status" });
 
@@ -102,7 +111,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
 
     await pool.query(
       "UPDATE kyc_docs SET status = ?, rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?",
-      [status, rejection_reason || null, req.user.id, req.params.id]
+      [status, rejection_reason || null, req.authorization.actor.principalId, req.params.id]
     );
 
     // Update user kyc_status

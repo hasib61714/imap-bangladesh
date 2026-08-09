@@ -41,14 +41,21 @@ const DENY_REASONS = Object.freeze(Object.values(DENY));
 const DENY_SET = new Set(DENY_REASONS);
 
 /**
- * User-facing text. Three strings for eleven reasons, because the mapping is
- * deliberately lossy: a caller may learn "you are not authenticated", "you may
- * not do this", or "this does not exist", and nothing finer.
+ * User-facing text, keyed by STATUS rather than by reason.
+ *
+ * Keying it by reason was the first attempt and it reintroduced the oracle it
+ * was meant to close: `not_owner` and `not_found` both answered 404, but one
+ * said "Access denied" and the other "Not found", so the body distinguished
+ * exactly what the status was chosen not to. Two denials that share a status
+ * must share a message, and deriving the message from the status is the only
+ * way to keep that true as reasons are added.
  */
 const PUBLIC_MESSAGE = Object.freeze({
-  [DENY.UNAUTHENTICATED]: "Authentication required",
-  [DENY.NOT_FOUND]: "Not found",
-  [DENY.WRONG_RESOURCE]: "Not found",
+  401: "Authentication required",
+  403: "Access denied",
+  404: "Not found",
+  409: "Access denied",
+  422: "Access denied",
 });
 const DEFAULT_MESSAGE = "Access denied";
 
@@ -123,10 +130,19 @@ function deny(reason, policy = null, extra = {}) {
   });
 }
 
-/** What a denied caller is told. Never derived from the resource. */
+/**
+ * What a denied caller is told. Never derived from the resource.
+ *
+ * The one exception is a policy's own `conditionMessage`, and only for
+ * `invalid_state` — see the field's documentation in registry.js for why a
+ * condition may speak when a relationship may not.
+ */
 function publicResponse(decision, statusMode = "indistinguishable") {
   const status = toHttpStatus(decision.reason, statusMode);
-  return { status, body: { error: PUBLIC_MESSAGE[decision.reason] ?? DEFAULT_MESSAGE } };
+  if (decision.reason === DENY.INVALID_STATE && decision.policy && decision.policy.conditionMessage) {
+    return { status, body: { error: decision.policy.conditionMessage } };
+  }
+  return { status, body: { error: PUBLIC_MESSAGE[status] ?? DEFAULT_MESSAGE } };
 }
 
 module.exports = { DENY, DENY_REASONS, permit, deny, toHttpStatus, publicResponse, PUBLIC_MESSAGE };

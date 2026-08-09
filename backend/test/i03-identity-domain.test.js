@@ -141,7 +141,12 @@ test("refreshTokenMatches compares the presented token against a stored hash", (
   assert.equal(sess.refreshTokenMatches("wrong", hash), false);
   assert.equal(sess.refreshTokenMatches(token, null), false);
   assert.equal(sess.refreshTokenMatches(token, "short"), false);
-  assert.equal(sess.refreshTokenMatches(token, hash.slice(0, 63) + "0"), false);
+  // Flip the last hex digit to a DIFFERENT one. Appending a literal "0"
+  // reproduced the original hash roughly one run in sixteen, and the test
+  // then failed for the right reason on the wrong input.
+  const flipped = hash.slice(0, 63) + (hash[63] === "0" ? "1" : "0");
+  assert.notEqual(flipped, hash);
+  assert.equal(sess.refreshTokenMatches(token, flipped), false);
 });
 
 test("a session is live only while unrevoked AND unexpired", () => {

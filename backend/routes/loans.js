@@ -11,7 +11,11 @@ const router = require("express").Router();
 const pool   = require("../db");
 const { withTransaction } = require("../db");
 const { v4: uuidv4 } = require("uuid");
-const { authMiddleware, requireRole } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
+// I-04: credit decisions are `finance`. D-011 defers the FEATURE; the data
+// and the endpoints exist, so their authorization is migrated with the rest.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const cache  = require("../utils/cache");
 const { parseAmount, MoneyError } = require("../utils/money");
 
@@ -173,7 +177,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // ── GET /api/loans/admin — all loans (admin) ─────────────
-router.get("/admin", authMiddleware, requireRole("admin"), async (req, res) => {
+router.get("/admin", authMiddleware, requireAuthorization(ACTION.LOAN_READ_ALL), async (req, res) => {
   try {
     const { status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -226,7 +230,8 @@ const LOAN_TRANSITIONS = {
   repaid:    [],
 };
 
-router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.patch("/:id", authMiddleware,
+  requireAuthorization(ACTION.LOAN_DECIDE, { resource: (req) => req.params.id }), async (req, res) => {
   const { status, admin_note } = req.body;
   if (!LOAN_STATUSES.includes(status)) return res.status(400).json({ error: "Invalid status" });
   if (admin_note && String(admin_note).length > 1000) {

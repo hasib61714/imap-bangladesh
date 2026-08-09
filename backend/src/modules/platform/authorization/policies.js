@@ -203,6 +203,7 @@ function installPolicies() {
     // actor's relationship to the subject, which makes it a policy.
     conditions: (actor, subject, ctx) =>
       !(ctx.targetStatus === "suspended" && R.same(actor.principalId, subject.id)),
+    conditionMessage: "You cannot deactivate your own account",
     sameActor: (actor, subject) => R.same(actor.principalId, subject.id),
     tier: "C",
     audit: "required",

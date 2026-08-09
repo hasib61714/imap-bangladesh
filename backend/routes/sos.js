@@ -1,7 +1,11 @@
 ﻿const logger = require('../utils/logger');
 const router  = require("express").Router();
 const pool    = require("../db");
-const { authMiddleware, requireRole } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
+// I-04: the emergency queue is `emergency_responder` — a role that reaches
+// nothing in marketplace or finance, and that nothing there reaches.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const cache = require('../utils/cache');
 
 /* ── POST /api/sos  — Submit an SOS alert (auth required) ── */
@@ -75,7 +79,7 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 /* ── GET /api/sos  — List alerts (admin only) ── */
-router.get("/", authMiddleware, requireRole("admin"), async (req, res) => {
+router.get("/", authMiddleware, requireAuthorization(ACTION.EMERGENCY_LIST), async (req, res) => {
   const { status, limit = 50 } = req.query;
   try {
     const cacheKey = `sos:admin:${status || 'all'}`;
@@ -101,7 +105,8 @@ router.get("/", authMiddleware, requireRole("admin"), async (req, res) => {
 });
 
 /* ── PATCH /api/sos/:id  — Update status (admin only) ── */
-router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.patch("/:id", authMiddleware,
+  requireAuthorization(ACTION.EMERGENCY_UPDATE, { resource: (req) => req.params.id }), async (req, res) => {
   const { status, admin_note } = req.body;
   const validStatus = ["open","in_progress","resolved","dismissed"];
   if (!validStatus.includes(status)) {

@@ -11,6 +11,18 @@ const { makePool, installFakeDb, resetModules, serve, call, asUser } = require("
 const ADMIN = { id: "admin-x", name: "Admin", role: "admin" };
 const USER  = { id: "user-1", name: "User", role: "customer", email: "u@e.com", phone: "01712345678" };
 
+/**
+ * I-04: the authorization kernel loads the loan from the database before the
+ * handler runs, so the fixture has to answer the loader as well as the
+ * handler. Two different reads of the same row, and the kernel deliberately
+ * does not accept the handler's: ownership must come from a query the route
+ * cannot influence.
+ */
+const kernelLoads = (loan) => ({
+  match: "SELECT id, user_id, status FROM microloans",
+  rows: [{ id: loan.id, user_id: loan.user_id, status: loan.status }],
+});
+
 function stubAuth(user) {
   const authMw = require.resolve("../middleware/auth");
   require.cache[authMw] = {
@@ -38,6 +50,7 @@ const disbursedLoan = {
 test("P0-6: disbursing an already-disbursed loan credits nothing", async (t) => {
   const pool = makePool([
     { match: "SELECT * FROM microloans WHERE id=? FOR UPDATE", rows: [disbursedLoan] },
+    kernelLoads(disbursedLoan),
   ]);
   const srv = await bootLoans(pool);
   t.after(() => srv.close());
@@ -56,6 +69,7 @@ test("P0-6: an illegal loan transition is refused", async (t) => {
   const pool = makePool([
     { match: "SELECT * FROM microloans WHERE id=? FOR UPDATE",
       rows: [{ ...disbursedLoan, status: "rejected" }] },
+    kernelLoads({ ...disbursedLoan, status: "rejected" }),
   ]);
   const srv = await bootLoans(pool);
   t.after(() => srv.close());
@@ -71,6 +85,7 @@ test("P0-6: a lost race on the status guard credits nothing", async (t) => {
   const pool = makePool([
     { match: "SELECT * FROM microloans WHERE id=? FOR UPDATE",
       rows: [{ ...disbursedLoan, status: "approved" }] },
+    kernelLoads({ ...disbursedLoan, status: "approved" }),
     { match: "UPDATE microloans SET status=?", rows: { affectedRows: 0 } },
   ]);
   const srv = await bootLoans(pool);
@@ -87,6 +102,7 @@ test("P0-6: the first disbursement credits exactly once, with an idempotency ref
   const pool = makePool([
     { match: "SELECT * FROM microloans WHERE id=? FOR UPDATE",
       rows: [{ ...disbursedLoan, status: "approved" }] },
+    kernelLoads({ ...disbursedLoan, status: "approved" }),
     { match: "UPDATE microloans SET status=?", rows: { affectedRows: 1 } },
     { match: "UPDATE users SET balance = balance + ?", rows: { affectedRows: 1 } },
     { match: "INSERT INTO wallet_transactions", rows: { affectedRows: 1 } },

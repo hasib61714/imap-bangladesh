@@ -1,12 +1,43 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
+const { withTransaction } = require("../db");
 const cache  = require("../utils/cache");
-const { authMiddleware, requireRole } = require("../middleware/auth");
-const auth = [authMiddleware, requireRole("admin")];
+const { authMiddleware } = require("../middleware/auth");
+// I-04 (§21, §31): `requireRole("admin")` is gone from this file. Every
+// endpoint declares the ACTION it performs and the kernel decides. The
+// endpoints below are no longer uniform — reading the platform's counters and
+// changing someone's role were the same permission until this commit, and
+// they are not the same permission.
+const { requireAuthorization, wasAuthorized } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
+const { writeAudit } = require("../src/modules/platform/audit/writeAudit");
+
+/**
+ * P1-11: the admin panel sent `is_active = -1` for "suspend", and
+ * middleware/auth.js tests `!rows[0].is_active` — -1 is truthy, so the
+ * suspended user kept full access while the UI showed them as blocked.
+ * Only a strict 0/1 is accepted. Returns null for anything else.
+ */
+function normaliseActiveFlag(value) {
+  if (value === undefined || value === null) return null;
+  if (value === 0 || value === false || value === "0" || value === "false") return 0;
+  if (value === 1 || value === true || value === "1" || value === "true") return 1;
+  return undefined;   // supplied, and not a valid flag
+}
+
+/** The audit actor for an authorized administrative write. */
+const auditActor = (req) => ({
+  correlationId: req.requestId || null,
+  principalId: req.authorization.actor.principalId,
+  accountId: req.authorization.actor.accountId,
+  role: req.authorization.actor.primaryRole,
+  via: "http",
+  onBehalfOf: null,
+});
 
 // ── GET /api/admin/stats ──────────────────────────────────
-router.get("/stats", ...auth, async (req, res) => {
+router.get("/stats", authMiddleware, requireAuthorization(ACTION.STATS_READ), async (req, res) => {
   try {
     const stats = await cache.getOrSet("admin:stats", async () => {
       const [[users]]     = await pool.query("SELECT COUNT(*) AS v FROM users WHERE role = 'customer'");
@@ -37,7 +68,7 @@ router.get("/stats", ...auth, async (req, res) => {
 
 // ── GET /api/admin/users ──────────────────────────────────
 // ── GET /api/admin/providers ─────────────────────────────
-router.get("/providers", ...auth, async (req, res) => {
+router.get("/providers", authMiddleware, requireAuthorization(ACTION.PROVIDER_LIST_ALL), async (req, res) => {
   try {
     const { q, status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -76,7 +107,7 @@ router.get("/providers", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/users ──────────────────────────────────
-router.get("/users", ...auth, async (req, res) => {
+router.get("/users", authMiddleware, requireAuthorization(ACTION.USER_LIST), async (req, res) => {
   try {
     const { q, role, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -108,38 +139,89 @@ router.get("/users", ...auth, async (req, res) => {
 });
 
 // ── PATCH /api/admin/users/:id ────────────────────────────
-router.patch("/users/:id", ...auth, async (req, res) => {
+//
+// ONE ENDPOINT, TWO ACTIONS, AND THEY ARE NOT THE SAME PERMISSION.
+//
+// Suspending an account is trust & safety's; granting a role is the platform
+// owner's, and is the one operation that can create another actor as powerful
+// as the caller. `requireRole("admin")` could not tell them apart. Each is
+// authorized separately below, and the UPDATE applies ONLY the change whose
+// action was permitted — so a skipped authorization removes a capability
+// rather than leaving one unguarded.
+//
+// The self-lockout rule moved out of this handler and into the policy: it is
+// a condition on the actor's relationship to the subject, which makes it
+// authorization rather than validation (§20).
+router.patch("/users/:id", authMiddleware,
+  requireAuthorization(ACTION.ACCOUNT_SET_STATUS, {
+    auditedByHandler: true,
+    when: (req) => req.body?.is_active !== undefined && req.body?.is_active !== null,
+    resource: (req) => req.params.id,
+    context: (req) => ({ targetStatus: normaliseActiveFlag(req.body.is_active) === 0 ? "suspended" : "active" }),
+  }),
+  requireAuthorization(ACTION.MEMBERSHIP_GRANT, {
+    auditedByHandler: true,
+    when: (req) => Boolean(req.body?.role),
+    resource: (req) => req.params.id,
+    context: (req) => ({ reason: req.body?.reason || null }),
+  }),
+  async (req, res) => {
   try {
     const { is_active, role } = req.body;
     const validRoles = ["customer", "provider", "admin"];
     if (role && !validRoles.includes(role))
       return res.status(400).json({ error: "Invalid role" });
 
-    // P1-11: the admin panel sent is_active = -1 for "suspend", and
-    // middleware/auth.js tests `!rows[0].is_active` — -1 is truthy, so the
-    // suspended user kept full access while the UI showed them as blocked.
-    // Only a strict 0/1 is accepted now.
-    let activeFlag = null;
-    if (is_active !== undefined && is_active !== null) {
-      if (is_active === 0 || is_active === false || is_active === "0" || is_active === "false") activeFlag = 0;
-      else if (is_active === 1 || is_active === true || is_active === "1" || is_active === "true") activeFlag = 1;
-      else return res.status(400).json({ error: "is_active must be 0 or 1" });
-    }
+    const activeFlag = normaliseActiveFlag(is_active);
+    if (activeFlag === undefined) return res.status(400).json({ error: "is_active must be 0 or 1" });
     if (activeFlag === null && !role) {
       return res.status(400).json({ error: "Nothing to update" });
     }
-    // An administrator must not lock themselves out.
-    if (activeFlag === 0 && String(req.params.id) === String(req.user.id)) {
-      return res.status(400).json({ error: "You cannot deactivate your own account" });
+
+    // Fail closed: apply only what the kernel permitted.
+    const maySetStatus = wasAuthorized(req, ACTION.ACCOUNT_SET_STATUS);
+    const mayGrantRole = wasAuthorized(req, ACTION.MEMBERSHIP_GRANT);
+    const nextActive = maySetStatus ? activeFlag : null;
+    const nextRole = mayGrantRole ? (role || null) : null;
+    if (nextActive === null && nextRole === null) {
+      return res.status(403).json({ error: "Access denied" });
     }
 
-    await pool.query(
-      "UPDATE users SET is_active = COALESCE(?, is_active), role = COALESCE(?, role) WHERE id = ?",
-      [activeFlag, role || null, req.params.id]
-    );
-    logger.info("admin updated user", {
-      adminId: req.user.id, targetUserId: req.params.id, is_active: activeFlag, role: role || null,
+    // The subject as it was, loaded by the kernel — not re-queried, and not
+    // taken from the request (§17).
+    const before = (req.authorizations[ACTION.MEMBERSHIP_GRANT] || req.authorizations[ACTION.ACCOUNT_SET_STATUS]).resource;
+
+    // §27: a privilege change and its audit record are one unit. An audit
+    // record that can be lost while the role change succeeds is not an audit
+    // record — and this is the single most consequential write in the system,
+    // because it is how another administrator comes into existence.
+    await withTransaction(async (conn) => {
+      await conn.query(
+        "UPDATE users SET is_active = COALESCE(?, is_active), role = COALESCE(?, role) WHERE id = ?",
+        [nextActive, nextRole, req.params.id]
+      );
+      await writeAudit(conn, {
+        actor: auditActor(req),
+        action: nextRole ? ACTION.MEMBERSHIP_GRANT : ACTION.ACCOUNT_SET_STATUS,
+        resourceType: "user",
+        resourceId: String(req.params.id),
+        resourceOwner: String(req.params.id),
+        outcome: "permitted",
+        before: { role: before.legacyRole, is_active: before.isActive ? 1 : 0 },
+        after: {
+          role: nextRole ?? before.legacyRole,
+          is_active: nextActive === null ? (before.isActive ? 1 : 0) : nextActive,
+        },
+        reason: req.body?.reason || null,
+        ip: req.ip || null,
+        userAgent: req.headers["user-agent"] || null,
+        sodBypass: Boolean(
+          (req.authorizations[ACTION.MEMBERSHIP_GRANT]?.decision.sodBypass) ||
+          (req.authorizations[ACTION.ACCOUNT_SET_STATUS]?.decision.sodBypass)
+        ),
+      });
     });
+
     cache.del("admin:stats");
     cache.del("admin:users:default");
     cache.del("admin:providers:default");
@@ -152,7 +234,7 @@ router.patch("/users/:id", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/bookings ───────────────────────────────
-router.get("/bookings", ...auth, async (req, res) => {
+router.get("/bookings", authMiddleware, requireAuthorization(ACTION.BOOKING_LIST_ALL), async (req, res) => {
   try {
     const { status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -188,7 +270,7 @@ router.get("/bookings", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/kyc ────────────────────────────────────
-router.get("/kyc", ...auth, async (req, res) => {
+router.get("/kyc", authMiddleware, requireAuthorization(ACTION.VERIFICATION_LIST), async (req, res) => {
   try {
     const { status = "pending", page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -226,7 +308,8 @@ router.get("/kyc", ...auth, async (req, res) => {
 
 // ── GET /api/admin/kyc/:id — one document, including its images ──
 // Split out from the list (P1-12) so reviewers load images one at a time.
-router.get("/kyc/:id", ...auth, async (req, res) => {
+router.get("/kyc/:id", authMiddleware,
+  requireAuthorization(ACTION.VERIFICATION_READ_DOCUMENT, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT k.*, u.name, u.email, u.phone
@@ -235,7 +318,12 @@ router.get("/kyc/:id", ...auth, async (req, res) => {
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "KYC document not found" });
-    logger.info("admin viewed KYC document", { adminId: req.user.id, kycId: req.params.id });
+    // The read itself is the audit record now: VERIFICATION_READ_DOCUMENT is
+    // audit: "required", so every open of Sealed evidence writes a row whether
+    // or not it changed anything (V-07). The log line stays for operators.
+    logger.info("admin viewed KYC document", {
+      adminId: req.authorization.actor.principalId, kycId: req.params.id,
+    });
     res.json(rows[0]);
   } catch (err) {
     logger.error("admin kyc detail:", err);
@@ -244,26 +332,57 @@ router.get("/kyc/:id", ...auth, async (req, res) => {
 });
 
 // ── PATCH /api/admin/kyc/:id — approve or reject KYC ────
-router.patch("/kyc/:id", ...auth, async (req, res) => {
+router.patch("/kyc/:id", authMiddleware,
+  requireAuthorization(ACTION.VERIFICATION_DECIDE, {
+    auditedByHandler: true,
+    resource: (req) => req.params.id,
+    context: (req) => ({ reason: req.body?.rejection_reason || null }),
+  }), async (req, res) => {
   try {
     const { status, rejection_reason } = req.body;
     const valid = ["pending", "verified", "rejected"];
     if (!status || !valid.includes(status)) {
       return res.status(400).json({ error: "Valid status required: " + valid.join(", ") });
     }
-    await pool.query(
-      `UPDATE kyc_docs
-         SET status = ?, rejection_reason = COALESCE(?, rejection_reason),
-             reviewed_at = NOW(), reviewed_by = ?
-       WHERE id = ?`,
-      [status, rejection_reason || null, req.user.id, req.params.id]
-    );
-    // Sync user's kyc_status
-    const [[doc]] = await pool.query("SELECT user_id FROM kyc_docs WHERE id = ?", [req.params.id]);
-    if (doc?.user_id) {
-      await pool.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.user_id]);
-      cache.del(`user:profile:${doc.user_id}`);
-      cache.del(`kyc:user:${doc.user_id}`);
+    // Loaded by the kernel, from the database. The subject is not re-queried
+    // and is never taken from the request.
+    const doc = req.authorization.resource;
+
+    // §27: the decision, the user's derived status and the record commit
+    // together. A verification decision gates provider eligibility and, at
+    // Gate 1, can be made by the case's own subject — which is exactly the
+    // event an investigation needs to find, so it must not be able to go
+    // missing while the decision stands.
+    await withTransaction(async (conn) => {
+      await conn.query(
+        `UPDATE kyc_docs
+           SET status = ?, rejection_reason = COALESCE(?, rejection_reason),
+               reviewed_at = NOW(), reviewed_by = ?
+         WHERE id = ?`,
+        [status, rejection_reason || null, req.authorization.actor.principalId, req.params.id]
+      );
+      if (doc.subjectUserId) {
+        await conn.query("UPDATE users SET kyc_status = ? WHERE id = ?", [status, doc.subjectUserId]);
+      }
+      await writeAudit(conn, {
+        actor: auditActor(req),
+        action: ACTION.VERIFICATION_DECIDE,
+        resourceType: "kyc_document",
+        resourceId: String(req.params.id),
+        resourceOwner: doc.subjectUserId,
+        outcome: "permitted",
+        before: { status: doc.status },
+        after: { status },
+        reason: rejection_reason || null,
+        ip: req.ip || null,
+        userAgent: req.headers["user-agent"] || null,
+        sodBypass: req.authorization.decision.sodBypass,
+      });
+    });
+
+    if (doc.subjectUserId) {
+      cache.del(`user:profile:${doc.subjectUserId}`);
+      cache.del(`kyc:user:${doc.subjectUserId}`);
     }
     cache.del("admin:stats");
     cache.del("admin:users:default");
@@ -276,7 +395,7 @@ router.patch("/kyc/:id", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/complaints ─────────────────────────────
-router.get("/complaints", ...auth, async (req, res) => {
+router.get("/complaints", authMiddleware, requireAuthorization(ACTION.COMPLAINT_LIST), async (req, res) => {
   try {
     const { status, page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -304,7 +423,8 @@ router.get("/complaints", ...auth, async (req, res) => {
 });
 
 // ── PATCH /api/admin/complaints/:id ──────────────────────
-router.patch("/complaints/:id", ...auth, async (req, res) => {
+router.patch("/complaints/:id", authMiddleware,
+  requireAuthorization(ACTION.COMPLAINT_RESOLVE, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     const { status, resolved_note } = req.body;
     const validStatuses = ["open", "in_progress", "resolved", "closed"];
@@ -314,7 +434,7 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
       return res.status(400).json({ error: "resolved_note too long (max 2000)" });
     await pool.query(
       "UPDATE complaints SET status = COALESCE(?, status), resolved_note = COALESCE(?, resolved_note), assigned_to = ? WHERE id = ?",
-      [status || null, resolved_note || null, req.user.id, req.params.id]
+      [status || null, resolved_note || null, req.authorization.actor.principalId, req.params.id]
     );
     cache.del("admin:stats");
     cache.del("admin:complaints:default");
@@ -326,7 +446,7 @@ router.patch("/complaints/:id", ...auth, async (req, res) => {
 });
 
 // ── POST /api/admin/notify ────────────────────────────────
-router.post("/notify", ...auth, async (req, res) => {
+router.post("/notify", authMiddleware, requireAuthorization(ACTION.NOTIFICATION_BROADCAST), async (req, res) => {
   try {
     const { user_id, title_bn, title_en, body_bn, body_en, type = "system", icon = "📣" } = req.body;
     const validTypes = ["system", "booking", "payment", "kyc", "promo", "sos", "alert"];
@@ -361,7 +481,7 @@ router.post("/notify", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/revenue ────────────────────────────────
-router.get("/revenue", ...auth, async (req, res) => {
+router.get("/revenue", authMiddleware, requireAuthorization(ACTION.REVENUE_READ), async (req, res) => {
   try {
     const data = await cache.getOrSet("admin:revenue", async () => {
       const [monthly] = await pool.query(
@@ -387,7 +507,7 @@ router.get("/revenue", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/promos ────────────────────────────────
-router.get("/promos", ...auth, async (req, res) => {
+router.get("/promos", authMiddleware, requireAuthorization(ACTION.PROMO_LIST), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, code, COALESCE(title_bn, code) AS title_bn,
@@ -402,7 +522,7 @@ router.get("/promos", ...auth, async (req, res) => {
 });
 
 // ── POST /api/admin/promos ────────────────────────────────
-router.post("/promos", ...auth, async (req, res) => {
+router.post("/promos", authMiddleware, requireAuthorization(ACTION.PROMO_CREATE), async (req, res) => {
   try {
     const { code, discount_pct, discount_amt, max_uses, valid_until } = req.body;
     if (!code) return res.status(400).json({ error: "code required" });
@@ -419,7 +539,8 @@ router.post("/promos", ...auth, async (req, res) => {
 });
 
 // ── PATCH /api/admin/promos/:id ───────────────────────────
-router.patch("/promos/:id", ...auth, async (req, res) => {
+router.patch("/promos/:id", authMiddleware,
+  requireAuthorization(ACTION.PROMO_UPDATE, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     const { is_active } = req.body;
     await pool.query("UPDATE promos SET is_active=? WHERE id=?", [is_active ? 1 : 0, req.params.id]);
@@ -429,7 +550,8 @@ router.patch("/promos/:id", ...auth, async (req, res) => {
 });
 
 // ── DELETE /api/admin/promos/:id ──────────────────────────
-router.delete("/promos/:id", ...auth, async (req, res) => {
+router.delete("/promos/:id", authMiddleware,
+  requireAuthorization(ACTION.PROMO_DELETE, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     await pool.query("DELETE FROM promos WHERE id=?", [req.params.id]);
     cache.del("promos:active");
@@ -450,7 +572,7 @@ const defaultSettings = [
   { key_name: "nid_verification",       val: 0 },
 ];
 
-router.get("/settings", ...auth, async (req, res) => {
+router.get("/settings", authMiddleware, requireAuthorization(ACTION.SETTING_READ), async (req, res) => {
   try {
     // Seed defaults if table is empty
     const [[{ cnt }]] = await pool.query("SELECT COUNT(*) AS cnt FROM system_settings");
@@ -472,7 +594,7 @@ router.get("/settings", ...auth, async (req, res) => {
 });
 
 // ── PATCH /api/admin/settings ────────────────────────────
-router.patch("/settings", ...auth, async (req, res) => {
+router.patch("/settings", authMiddleware, requireAuthorization(ACTION.SETTING_UPDATE), async (req, res) => {
   try {
     const { key, val } = req.body;
     if (!key) return res.status(400).json({ error: "key required" });
@@ -490,7 +612,7 @@ router.patch("/settings", ...auth, async (req, res) => {
 });
 
 // ── GET /api/admin/announcements ─────────────────────────
-router.get("/announcements", ...auth, async (req, res) => {
+router.get("/announcements", authMiddleware, requireAuthorization(ACTION.ANNOUNCEMENT_LIST), async (req, res) => {
   try {
     const rows = await cache.getOrSet("admin:announcements", async () => {
       const [r] = await pool.query(
