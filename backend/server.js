@@ -191,9 +191,26 @@ app.use((err, req, res, _next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────
+// I-01: the composition root gates startup. A process that cannot satisfy
+// these checks refuses to listen rather than accepting requests and failing
+// on each one. I-03 registers "every use case has an authorization policy"
+// here, and I-05 registers "every job declares idempotency".
+const { runStartupChecks } = require("./src/composition/startup-checks");
+
+let startup;
+try {
+  startup = runStartupChecks();
+} catch (err) {
+  // Not logger.error: winston may buffer, and this must reach the operator
+  // before the process leaves.
+  console.error(`\n❌ ${err.message}\n`);
+  process.exit(1);
+}
+for (const w of startup.warnings) logger.warn(`config not set — ${w}`);
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
-  logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
+  logger.info(`IMAP Backend started`, { port: PORT, ...startup.environment });
   logger.info(`Health check: http://localhost:${PORT}/api/health`);
   // I-01: this callback used to CREATE TABLE loyalty_log and referrals on
   // every startup, with both errors logged and swallowed. `referrals` was
