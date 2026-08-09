@@ -9,6 +9,29 @@ const otpStore = require("../utils/otp-store");
 const { validate, body } = require("../middleware/validate");
 const { parseOptionalAmount, MoneyError } = require("../utils/money");
 const env      = require("../config/environment");
+// I-03 (§35): authentication events are recorded. Until now no login attempt
+// was written anywhere, which is exactly why CREDENTIAL-INCIDENT.md §2 has to
+// answer "was the published credential used?" with UNKNOWN. Only the minimum
+// writer exists — the full in-transaction audit rule arrives with the use-case
+// layer.
+const { writeAuditOutOfBand } = require("../src/modules/platform/audit/writeAudit");
+const { auditActorFromRequest, requestIp, requestUserAgent } =
+  require("../src/modules/platform/audit/auditActor");
+
+/** Record an authentication event. Never throws into the request path. */
+function recordAuth(req, { action, outcome, principalId = null, role = null, reason = null }) {
+  return writeAuditOutOfBand(pool, {
+    actor: auditActorFromRequest(req, { principalId, role }),
+    action,
+    resourceType: "principal",
+    resourceId: principalId,
+    resourceOwner: principalId,
+    outcome,
+    reason,
+    ip: requestIp(req),
+    userAgent: requestUserAgent(req),
+  });
+}
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 // I-03 (§16): the algorithm is pinned on both sides. jsonwebtoken 9 already
@@ -152,8 +175,26 @@ router.post("/login", loginRules, async (req, res) => {
       if (user && !storedHash) {
         logger.warn("login rejected: account has no password credential", { userId: user.id });
       }
+      // The REASON is recorded; the RESPONSE stays uniform. An investigation
+      // needs to tell "no such account" from "no password credential" from
+      // "wrong password"; a caller must not be able to.
+      await recordAuth(req, {
+        action: "session.authenticate",
+        outcome: "denied",
+        principalId: user ? user.id : null,
+        role: user ? user.role : null,
+        reason: !user ? "unknown_identifier" : !storedHash ? "no_password_credential" : "wrong_password",
+      });
       return res.status(401).json({ error: INVALID_CREDENTIALS });
     }
+
+    await recordAuth(req, {
+      action: "session.authenticate",
+      outcome: "permitted",
+      principalId: user.id,
+      role: user.role,
+      reason: "password",
+    });
 
     const { password_hash, ...safeUser } = user;
     res.json({ user: safeUser, token: makeToken(user) });
@@ -179,8 +220,15 @@ router.post("/login", loginRules, async (req, res) => {
 // own socialId — it was never a real OAuth flow) and any other caller
 // of this endpoint. Re-enabling requires a server-side token exchange
 // with the provider.
-router.post("/social-login", (_req, res) => {
+router.post("/social-login", async (req, res) => {
   logger.warn("social-login called — endpoint disabled in Phase 0.5 (P0-2)");
+  // Recorded: a call to a disabled account-takeover endpoint is a signal, and
+  // an unrecorded attempt is one nobody can count.
+  await recordAuth(req, {
+    action: "session.authenticate",
+    outcome: "denied",
+    reason: "social_login_disabled",
+  });
   res.status(410).json({
     error: "This sign-in method has been disabled. Please use Google sign-in, phone OTP, or email and password.",
     code: "SOCIAL_LOGIN_DISABLED",
@@ -229,6 +277,13 @@ router.post("/verify-otp", async (req, res) => {
       [phone]
     );
     if (rows.length) {
+      await recordAuth(req, {
+        action: "session.authenticate",
+        outcome: "permitted",
+        principalId: rows[0].id,
+        role: rows[0].role,
+        reason: "otp",
+      });
       const { password_hash, ...safeUser } = rows[0];
       return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
     }

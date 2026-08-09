@@ -21,7 +21,9 @@ const requestLogger = (req, res, next) => {
                 : status >= 400 ? "warn"
                 : "info";
 
-    logger[level](`${method} ${url}`, { status, ms, ip, userId });
+    // I-03: the correlation id was generated per request in server.js and
+    // read by nothing. It is what ties a log line to its audit record.
+    logger[level](`${method} ${url}`, { status, ms, ip, userId, correlationId: req.requestId });
   });
 
   next();
