@@ -13,7 +13,7 @@
  */
 "use strict";
 
-const { authorize } = require("./kernel");
+const { authorize, authorizeLoaded } = require("./kernel");
 const { installResourceLoaders } = require("./infrastructure/resourceLoaders");
 const { installPolicies } = require("./policies");
 const registry = require("./registry");
@@ -45,6 +45,7 @@ registerAuthorizationStartupCheck();
 
 module.exports = {
   authorize,
+  authorizeLoaded,
 
   // Composition
   registerPolicy: registry.registerPolicy,

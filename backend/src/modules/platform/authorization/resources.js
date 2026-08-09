@@ -18,6 +18,26 @@
 
 const loaders = new Map();
 
+/**
+ * Stamped on every row a loader produced.
+ *
+ * `authorizeLoaded()` lets a caller re-authorize a DIFFERENT action against a
+ * resource it already holds, so reading a booking and then deciding whether
+ * its completion OTP is readable costs one query rather than two (§36). That
+ * entry point would be a hole if any object could be passed to it — the
+ * request body would be back in the decision. This symbol is the difference:
+ * it is not enumerable, not serialisable, and cannot survive JSON, so an
+ * object that came from a client cannot carry it.
+ */
+const LOADED = Symbol("authorization.loadedFromDatabase");
+
+const stampLoaded = (row) => {
+  if (row && typeof row === "object") Object.defineProperty(row, LOADED, { value: true, enumerable: false });
+  return row;
+};
+
+const wasLoadedFromDatabase = (row) => Boolean(row && row[LOADED] === true);
+
 class ResourceError extends Error {
   constructor(message) {
     super(message);
@@ -51,7 +71,7 @@ async function loadResource(type, id, deps) {
   if (id === null || id === undefined) return null;
   const key = String(id);
   if (!key || key.length > 64) return null;
-  return load(key, deps);
+  return stampLoaded(await load(key, deps));
 }
 
 /** Test-only. */
@@ -64,6 +84,7 @@ module.exports = {
   hasLoader,
   loadResource,
   registeredResourceTypes,
+  wasLoadedFromDatabase,
   ResourceError,
   __resetLoadersForTests,
 };

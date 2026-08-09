@@ -32,7 +32,7 @@
 "use strict";
 
 const { getPolicy } = require("./registry");
-const { loadResource } = require("./resources");
+const { loadResource, wasLoadedFromDatabase } = require("./resources");
 const { DENY, DENY_REASONS, permit, deny } = require("./decision");
 const { ROLE } = require("./roles");
 
@@ -55,28 +55,14 @@ async function authorize(actor, action, resourceRef = null, ctx = {}) {
   // that a `catch (e) { next() }` somewhere can turn into a permit.
   if (!policy) return deny(DENY.POLICY_DENIED, null, { action });
 
-  // 2 ── the actor must be one.
-  if (!actor || typeof actor !== "object" || !Array.isArray(actor.roles)) {
-    return deny(DENY.UNAUTHENTICATED, policy);
-  }
-
-  const wildcard = policy.roles.includes("*");
-  const anonymousOnly = actor.roles.length === 0
-    || (actor.roles.length === 1 && actor.roles[0] === ROLE.ANONYMOUS);
-
-  if (!wildcard) {
-    // Two different failures, and conflating them sends the wrong answer.
-    // No principal at all is `unauthenticated` — signing in would help.
-    // A principal holding nothing is `no_membership` — signing in again
-    // would not, and telling them to try produces a login loop.
-    if (!actor.principalId) return deny(DENY.UNAUTHENTICATED, policy);
-    if (anonymousOnly) return deny(DENY.NO_MEMBERSHIP, policy);
-  }
-
-  // 3 ── role.
-  if (!wildcard && !policy.roles.some((r) => actor.roles.includes(r))) {
-    return deny(DENY.MISSING_PERMISSION, policy);
-  }
+  // 2 ── the actor must be one, and 3 ── the role must be plausible.
+  //
+  // Two different failures at step 2, and conflating them sends the wrong
+  // answer: no principal at all is `unauthenticated` and signing in would
+  // help; a principal holding nothing is `no_membership` and signing in again
+  // would not, so telling them to try produces a login loop.
+  const gate = checkActorAndRole(policy, actor);
+  if (gate) return gate;
 
   // ── collection: no row to load; the scope decides the subset ──
   if (policy.cardinality === "collection") {
@@ -115,6 +101,59 @@ async function authorize(actor, action, resourceRef = null, ctx = {}) {
   }
   if (!resource) return deny(DENY.NOT_FOUND, policy);
 
+  return decideAgainst(policy, actor, resource, ctx);
+}
+
+/**
+ * Authorize a SECOND action against a resource this caller already loaded.
+ *
+ * Reading a booking and then deciding whether its completion OTP may be read
+ * are two decisions about one row. Loading it twice is the N+1 §36 warns
+ * about, and it is avoidable without weakening anything — provided the row
+ * genuinely came from a loader.
+ *
+ * That proviso is the whole design. `resource` must carry the symbol
+ * `loadResource` stamps, and its `type` must match the policy's. A caller
+ * that hands over a request body, or a row it fetched itself with a WHERE
+ * clause of its own choosing, is DENIED — not trusted, not warned about.
+ * Without that, this function would be the request-supplied-ownership defect
+ * with a nicer name.
+ */
+async function authorizeLoaded(actor, action, resource, ctx = {}) {
+  const policy = getPolicy(action);
+  if (!policy) return deny(DENY.POLICY_DENIED, null, { action });
+  if (policy.cardinality !== "instance") return deny(DENY.WRONG_RESOURCE, policy);
+
+  if (!wasLoadedFromDatabase(resource) || resource.type !== policy.resource) {
+    return deny(DENY.WRONG_RESOURCE, policy);
+  }
+
+  const gate = checkActorAndRole(policy, actor);
+  if (gate) return gate;
+
+  return decideAgainst(policy, actor, resource, ctx);
+}
+
+/** Steps 2 and 3, shared. Returns a denial, or null to continue. */
+function checkActorAndRole(policy, actor) {
+  if (!actor || typeof actor !== "object" || !Array.isArray(actor.roles)) {
+    return deny(DENY.UNAUTHENTICATED, policy);
+  }
+  const wildcard = policy.roles.includes("*");
+  const anonymousOnly = actor.roles.length === 0
+    || (actor.roles.length === 1 && actor.roles[0] === ROLE.ANONYMOUS);
+  if (!wildcard) {
+    if (!actor.principalId) return deny(DENY.UNAUTHENTICATED, policy);
+    if (anonymousOnly) return deny(DENY.NO_MEMBERSHIP, policy);
+  }
+  if (!wildcard && !policy.roles.some((r) => actor.roles.includes(r))) {
+    return deny(DENY.MISSING_PERMISSION, policy);
+  }
+  return null;
+}
+
+/** Steps 5 to 7, shared. */
+function decideAgainst(policy, actor, resource, ctx) {
   // 5 ── relationship.
   //
   // A relationship function returns `true`, `false`, or one of the DENY
@@ -218,4 +257,4 @@ function evaluateSameActor(policy, actor, resource, ctx) {
   }
 }
 
-module.exports = { authorize };
+module.exports = { authorize, authorizeLoaded };

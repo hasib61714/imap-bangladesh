@@ -10,7 +10,13 @@ const { validate, body } = require("../middleware/validate");
 const { quoteBooking, PricingError } = require("../utils/pricing");
 const { MoneyError } = require("../utils/money");
 const { assertTransition, isValidStatus, ledgerRef, TransitionError } = require("../utils/bookingState");
-const { getParticipation } = require("../utils/bookingAccess");
+const { participantRole } = require("../utils/bookingAccess");
+// I-04: the participation check is no longer performed in this file. The
+// route declares an action; the kernel loads the booking and decides. What
+// remains here is `participantRole`, which answers a different question —
+// which side of the booking this actor is on — for the state machine.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION, authorizeLoaded } = require("../src/modules/platform/authorization");
 
 // NOTE (P0-3): `amount`, `total_amount` and `platform_fee` are deliberately
 // absent from this schema. They are no longer read from the request at all —
@@ -214,11 +220,12 @@ router.get("/", authMiddleware, async (req, res) => {
 // ── GET /api/bookings/:id ─────────────────────────────────
 // Readable by either participant or an admin. Previously customer-only,
 // which left the assigned provider unable to read their own booking.
-router.get("/:id", authMiddleware, async (req, res) => {
+router.get("/:id", authMiddleware,
+  requireAuthorization(ACTION.BOOKING_OBSERVE, { resource: (req) => req.params.id }),
+  async (req, res) => {
   try {
-    const part = await getParticipation(req.params.id, req.user);
-    if (!part.customerId) return res.status(404).json({ error: "Booking not found" });
-    if (!part.allowed)    return res.status(403).json({ error: "Access denied" });
+    const part = req.authorization.resource;
+    const role = participantRole(req.authorization.actor, part);
 
     const [rows] = await pool.query(
       `SELECT b.*, u.name AS provider_name, u.avatar AS provider_avatar, u.phone AS provider_phone
@@ -231,9 +238,19 @@ router.get("/:id", authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "Booking not found" });
 
     const booking = rows[0];
-    // The completion OTP is the customer's proof of delivery — the
-    // provider must not be able to read it from the API.
-    if (part.role !== "customer" && part.role !== "admin") delete booking.otp_code;
+    // The completion OTP is the customer's proof of delivery, and reading it
+    // is a SEPARATE decision from reading the booking: the assigned provider
+    // may see one and not the other. So it is a second authorization, not an
+    // `if` on the role — a field-level rule written as an `if` is a rule no
+    // policy test can find.
+    //
+    // authorizeLoaded, not authorize: the booking is already in hand from the
+    // decision above, and the same row must not be fetched twice to answer a
+    // second question about it (§36).
+    const otp = await authorizeLoaded(
+      req.authorization.actor, ACTION.BOOKING_READ_COMPLETION_OTP, part, { db: pool }
+    );
+    if (!otp.allowed) delete booking.otp_code;
     res.json(booking);
   } catch (err) {
     logger.error("booking detail:", err);
@@ -247,14 +264,23 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // and any financial effect happens in the same transaction. A repeated
 // request loses the race on `affectedRows` and returns 409 without moving
 // money. Previously every repeat of `completed` paid the provider again.
-router.patch("/:id/status", authMiddleware, async (req, res) => {
+router.patch("/:id/status", authMiddleware,
+  requireAuthorization(ACTION.BOOKING_TRANSITION, { resource: (req) => req.params.id }),
+  async (req, res) => {
   try {
     const { status } = req.body;
     if (!isValidStatus(status)) return res.status(400).json({ error: "Invalid status" });
 
-    const part = await getParticipation(req.params.id, req.user);
-    if (!part.customerId) return res.status(404).json({ error: "Booking not found" });
-    if (!part.allowed)    return res.status(403).json({ error: "Access denied" });
+    // §19: the kernel decided whether this actor may ATTEMPT a transition.
+    // Whether pending -> active is legal, and which side of the booking may
+    // make it, remains utils/bookingState.js. Two answers to two questions,
+    // and neither table is written twice.
+    const part = {
+      ...req.authorization.resource,
+      role: participantRole(req.authorization.actor, req.authorization.resource),
+      customerId: req.authorization.resource.customerId,
+      providerUserId: req.authorization.resource.providerUserId,
+    };
 
     const outcome = await withTransaction(async (conn) => {
       const [rows] = await conn.query(

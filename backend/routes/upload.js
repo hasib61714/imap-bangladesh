@@ -11,6 +11,8 @@ const multer  = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const pool    = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const storage = require("../utils/storage");
 
 const upload = multer({
@@ -115,7 +117,26 @@ router.post("/kyc", authMiddleware, upload.fields([
 });
 
 /* ── Proof upload ── */
-router.post("/proof", authMiddleware, upload.single("file"), async (req, res) => {
+//
+// THE OLD CHECK DID NOT WORK, AND SAID IT DID.
+//
+//   UPDATE bookings SET completion_proof=? WHERE id=? AND (customer_id=? OR ?='admin')
+//
+// The assigned PROVIDER is the person who takes a completion photo, and that
+// clause excludes them: the update matched zero rows and the endpoint answered
+// 200 with the uploaded URL. The provider saw success and the booking carried
+// no proof. An unauthorized caller got exactly the same answer, so neither
+// case was visible from outside.
+//
+// The kernel decides now, against the loaded booking, and the state condition
+// on the policy refuses proof for a booking that never reached the work.
+// multer runs first because booking_id arrives in the multipart body.
+router.post("/proof", authMiddleware, upload.single("file"),
+  requireAuthorization(ACTION.BOOKING_ATTACH_PROOF, {
+    when: (req) => Boolean(req.body?.booking_id),
+    resource: (req) => req.body.booking_id,
+  }),
+  async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "ফাইল প্রয়োজন।" });
     const { booking_id } = req.body;
@@ -126,7 +147,9 @@ router.post("/proof", authMiddleware, upload.single("file"), async (req, res) =>
     } else {
       url = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
-    if (booking_id) await pool.query("UPDATE bookings SET completion_proof=? WHERE id=? AND (customer_id=? OR ?='admin')", [url, booking_id, req.user.id, req.user.role]);
+    if (booking_id) {
+      await pool.query("UPDATE bookings SET completion_proof=? WHERE id=?", [url, booking_id]);
+    }
     res.json({ url, message: "ছবি আপলোড হয়েছে।" });
   } catch (err) { logger.error("upload-proof:", err); res.status(500).json({ error: err.message || "Upload failed" }); }
 });
