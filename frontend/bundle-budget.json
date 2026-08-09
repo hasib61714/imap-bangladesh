@@ -1,0 +1,67 @@
+{
+  "$comment": [
+    "Bundle budgets in KB gzip. See frontend/vite-plugins/bundle-budget.js.",
+    "",
+    "ceilingKb  what the build must not exceed. Enforced — the build fails.",
+    "           Set from measurement, so regression is impossible from today.",
+    "targetKb   the Gate-1 budget from TARGET-REPOSITORY-STRUCTURE.md §4.3.",
+    "           Reported as a gap on every build.",
+    "",
+    "A ceiling may only ever be LOWERED. Raising one is a decision that needs a",
+    "reason in the commit message, not a quiet edit.",
+    "",
+    "Baseline measured 2026-08-09 on the pre-migration bundle:",
+    "  index         101.9   react-vendor  45.8   vendor  181.2   css  6.5",
+    "  initial load  335.4 KB gzip against a 150 KB target — 2.2x over.",
+    "",
+    "The gap closes by subtraction, not optimisation. APP-JSX-MIGRATION Step 0",
+    "deletes ~1,900 lines of fabricated surfaces (9 destinations with no backend)",
+    "before any decomposition begins; Steps 1-2 move the rest behind routes."
+  ],
+
+  "entries": {
+    "index": {
+      "ceilingKb": 330,
+      "targetKb": 150,
+      "why": "consumer initial load — shell, router, home, ask. The number a user on a 2 GB Android over 3G actually waits for."
+    }
+  },
+
+  "chunks": {
+    "antd": {
+      "ungoverned": true,
+      "why": "admin-only, lazy. Must never enter a consumer route — asserted separately, not by size"
+    },
+    "ant-icons": {
+      "ungoverned": true,
+      "why": "admin-only, lazy"
+    },
+    "tesseract": {
+      "ungoverned": true,
+      "why": "KYC OCR, lazy, loaded only on the document-capture surface"
+    },
+    "AdminPanel": {
+      "ceilingKb": 20,
+      "targetKb": null,
+      "why": "lazy; moves to its own build entry at APP-JSX-MIGRATION Step 10"
+    },
+    "LandingPage": {
+      "ceilingKb": 18,
+      "targetKb": null,
+      "why": "marketing route, lazy"
+    },
+    "ProviderPortal": {
+      "ceilingKb": 14,
+      "targetKb": 80,
+      "why": "provider route group"
+    },
+    "AuthPage": {
+      "ceilingKb": 7,
+      "targetKb": null
+    },
+    "KYCPage": {
+      "ceilingKb": 6,
+      "targetKb": null
+    }
+  }
+}
