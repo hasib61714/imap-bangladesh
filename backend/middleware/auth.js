@@ -9,7 +9,9 @@ async function authMiddleware(req, res, next) {
   }
   const token = header.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // I-03 (§16): never accept an arbitrary algorithm. Without this list,
+    // any HS* variant verifies against a service that only issues HS256.
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     // Fetch fresh user from DB
     const [rows] = await pool.query(
       "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",

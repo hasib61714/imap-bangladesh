@@ -13,7 +13,16 @@ function setOtp(phone, otp) {
   if (existing && Date.now() < existing.expiry - (OTP_TTL - RESEND_WAIT)) return false;
   const expiry = Date.now() + OTP_TTL;
   store.set(phone, { otp, expiry, attempts: 0 });
-  setTimeout(() => { const e = store.get(phone); if (e && e.expiry === expiry) store.delete(phone); }, OTP_TTL + 1000);
+  // I-03: unref'd. Each pending OTP scheduled a 5-minute timer that held the
+  // event loop open, so a process could not exit until the last OTP expired —
+  // graceful shutdown waited up to five minutes, and any test that requested
+  // an OTP never terminated. Expiry is enforced by the `expiry` check in
+  // verifyOtp() regardless; this timer only reclaims memory.
+  const sweep = setTimeout(() => {
+    const e = store.get(phone);
+    if (e && e.expiry === expiry) store.delete(phone);
+  }, OTP_TTL + 1000);
+  if (typeof sweep.unref === "function") sweep.unref();
   return true;
 }
 

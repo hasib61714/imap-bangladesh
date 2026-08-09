@@ -63,7 +63,8 @@ io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
     if (!token) { socket.user = null; return next(); }
-    socket.user = jwt.verify(token, process.env.JWT_SECRET);
+    // I-03 (§16): the socket handshake pins the algorithm too.
+    socket.user = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     next();
   } catch {
     socket.user = null;

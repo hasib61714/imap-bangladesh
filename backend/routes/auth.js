@@ -11,8 +11,16 @@ const { parseOptionalAmount, MoneyError } = require("../utils/money");
 const env      = require("../config/environment");
 
 const makeReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+// I-03 (§16): the algorithm is pinned on both sides. jsonwebtoken 9 already
+// rejects `alg: none` — verified, not assumed — but without an explicit
+// `algorithms` list, verify() accepts any HS* variant, so a token signed
+// HS512 validates against a service that only ever issues HS256. Pinning
+// removes the mismatch and makes the accepted set reviewable in one place.
+const JWT_ALG = "HS256";
+
 const makeToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+    algorithm: JWT_ALG,
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
@@ -209,7 +217,17 @@ router.post("/verify-otp", async (req, res) => {
     if (result === "expired")  return res.status(400).json({ error: "OTP মেয়াদ শেষ। নতুন OTP নিন।" });
     if (result === "blocked")  return res.status(429).json({ error: "অনেকবার ভুল হয়েছে। নতুন OTP নিন।" });
     if (result === "invalid")  return res.status(400).json({ error: "OTP ভুল। আবার চেষ্টা করুন।" });
-    const [rows] = await pool.query("SELECT * FROM users WHERE phone = ?", [phone]);
+    // I-03 (§14): `AND is_active = 1` was missing here. /login checked it;
+    // this path did not, so a deactivated account could still obtain a full
+    // session by proving control of its phone number. Account state must gate
+    // every authentication path, not the one that happens to be busiest.
+    //
+    // A deactivated account is treated as absent rather than refused, so the
+    // response cannot be used to discover that a number is registered.
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE phone = ? AND is_active = 1",
+      [phone]
+    );
     if (rows.length) {
       const { password_hash, ...safeUser } = rows[0];
       return res.json({ user: safeUser, token: makeToken(rows[0]), isNew: false });
@@ -248,10 +266,14 @@ router.post("/google", async (req, res) => {
     const matchEmail = emailVerified && email ? email : null;
 
     // Match on the verified subject id first, then on a verified email.
+    // I-03 (§14): same omission as verify-otp — a deactivated account could
+    // sign in with Google. Deactivated accounts fall through to the "new user"
+    // branch rather than being refused, so the response does not reveal that
+    // the identity exists.
     const [rows] = await pool.query(
       matchEmail
-        ? "SELECT * FROM users WHERE social_id = ? OR (email = ? AND email IS NOT NULL AND email <> '') LIMIT 1"
-        : "SELECT * FROM users WHERE social_id = ? LIMIT 1",
+        ? "SELECT * FROM users WHERE (social_id = ? OR (email = ? AND email IS NOT NULL AND email <> '')) AND is_active = 1 LIMIT 1"
+        : "SELECT * FROM users WHERE social_id = ? AND is_active = 1 LIMIT 1",
       matchEmail ? [googleId, matchEmail] : [googleId]
     );
 
