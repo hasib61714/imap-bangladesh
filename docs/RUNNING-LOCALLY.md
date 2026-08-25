@@ -122,3 +122,57 @@ disk would lose evidence the platform said it was keeping. Configure
 
 5000 is avoided deliberately: it is commonly held by another service on
 Windows, and the old socket client hardcoded it.
+
+---
+
+## Payments
+
+`scripts/dev.secrets.env` (gitignored) carries the gateway credentials — copy
+`dev.secrets.env.example` and fill it in. Without them the app runs with no
+gateway and `/payments/initiate` settles in development mode, which is
+refused outright in production (P0-12).
+
+### What settles a payment
+
+Two paths, and both ask SSLCommerz rather than trusting the browser:
+
+| Path | When | Reaches localhost? |
+|---|---|---|
+| **IPN** `POST /api/payments/ipn` | the gateway calls us, server to server | **No** |
+| **Reconcile** `POST /api/payments/:id/reconcile` | the customer returns and the app asks | Yes |
+
+The IPN is the production path. It cannot work locally: SSLCommerz's servers
+have no route to `http://localhost:5001`, so a payment completes at the
+gateway and nothing arrives. Reconciliation is what makes the loop close
+locally — and in production it is the safety net for every IPN that is
+missed because of a cold start, a deploy or a blip.
+
+Neither trusts the redirect. `POST /api/payments/success` only redirects;
+that is deliberate (P1-3) because anyone can post to it with any `tran_id`.
+
+To exercise the real IPN locally, put a tunnel in front of the backend and
+point `BACKEND_URL` at it:
+
+```bash
+cloudflared tunnel --url http://localhost:5001     # or: ngrok http 5001
+# then set BACKEND_URL=https://<the-public-host> in scripts/dev.env
+```
+
+### Testing a payment in the sandbox
+
+Book with bKash, Nagad, Rocket or card. On the checkout page pick a method,
+enter any OTP (`111111` works), and press **Success**. The transaction shows
+a sample 10% discount in the gateway's own records; the amount it reports
+back still matches the invoice, so `settlePayment`'s reconciliation (P1-4)
+passes.
+
+### Going live
+
+1. Get live credentials from SSLCommerz and set them on the backend host.
+2. Set `SSL_IS_SANDBOX=false`. It is read explicitly — leaving it unset makes
+   the mode depend on the declared environment, and being wrong here moves
+   real money.
+3. Set `BACKEND_URL` to the public backend URL. If the IPN cannot reach it,
+   payments will only settle when a customer happens to return to the app.
+4. Set `FRONTEND_URL` to the deployed frontend, and keep it matching the URL
+   registered with SSLCommerz.
