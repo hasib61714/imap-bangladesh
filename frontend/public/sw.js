@@ -1,5 +1,5 @@
-// IMAP Service Worker – v1.14
-const CACHE_NAME = "imap-v35";
+// IMAP Service Worker – v1.15
+const CACHE_NAME = "imap-v36";
 // Derive base path from SW location (works for both "/" and "/imap-bangladesh/")
 const BASE = new URL("./", self.location.href).href;
 const STATIC_ASSETS = [
@@ -55,10 +55,10 @@ self.addEventListener("push", e => {
   const title = data.title || "IMAP নোটিফিকেশন";
   const options = {
     body: data.body || "আপনার বুকিং আপডেট আছে।",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: BASE + "icons/icon-192.png",
+    badge: BASE + "icons/icon-192.png",
     vibrate: [200, 100, 200],
-    data: { url: data.url || "/" },
+    data: { url: data.url || BASE },
     actions: [
       { action: "view",    title: "দেখুন" },
       { action: "dismiss", title: "বাতিল" }
@@ -71,7 +71,7 @@ self.addEventListener("push", e => {
 self.addEventListener("notificationclick", e => {
   e.notification.close();
   if (e.action !== "dismiss") {
-    const url = e.notification.data?.url || "/";
+    const url = e.notification.data?.url || BASE;
     e.waitUntil(clients.openWindow(url));
   }
 });
