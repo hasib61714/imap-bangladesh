@@ -10,6 +10,19 @@ state and no order you have to follow.
 
 ---
 
+## Start here
+
+**`IMAGE-PROMPTS.md` is what you paste into the generator.** Twenty-seven
+self-contained prompts, one per image, with the house style already inside
+each one.
+
+Pasting THIS file into a generator does not work: it is a specification, and a
+generator handed a long specification tends to read it as a document to edit
+rather than an instruction to follow. This file explains what each image is
+for and why; that one is the input.
+
+---
+
 ## How to use this
 
 1. Generate the image.
