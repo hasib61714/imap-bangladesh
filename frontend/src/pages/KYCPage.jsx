@@ -41,6 +41,22 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
   const submitDoc=async()=>{
     if(!docNum.trim()){showToast(lang==="bn"?"নথি নম্বর দিন":"Enter document number");return;}
     if(!imgFront){showToast(lang==="bn"?"সামনের ছবি আপলোড করুন":"Upload front side");return;}
+    /**
+     * The selfie is required, and this is where the person finds out.
+     *
+     * TRUST-ARCHITECTURE §6 is "NID + selfie, human review": a document with
+     * no face beside it proves the document exists, not that the person
+     * holding it is its subject. The server has always been the authority on
+     * that and refuses the submission — but the form only asked for the
+     * front, so people uploaded one image, pressed submit, and got a
+     * validation error for a field the form had marked optional.
+     */
+    if(!imgSelfie){
+      showToast(lang==="bn"
+        ? "সেলফি আপলোড করুন — পরিচয়পত্র হাতে নিয়ে তোলা ছবি"
+        : "Upload a selfie — a photo of you holding your ID");
+      return;
+    }
     setSubmitting(true);
     try{
       // Prefer multipart upload (works with R2 or base64 fallback)
@@ -210,15 +226,27 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
           <input value={docNum} onChange={e=>setDocNum(e.target.value)} placeholder={tr.kycDocNumberPh}
             style={{width:"100%",padding:"12px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:14,background:C.bg,color:C.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
 
-          {/* Photo uploads */}
+          {/* Photo uploads.
+              Which of these are REQUIRED is marked on the labels, because
+              the server requires the front and the selfie and the form used
+              to present all three as optional — so people submitted one
+              image and were rejected for a field nothing had asked for. */}
           <div style={{fontSize:12,color:C.muted,fontWeight:600,marginBottom:8}}>{lang==="bn"?"ছবি আপলোড করুন":"Upload Photos"}</div>
-          <div style={{display:"flex",gap:8,marginBottom:14}}>
-            <UploadBtn field="front" label={tr.kycFront} value={imgFront} setter={setImgFront}/>
-            <UploadBtn field="back" label={tr.kycBack} value={imgBack} setter={setImgBack}/>
-            <UploadBtn field="selfie" label={tr.kycSelfie} value={imgSelfie} setter={setImgSelfie}/>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <UploadBtn field="front"  label={`${tr.kycFront} *`}  value={imgFront}  setter={setImgFront}/>
+            <UploadBtn field="back"   label={tr.kycBack}          value={imgBack}   setter={setImgBack}/>
+            <UploadBtn field="selfie" label={`${tr.kycSelfie} *`} value={imgSelfie} setter={setImgSelfie}/>
           </div>
-          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>
-            💡 {lang==="bn"?"ছবি নির্বাচন করতে ক্লিক করুন":"Click to select photo files"}
+          <div style={{fontSize:11.5,color:C.muted,marginBottom:14,lineHeight:1.6}}>
+            <div><span style={{color:C.acc}}>*</span> {lang==="bn"
+              ? "পরিচয়পত্রের সামনের ছবি এবং সেলফি — দুটোই লাগবে।"
+              : "The front of your ID and a selfie are both required."}</div>
+            <div style={{marginTop:3}}>{lang==="bn"
+              ? "সেলফিতে পরিচয়পত্রটি হাতে ধরে রাখুন, যেন মুখ ও নথি একসাথে দেখা যায়।"
+              : "In the selfie, hold your ID up so your face and the document are both visible."}</div>
+            <div style={{marginTop:3}}>🔒 {lang==="bn"
+              ? "আপনার নথি এনক্রিপ্টেড সংরক্ষণে থাকে। শুধু যাচাইকারী দল কারণ উল্লেখ করে দেখতে পারেন, এবং প্রতিটি দেখা রেকর্ড হয়।"
+              : "Your documents are stored privately. Only the verification team can open them, only with a stated reason, and every viewing is recorded."}</div>
           </div>
 
           {/* Actions */}

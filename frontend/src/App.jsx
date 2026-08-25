@@ -7,6 +7,7 @@ import { ThemeCtx, useC, LangCtx, useTr, FavsCtx, LiveDataCtx, useLiveData, User
 import { Av, Stars, PBar, MiniBar } from "./components/ui";
 const AuthPage      = lazy(() => import("./pages/AuthPage"));
 const KYCPage       = lazy(() => import("./pages/KYCPage"));
+import ProviderStanding from "./components/ProviderStanding";
 const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
 const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
@@ -1661,10 +1662,20 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
   }));
   const totalBookings = ctxBookings.length;
 
+  /**
+   * A person who applied to be a provider keeps the `customer` role —
+   * applying does not grant it — so they land here, not in the provider
+   * portal. Without this they had nowhere at all to see whether their
+   * application had been looked at.
+   */
+  const [providerId,setProviderId]=useState(null);
+
   useEffect(()=>{
     usersApi.getReferral().then(d=>{
       setReferralCount(d.friends?.length||d.referrals?.length||d.count||0);
     }).catch(()=>{});
+    // 404 here just means "not a provider", which is the common case.
+    providersApi.getMe().then(d=>{ if(d&&d.id) setProviderId(d.id); }).catch(()=>{});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -1725,7 +1736,15 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
       </div>
 
       <div style={{padding:"0 16px",maxWidth:600,margin:"0 auto"}}>
-        {/* Stats row */}
+        {/* Their provider standing, if they have applied. */}
+      {providerId && (
+        <div style={{padding:"18px 16px 0"}}>
+          <ProviderStanding C={C} lang={lang} providerId={providerId}
+            onOpenKyc={()=>onNavigate&&onNavigate("_kyc")} />
+        </div>
+      )}
+
+      {/* Stats row */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8,margin:"18px 0"}}>
           {stats.map((s,i)=>(
             <div key={i} style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:14,padding:"12px 6px",textAlign:"center"}}>
@@ -2891,7 +2910,7 @@ function PortfolioPage(){
 /* ─── Provider Registration ──────────────────────────── */
 const REG_SERVICES=["Electrical","Plumbing","Cleaning","Nursing","Carpentry","Painting","AC Repair","Tutoring","Gardening","Security"];
 
-function ProviderRegPage(){
+function ProviderRegPage({onNavigate}){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [step,setStep]=useState(1);
   const [name,setName]=useState("");
@@ -2901,14 +2920,36 @@ function ProviderRegPage(){
   const [area,setArea]=useState("");
   const [exp,setExp]=useState("1");
   const [done,setDone]=useState(false);
+  const [newProviderId,setNewProviderId]=useState(null);
   const [regSubmitting,setRegSubmitting]=useState(false);
 
+  /**
+   * What happens after applying.
+   *
+   * This screen used to promise review "within 24–48 hours" and print
+   * `APP-` plus a slice of the current timestamp as a reference number. The
+   * promise had no service level behind it — F-12 meant nothing could
+   * approve an application at all — and the reference was generated in the
+   * browser and stored nowhere, so a person quoting it to support was
+   * quoting a number support could not look up.
+   *
+   * It now shows the applicant their actual standing: what state their
+   * verification is in, what is still missing, and the one thing they can do
+   * next. No invented deadline and no invented reference.
+   */
   if(done) return(
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:16}}>🎉</div>
-      <div style={{fontSize:20,fontWeight:800,color:C.p,marginBottom:8}}>{tr.prRegDone}</div>
-      <div style={{fontSize:13,color:C.sub,marginBottom:24}}>{lang==="en"?"Our team will review your application within 24–48 hours.":"আমাদের টিম ২৪–৪৮ ঘণ্টার মধ্যে আপনার আবেদন পর্যালোচনা করবে।"}</div>
-      <div style={{background:C.plt,borderRadius:14,padding:"12px 24px",fontSize:14,color:C.p,fontWeight:700}}>APP-{Date.now().toString().slice(-6)}</div>
+    <div style={{padding:"32px 4px 20px"}}>
+      <div style={{textAlign:"center",marginBottom:22}}>
+        <div style={{fontSize:56,marginBottom:12}}>🎉</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.p,marginBottom:6}}>{tr.prRegDone}</div>
+        <div style={{fontSize:13,color:C.sub,maxWidth:380,margin:"0 auto",lineHeight:1.6}}>
+          {lang==="en"
+            ? "One more step before customers can find you: verify your identity."
+            : "গ্রাহকরা আপনাকে খুঁজে পাওয়ার আগে আর একটি ধাপ — পরিচয় যাচাই করুন।"}
+        </div>
+      </div>
+      <ProviderStanding C={C} lang={lang} providerId={newProviderId}
+        onOpenKyc={()=>{ if(onNavigate) onNavigate("_kyc"); }} />
     </div>
   );
 
@@ -2964,7 +3005,14 @@ function ProviderRegPage(){
             <button onClick={async()=>{
               if(regSubmitting)return;
               setRegSubmitting(true);
-              try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});setDone(true);}
+              try{
+                await usersApi.updateProfile({name,phone});
+                await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});
+                // The eligibility surface is keyed on the provider row, and
+                // apply() does not return it, so read it back.
+                try{ const me=await providersApi.getMe(); setNewProviderId(me?.id||null); }catch{ /* the panel degrades to verification state only */ }
+                setDone(true);
+              }
               catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
               finally{setRegSubmitting(false);}
             }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>
@@ -4577,8 +4625,15 @@ export default function IMAP() {
   if(!authUser) return <Suspense fallback={<PageLoader/>}><AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
     onBack={()=>setShowLanding(true)}/></Suspense>;
   if(authUser.role==="admin") return <Suspense fallback={<PageLoader/>}><AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
-  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
+  // KYC is checked BEFORE the role screens, not after.
+  //
+  // The provider branch returned first, so `showKyc` was unreachable for a
+  // provider — and a provider is exactly who needs it. There was no route
+  // from the portal to identity verification at all: the person whose
+  // listing depends on being verified could not open the page that verifies
+  // them.
   if(showKyc) return <Suspense fallback={<PageLoader/>}><KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/></Suspense>;
+  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang} onOpenKyc={()=>setShowKyc(true)}/></Suspense>;
 
   const tr = T[lang];
   const C  = dark ? C_DARK : C_LIGHT;
@@ -5404,7 +5459,7 @@ export default function IMAP() {
           {page==="loyalty"   && <div className="wp" style={{padding:"28px 0 80px"}}><LoyaltyPage/></div>}
           {page==="referral"  && <div className="wp" style={{padding:"28px 0 80px"}}><ReferralPage/></div>}
           {page==="portfolio" && <div className="wp" style={{padding:"28px 0 80px"}}><PortfolioPage/></div>}
-          {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage/></div>}
+          {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="panalytics"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderAnalyticsPage/></div>}
           {page==="skillcert" && <div className="wp" style={{padding:"28px 0 80px"}}><SkillCertPage/></div>}
         </div>
