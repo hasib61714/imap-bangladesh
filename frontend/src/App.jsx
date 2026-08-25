@@ -485,13 +485,17 @@ function BookModal({p,onClose,onSuccess}) {
   const dark=C===C_DARK;
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
-  const {setBalance}=useLiveData();
+  const {balance,setBalance}=useLiveData();
   const name=lang==="en"?p.nameEn:p.name;
   const svc=lang==="en"?p.svcEn:p.svc;
   const eta=lang==="en"?p.etaEn:p.eta;
   const [step,setStep]=useState(0);
   const [time,setTime]=useState(null);
-  const [pay,setPay]=useState("bKash");
+  // Cash by default, matching the server. The old default was bKash, which
+  // the server treated as a WALLET method — so the default both charged the
+  // customer and, for anyone who had not topped up, failed with "Insufficient
+  // wallet balance" and no way forward.
+  const [pay,setPay]=useState("cash");
   const [done,setDone]=useState(false);
   const [fraudWarn,setFraudWarn]=useState(null);
   const [bundles,setBundles]=useState([]);
@@ -500,6 +504,8 @@ function BookModal({p,onClose,onSuccess}) {
   const [bookErr,setBookErr]=useState(null);
   const [bookingRef,setBookingRef]=useState(null);
   const [chargedTotal,setChargedTotal]=useState(null);
+  const [paymentNext,setPaymentNext]=useState(null);
+  const [payNotice,setPayNotice]=useState(null);
   // P0-10: the fake in-browser "payment OTP" step was removed here.
   // Payment verification belongs to the payment gateway, not to a random
   // number the page generated and then printed next to a fake phone number.
@@ -540,7 +546,57 @@ function BookModal({p,onClose,onSuccess}) {
       });
       setBookingRef(resp?.id || null);
       setChargedTotal(resp?.total ?? null);
-    } catch(e){ setLoadingConfirm(false); setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")); return; }
+      setPaymentNext(resp?.payment?.next || null);
+
+      /**
+       * A gateway method means the booking is UNPAID and the customer has to
+       * finish paying. The server says so in `payment.next`; before this the
+       * client had to infer it from the method name, and inferred wrong —
+       * bKash was treated as an in-app wallet debit, so the booking either
+       * spent a balance the customer had never funded or failed outright.
+       *
+       * If the gateway is not configured, `/payments/initiate` answers 503
+       * (P0-12 refuses rather than pretending money moved) and we say so
+       * instead of leaving them on a success screen for a booking nobody
+       * has paid for.
+       */
+      if (resp?.payment?.next === "initiate" && resp?.id) {
+        try {
+          const pay = await paymentsApi.initiate(resp.id);
+          if (pay?.redirect_url || pay?.GatewayPageURL) {
+            window.location.href = pay.redirect_url || pay.GatewayPageURL;
+            return;
+          }
+          setPayNotice(lang==="en"
+            ? "Your booking is confirmed but not paid yet. Open it from Bookings to pay."
+            : "বুকিং নিশ্চিত হয়েছে কিন্তু পেমেন্ট বাকি। বুকিং থেকে খুলে পেমেন্ট করুন।");
+        } catch (err) {
+          setPayNotice(err?.data?.code === "PAYMENT_GATEWAY_UNAVAILABLE"
+            ? (lang==="en"
+                ? "Your booking is confirmed. Online payment is unavailable right now — you can pay the provider in cash."
+                : "বুকিং নিশ্চিত হয়েছে। এখন অনলাইন পেমেন্ট বন্ধ আছে — প্রদানকারীকে নগদে দিতে পারেন।")
+            : (lang==="en"
+                ? "Your booking is confirmed but payment did not start. Open it from Bookings to try again."
+                : "বুকিং নিশ্চিত হয়েছে কিন্তু পেমেন্ট শুরু হয়নি। বুকিং থেকে আবার চেষ্টা করুন।"));
+        }
+      }
+    } catch(e){
+      setLoadingConfirm(false);
+      /**
+       * A wallet booking that fails for want of balance is not a dead end
+       * any more. The old copy was the server's raw "Insufficient wallet
+       * balance. Please top up first." with nothing to press.
+       */
+      if (/balance|ব্যালেন্স/i.test(e.data?.error || "")) {
+        setBookErr(lang==="en"
+          ? "Not enough balance in your IMAP wallet. Choose Cash, or top up and try again."
+          : "IMAP ওয়ালেটে যথেষ্ট ব্যালেন্স নেই। নগদ বেছে নিন, অথবা টপ-আপ করে আবার চেষ্টা করুন।");
+        setStep(2);
+        return;
+      }
+      setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"));
+      return;
+    }
     // Refresh wallet balance in context
     usersApi.getWallet().then(d=>{if(d.balance!=null)setBalance(d.balance);}).catch(()=>{});
     // Bundle suggestions
@@ -575,6 +631,12 @@ function BookModal({p,onClose,onSuccess}) {
       <div style={{fontSize:64,marginBottom:14}}>🎉</div>
       <div style={{fontSize:21,fontWeight:700}}>{tr.bookDone}</div>
       <div style={{fontSize:14,color:C.muted,marginTop:6}}>{name} {eta} {tr.min} {tr.arrives}</div>
+      {payNotice&&(
+        <div style={{marginTop:12,background:"#FEF3C7",border:"1px solid #F59E0B44",borderRadius:12,
+                     padding:"11px 14px",fontSize:12.5,color:"#7C5800",lineHeight:1.6,textAlign:"left"}}>
+          ⚠️ {payNotice}
+        </div>
+      )}
       <div style={{
         background:dark?"rgba(34,212,127,.06)":"rgba(29,191,115,.05)",
         borderRadius:16,padding:18,margin:"14px 0",
@@ -585,7 +647,15 @@ function BookModal({p,onClose,onSuccess}) {
         <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"—"}</div>
         {chargedTotal!=null&&(
           <div style={{fontSize:13,color:C.sub,marginTop:8,fontWeight:700}}>
-            {lang==="en"?"Charged":"চার্জ করা হয়েছে"}: ৳{chargedTotal}
+            {/* "Charged" is only true when something was actually charged.
+                A cash or unpaid-gateway booking says what is owed and when,
+                because telling somebody they have been charged when they
+                have not is the kind of wrong that costs trust. */}
+            {paymentNext==="none"
+              ? (lang==="en"?"Paid":"পরিশোধিত")
+              : paymentNext==="pay_on_completion"
+                ? (lang==="en"?"To pay on completion":"কাজ শেষে দিতে হবে")
+                : (lang==="en"?"To pay":"পরিশোধ করতে হবে")}: ৳{chargedTotal}
           </div>
         )}
       </div>
@@ -642,13 +712,37 @@ function BookModal({p,onClose,onSuccess}) {
       </>}
       {step===2&&<>
         <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{tr.payMethod}</div>
-        {[["bKash","💳","#E31E50"],["Nagad","📱","#F97316"],["Rocket","🚀","#7C3AED"],["Cash","💵","#00C170"]].map(([nm,ic,cl])=>(
-          <div key={nm} onClick={()=>setPay(nm)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:11,border:`2px solid ${pay===nm?C.p:C.bdr}`,background:pay===nm?`${C.p}08`:"#fff",marginBottom:7,cursor:"pointer",transition:"all .15s"}}>
+        {/* Each option says WHEN you pay, because the three behave
+            differently and the difference used to be invisible: choosing
+            bKash silently spent the in-app wallet balance rather than
+            opening bKash, and every new customer has none. */}
+        {[
+          ["bKash",  "💳","#E31E50", lang==="en"?"Pay now via bKash":"এখনই bKash-এ পেমেন্ট"],
+          ["Nagad",  "📱","#F97316", lang==="en"?"Pay now via Nagad":"এখনই Nagad-এ পেমেন্ট"],
+          ["Rocket", "🚀","#7C3AED", lang==="en"?"Pay now via Rocket":"এখনই Rocket-এ পেমেন্ট"],
+          ["wallet", "👛","#0EA5E9", lang==="en"?`Pay from your IMAP balance (৳${Number(balance||0)})`:`IMAP ব্যালেন্স থেকে (৳${Number(balance||0)})`],
+          ["cash",   "💵","#00C170", lang==="en"?"Pay the provider when the work is done":"কাজ শেষে প্রদানকারীকে দিন"],
+        ].map(([nm,ic,cl,note])=>{
+          const label = nm==="wallet" ? (lang==="en"?"IMAP Wallet":"IMAP ওয়ালেট")
+                      : nm==="cash"   ? (lang==="en"?"Cash":"নগদ")
+                      : nm;
+          // The estimate this panel already displays. The server computes
+          // the authoritative figure; this only decides whether to grey the
+          // wallet option out, and erring toward greying is the safe way.
+          const estimate = baseAmount + Math.round(baseAmount*0.1);
+          const short = nm==="wallet" && Number(balance||0) < estimate;
+          return (
+          <div key={nm} onClick={()=>{ if(!short) setPay(nm); }} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:11,border:`2px solid ${pay===nm?C.p:C.bdr}`,background:pay===nm?`${C.p}08`:C.card,marginBottom:7,cursor:short?"not-allowed":"pointer",opacity:short?.55:1,transition:"all .15s"}}>
             <div className="jc" style={{width:38,height:38,borderRadius:9,background:cl+"22",fontSize:17,flexShrink:0}}>{ic}</div>
-            <div style={{flex:1,fontSize:14,fontWeight:600}}>{nm}</div>
-            <div className="jc" style={{width:19,height:19,borderRadius:"50%",border:`2px solid ${pay===nm?C.p:C.bdr}`}}>{pay===nm&&<div style={{width:9,height:9,borderRadius:"50%",background:C.p}}/>}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:600}}>{label}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:1}}>
+                {short ? (lang==="en"?`Not enough balance — top up first`:`পর্যাপ্ত ব্যালেন্স নেই — আগে টপ-আপ করুন`) : note}
+              </div>
+            </div>
+            <div className="jc" style={{width:19,height:19,borderRadius:"50%",border:`2px solid ${pay===nm?C.p:C.bdr}`,flexShrink:0}}>{pay===nm&&<div style={{width:9,height:9,borderRadius:"50%",background:C.p}}/>}</div>
           </div>
-        ))}
+        );})}
         <div style={{background:C.bg,borderRadius:11,padding:12,margin:"12px 0"}}>
           {[[tr.serviceFee,`৳${baseAmount}`],[tr.platformFee,`৳${Math.round(baseAmount*0.1)}`]].map(([l,v],i)=>(
             <div key={i} className="row" style={{justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:13,color:C.muted}}>{l}</span><span style={{fontSize:13}}>{v}</span></div>
