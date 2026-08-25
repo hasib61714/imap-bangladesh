@@ -113,6 +113,54 @@ test("P0-2: social-login cannot mint a session from a supplied socialId", async 
   assert.ok(!pool.ran("FROM users WHERE social_id"), "it must not even look the account up");
 });
 
+/**
+ * The policy in `utils/password.js` was written, unit-tested, and then called
+ * by nothing except `scripts/createAdmin.js`. The route where every real user
+ * chooses a password validated `isLength({ min: 6 })`, so `abc123` created an
+ * account — confirmed against a running server before it was fixed.
+ *
+ * A policy nobody applies is a policy that does not exist. These two tests
+ * are at the ROUTE, which is where the gap was.
+ */
+test("a weak password cannot create an account", async (t) => {
+  const pool = makePool([
+    { match: "SELECT id FROM users WHERE email = ?", rows: [] },
+    { match: "SELECT id FROM users WHERE phone = ?", rows: [] },
+    { match: "INSERT INTO users", rows: { insertId: 1, affectedRows: 1 } },
+  ]);
+  const srv = await bootAuth(pool);
+  t.after(() => srv.close());
+
+  for (const pw of ["abc123", "short", "alllowercaseletters", "NOLOWERCASE-1", "NoDigitsHere!"]) {
+    const res = await call(srv.url, "POST", "/register", {
+      name: "Someone", email: `pw-${pw}@example.com`, password: pw,
+    });
+    // 422: the request is well-formed and semantically unacceptable, which
+    // is what the validation middleware returns throughout.
+    assert.equal(res.status, 422, `"${pw}" should be refused`);
+  }
+  assert.equal(pool.all("INSERT INTO users").length, 0, "no account is created by any of them");
+});
+
+test("the refusal names every unmet requirement, not the first", async (t) => {
+  const pool = makePool([
+    { match: "SELECT id FROM users WHERE email = ?", rows: [] },
+    { match: "SELECT id FROM users WHERE phone = ?", rows: [] },
+  ]);
+  const srv = await bootAuth(pool);
+  t.after(() => srv.close());
+
+  // Someone fixing a password should not have to submit four times to
+  // discover four rules.
+  const res = await call(srv.url, "POST", "/register", {
+    name: "Someone", email: "many@example.com", password: "abc",
+  });
+  const msg = JSON.stringify(res.body);
+  for (const fragment of ["12 characters", "uppercase", "digit", "symbol"]) {
+    assert.ok(msg.includes(fragment), `the message should mention ${fragment}: ${msg}`);
+  }
+});
+
 test("P0-2: register cannot bind a social identity chosen by the client", async (t) => {
   const pool = makePool([
     { match: "SELECT id FROM users WHERE email = ?", rows: [] },
@@ -126,7 +174,10 @@ test("P0-2: register cannot bind a social identity chosen by the client", async 
   await call(srv.url, "POST", "/register", {
     name: "Attacker",
     email: "attacker@example.com",
-    password: "sufficiently-long-password",
+    // Satisfies the registration policy (utils/password.js) so this test
+    // continues to exercise what it is about — social-identity binding —
+    // rather than failing at the password gate before it gets there.
+    password: "Sufficiently-Long-Password-1",
     socialId: "1078219411",           // the victim's Google subject id
     loginMethod: "google",
   });

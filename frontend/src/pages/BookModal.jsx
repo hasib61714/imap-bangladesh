@@ -227,7 +227,7 @@ export default function BookModal({p,onClose,onSuccess}) {
       </div>
       {step===0&&<>
         <div style={{background:C.bg,borderRadius:12,padding:14,marginBottom:12,display:"flex",gap:12,alignItems:"center"}}>
-          <Av av={p.av} col={p.col} size={46}/><div><div style={{fontSize:15,fontWeight:700}}>{name}</div><div style={{fontSize:12,color:C.muted}}>{svc}</div><Stars r={p.r} size={12}/></div>
+          <Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={46}/><div><div style={{fontSize:15,fontWeight:700}}>{name}</div><div style={{fontSize:12,color:C.muted}}>{svc}</div><Stars r={p.r} size={12}/></div>
         </div>
         <div style={{background:`${C.p}0C`,borderRadius:12,padding:12,marginBottom:14,border:`1px solid ${C.p}22`}}>
           <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:4}}>{tr.aiTip}</div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useC, useTr } from "../contexts";
 import { C_DARK } from "../constants/theme";
+import Icon from "../components/Icon";
 
 export default function Onboarding({onDone}) {
   const C=useC(); const dark=C===C_DARK; const tr=useTr();
@@ -20,7 +21,14 @@ export default function Onboarding({onDone}) {
       </div>
       {/* Main content */}
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 32px",textAlign:"center",gap:20}}>
-        <div style={{fontSize:90,lineHeight:1,animation:"pulse 2s infinite"}}>{s.ic}</div>
+        <div style={{
+          width:96, height:96, borderRadius:28,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          background:"rgba(255,255,255,.12)", border:"1px solid rgba(255,255,255,.18)",
+          color:"#fff", animation:"pulse 2s infinite",
+        }}>
+          <Icon name={s.ic} size={44} />
+        </div>
         <div style={{fontSize:28,fontWeight:800,color:"#fff",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.2}}>{s.t}</div>
         <div style={{fontSize:15,color:"rgba(255,255,255,.78)",lineHeight:1.75,maxWidth:340}}>{s.d}</div>
       </div>

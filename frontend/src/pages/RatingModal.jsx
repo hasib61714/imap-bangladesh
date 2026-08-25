@@ -33,7 +33,7 @@ export default function RatingModal({p,onClose,onSuccess}) {
         <div style={{fontSize:16,fontWeight:700}}><Icon name="star" size={14} style={{marginRight:6}} />{tr.ratingTitle}</div>
         <button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}><Icon name="close" size={16} /></button>
       </div>
-      {p&&<div style={{textAlign:"center",marginBottom:16}}><div style={{display:"flex",justifyContent:"center",marginBottom:8}}><Av av={p.av} col={p.col} size={56} rad={16}/></div><div style={{fontSize:16,fontWeight:700}}>{name}</div></div>}
+      {p&&<div style={{textAlign:"center",marginBottom:16}}><div style={{display:"flex",justifyContent:"center",marginBottom:8}}><Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={56} rad={16}/></div><div style={{fontSize:16,fontWeight:700}}>{name}</div></div>}
       <div className="row" style={{justifyContent:"center",gap:8,marginBottom:8}}>
         {[1,2,3,4,5].map(s=><div key={s} onMouseEnter={()=>setHover(s)} onMouseLeave={()=>setHover(0)} onClick={()=>setRating(s)} style={{fontSize:38,cursor:"pointer",color:(hover||rating)>=s?"#F59E0B":"#E5E7EB",transition:"all .12s",transform:(hover||rating)>=s?"scale(1.18)":"scale(1)"}}><Icon name="star-filled" size={16} /></div>)}
       </div>

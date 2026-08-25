@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "../components/Icon";
+import AppImage from "../components/AppImage";
+import { CATEGORY_IMAGE, IMG } from "../constants/images";
 import { SVCS } from "../constants/data";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 
@@ -512,9 +514,19 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         thing on the page; the wave already separates them.
       */}
       <header itemScope itemType="https://schema.org/WebSite" style={{
-        background: dark
-          ? "radial-gradient(1100px 560px at 50% -8%, #17402C 0%, rgba(23,64,44,0) 62%), linear-gradient(180deg,#0A1912 0%,#060F0B 100%)"
-          : "radial-gradient(1100px 560px at 50% -8%, #00875A 0%, rgba(0,135,90,0) 62%), linear-gradient(180deg,#00553D 0%,#00382A 100%)",
+        /*
+          A photograph can be dropped at `/img/hero/hero-bg.webp` and it sits
+          UNDERNEATH this gradient, not instead of it: the gradient is what
+          gives the white headline its 4.55:1, and an arbitrary photograph
+          behind white text is a contrast accident waiting to happen. With no
+          file present the layer is simply absent and nothing changes.
+        */
+        backgroundImage: dark
+          ? `radial-gradient(1100px 560px at 50% -8%, #17402CE6 0%, rgba(23,64,44,0) 62%), linear-gradient(180deg,#0A1912F2 0%,#060F0BF7 100%), url(${IMG.heroBackground})`
+          : `radial-gradient(1100px 560px at 50% -8%, #00875AE6 0%, rgba(0,135,90,0) 62%), linear-gradient(180deg,#00553DF2 0%,#00382AF7 100%), url(${IMG.heroBackground})`,
+        backgroundSize: "cover, cover, cover",
+        backgroundPosition: "center, center, center",
+        backgroundColor: dark ? "#060F0B" : "#00382A",
         padding:"96px 24px 112px",
         position:"relative", overflow:"hidden",
       }}>
@@ -674,16 +686,38 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 ref={revealRef} data-rid={`svc-${idx}`}>
                 <article className="lp-svc-card"
                   onClick={onGetStarted}
-                  style={{ borderTop:`3px solid ${c.col}` }}
+                  style={{ borderTop:`3px solid ${c.col}`, padding:0, overflow:"hidden" }}
                   itemScope itemType="https://schema.org/Service">
-                  <div className="svc-icon" style={{ marginBottom:12, color:c.col }}>
-                    <Icon name={c.icon} size={30} />
-                  </div>
+                  {/*
+                    The photograph slot. Until a file exists at
+                    `/img/category/<key>.webp` this renders the tinted tile
+                    with the category icon on it — which is what the card
+                    looked like before — so the grid is complete either way
+                    and fills in one category at a time.
+                  */}
+                  <AppImage
+                    src={CATEGORY_IMAGE[c.icon]}
+                    alt=""
+                    ratio="16/10"
+                    rounded={0}
+                    fallback={
+                      <div style={{
+                        position:"absolute", inset:0,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        background:`linear-gradient(150deg, ${c.col}1A, ${c.col}0A)`,
+                        color:c.col,
+                      }}>
+                        <Icon name={c.icon} size={34} />
+                      </div>
+                    }
+                  />
+                  <div style={{ padding:"14px 14px 16px" }}>
                   <div itemProp="name" style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8, lineHeight:1.3 }}>
                     {lang === "en" ? c.nameEn : c.nameBn}
                   </div>
                   <div style={{ fontSize:11, fontWeight:700, color:sub, background:`${c.col}14`, borderRadius:20, padding:"3px 10px", display:"inline-block" }}>
                     {lang === "en" ? c.priceEn : c.priceBn}
+                  </div>
                   </div>
                 </article>
               </div>
@@ -714,7 +748,28 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 <div className="lp-step">
                   {/* Step number circle */}
                   <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px rgba(16,24,20,0.10)` }}>{i + 1}</div>
-                  <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}><Icon name={h.icon} size={44} /></div>
+                  {/*
+                    A picture of the step, when there is one. Without it this
+                    is the icon on a tinted panel, which is what the card was
+                    before — so the three steps stay a set whether none, one
+                    or all three images exist.
+                  */}
+                  <AppImage
+                    src={[IMG.step1Browse, IMG.step2Register, IMG.step3Book, IMG.step4Service][i]}
+                    alt=""
+                    ratio="3/2"
+                    rounded={12}
+                    style={{ marginTop:14, marginBottom:16 }}
+                    fallback={
+                      <div style={{
+                        position:"absolute", inset:0,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        background:`linear-gradient(150deg,${G}14,${G}08)`, color:G,
+                      }}>
+                        <Icon name={h.icon} size={40} />
+                      </div>
+                    }
+                  />
                   <div style={{ fontWeight:800, fontSize:15, marginBottom:8, color:txt }}>{h.t}</div>
                   <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{h.d}</div>
                 </div>

@@ -4,6 +4,7 @@ const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const pool     = require("../db");
+const { validatePasswordStrength } = require("../utils/password");
 const sms      = require("../utils/sms");
 // I-05 (F-9): utils/otp-store.js was a module-level Map. With two instances a
 // code issued by one did not exist on the other, and `attempts` — the only
@@ -84,7 +85,24 @@ const registerRules = validate([
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ max: 80 }).withMessage("Name too long"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Invalid email").normalizeEmail(),
   body("phone").optional({ checkFalsy: true }).matches(/^01[0-9]{9}$/).withMessage("Phone must be 11 digits starting with 01"),
-  body("password").optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  /**
+   * The policy in `utils/password.js` — 12 characters with a lowercase, an
+   * uppercase, a digit and a symbol — existed, was unit-tested, and was
+   * called by exactly one place: `scripts/createAdmin.js`. The route where
+   * every real user chooses their password checked `isLength({ min: 6 })`.
+   *
+   * So `abc123` created an account. Verified against the running server
+   * before this change, not inferred from reading it.
+   *
+   * The message lists every unmet requirement rather than the first, because
+   * a person fixing a password should not have to submit four times to
+   * discover four rules.
+   */
+  body("password").optional({ checkFalsy: true }).custom((pw) => {
+    const { ok, errors } = validatePasswordStrength(pw);
+    if (!ok) throw new Error(`Password needs ${errors.join(", ")}`);
+    return true;
+  }),
   body("role").optional().isIn(["customer", "provider"]).withMessage("Role must be customer or provider"),
 ]);
 
