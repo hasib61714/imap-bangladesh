@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "eslint src && node scripts/check-icons.mjs && vite build",
+    "build": "eslint src && node scripts/check-icons.mjs && node scripts/check-images.mjs && vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "check:icons": "node scripts/check-icons.mjs"
+    "check:icons": "node scripts/check-icons.mjs",
+    "check:images": "node scripts/check-images.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
