@@ -568,7 +568,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                   }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
                   finally{ setWithdrawing(false); }
-                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"⏳...":"bKash/Nagad"}</button>
+                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"...":"bKash/Nagad"}</button>
               </div>
               <div style={{fontSize:12,color:C.muted,marginTop:8}}>{lang==="bn"?"bKash / Nagad / Rocket এ সরাসরি পাঠানো হবে":"Sent directly to your bKash / Nagad / Rocket"}</div>
             </div>
@@ -668,7 +668,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 }catch(e){
                   showToast(lang==="bn"?"সংরক্ষণ ব্যর্থ হয়েছে":"Save failed");
                 }finally{ setSavingProfile(false); }
-              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
+              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"সংরক্ষণ...": tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
               <div style={{background:"rgba(245,158,11,.1)",borderRadius:14,padding:16,border:"1px solid rgba(245,158,11,.35)",marginBottom:16}}>

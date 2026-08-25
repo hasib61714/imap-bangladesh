@@ -817,7 +817,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* SOS */}
             <div ref={revealRef} data-rid="safe-sos" className={`lp-reveal-l${revealed["safe-sos"]?" vis":""}`}>
               <div style={{ background:dark?"#1A0A0C":"#FFFFFF", border:`1.5px solid ${R}33`, borderLeft:`4px solid ${R}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${R}12` }}>
-                <div className="lp-sos-pulse" style={{ fontSize:42, marginBottom:14, display:"inline-block", borderRadius:12 }}>🆘</div>
+                <div className="lp-sos-pulse" style={{ fontSize:42, marginBottom:14, display:"inline-flex", alignItems:"center", justifyContent:"center", borderRadius:12 }}><Icon name="emergency" size={20} /></div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:R, marginBottom:10 }}>{T.sos_title}</h3>
                 <p style={{ fontSize:14, color:dark?"#FFBABF":"#7A0010", lineHeight:1.75 }}>{T.sos_desc}</p>
                 <div style={{ marginTop:16, padding:"10px 16px", background:`${R}12`, borderRadius:8, fontSize:13, color:R, fontWeight:700 }}>

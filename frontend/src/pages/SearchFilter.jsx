@@ -56,7 +56,7 @@ export default function SearchFilter({onClose,onBook,onView}) {
           <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,color:C.muted}}><Icon name="search" size={15} /></div>
           <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAiSearch()} placeholder={tr.searchPh} style={{width:"100%",padding:"11px 14px 11px 38px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,background:C.bg}} onFocus={e=>e.target.style.borderColor=C.p} onBlur={e=>e.target.style.borderColor=C.bdr}/>
         </div>
-        <button onClick={doAiSearch} disabled={aiSearching||!query.trim()} className="btn btn-g" style={{padding:"10px 13px",borderRadius:11,fontSize:12,fontWeight:700,flexShrink:0,opacity:!query.trim()?0.4:1}}>{aiSearching?"⏳":"AI"}</button>
+        <button onClick={doAiSearch} disabled={aiSearching||!query.trim()} className="btn btn-g" style={{padding:"10px 13px",borderRadius:11,fontSize:12,fontWeight:700,flexShrink:0,opacity:!query.trim()?0.4:1}}>{aiSearching?"":"AI"}</button>
       </div>
       {aiHint&&<div style={{fontSize:11,color:C.p,fontWeight:600,marginBottom:10,padding:"4px 8px",background:C.plt,borderRadius:7}}><Icon name="digital" size={14} style={{marginRight:6}} />{aiHint}</div>}
       <div className="sx" style={{marginBottom:14}}>

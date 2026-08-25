@@ -61,7 +61,7 @@ export default function RatingModal({p,onClose,onSuccess}) {
           }catch(e){ console.warn("review-check:",e.message); }
           const bk=ctxBookings.find(b=>(b.provider_id||b.pid)===p?.id&&(b.status==="completed"||b.status==="সম্পন্ন"));
           try{if(bk?.id)await reviewsApi.submit({booking_id:bk.id,rating,comment,tags:selTags.join(",")});setDone(true);onSuccess?.();}catch(e){console.error("review:",e);alert(lang==="en"?"Failed to submit review. Please try again.":"রিভিউ জমা ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}finally{setReviewSubmitting(false);}
-        }}>{reviewSubmitting?"⏳...":tr.submitRating}</button>
+        }}>{reviewSubmitting?"...":tr.submitRating}</button>
       </div>
     </div>
   );

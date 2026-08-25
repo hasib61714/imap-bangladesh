@@ -64,7 +64,7 @@ export default function PDetail({p,onClose,onBook,onChat}) {
           <div style={{fontSize:13,color:C.muted,marginTop:3}}>{svc} · <Icon name="location" size={12} style={{margin:"0 3px"}} />{loc}</div>
           <div className="row" style={{gap:12,marginTop:7,flexWrap:"wrap"}}>
             <span style={{fontSize:13}}><Stars r={p.r} size={12}/> <b>{p.r}</b> ({p.rev})</span>
-            <span style={{fontSize:13,color:C.muted}}><Icon name="success" size={14} style={{marginRight:6}} />{p.jobs} {tr.jobs} · ⏱️ {eta} {tr.min}</span>
+            <span style={{fontSize:13,color:C.muted}}><Icon name="success" size={14} style={{marginRight:6}} />{p.jobs} {tr.jobs} · <Icon name="pending" size={11} style={{margin:"0 3px"}} />{eta} {tr.min}</span>
           </div>
         </div>
         <button className="btn btn-gh" style={{fontSize:20,flexShrink:0}} onClick={onClose}><Icon name="close" size={16} /></button>

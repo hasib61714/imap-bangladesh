@@ -74,7 +74,7 @@ export default function PromosPage(){
             style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${applyResult==="err"?"#DC2626":applyResult==="ok"?C.p:C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",textTransform:"uppercase",letterSpacing:2}}
             onKeyDown={e=>e.key==="Enter"&&doApply()}/>
           <button onClick={doApply} disabled={applying} style={{padding:"10px 20px",borderRadius:10,background:applying?"#9ca3af":C.p,border:"none",color:C.onP,fontWeight:700,fontSize:13,cursor:applying?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif",whiteSpace:"nowrap"}}>
-            {applying?"⏳...": tr.prApply}
+            {applying?"...": tr.prApply}
           </button>
         </div>
         {applyResult==="err"&&<div style={{fontSize:12,color:"#DC2626",marginTop:6,fontWeight:600}}>{tr.prInvalid}</div>}

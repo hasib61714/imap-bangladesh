@@ -409,7 +409,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { key:"kyc",           icon:<SafetyCertificateOutlined />, label: <Badge count={kycPending} size="small" offset={[8,0]}>{lang==="bn"?"KYC যাচাই":"KYC"}</Badge> },
     { key:"revenue",       icon:<BarChartOutlined />,          label: lang==="bn"?"রাজস্ব":"Revenue"        },
     { key:"complaints",    icon:<WarningOutlined />,           label: <Badge count={openTickets} size="small" offset={[8,0]}>{lang==="bn"?"অভিযোগ":"Complaints"}</Badge> },
-    { key:"sos",           icon:<span>🆘</span>,               label: <Badge count={sosAlerts?.filter(a=>a.status==="open").length||0} size="small" offset={[8,0]}>{lang==="bn"?"SOS সতর্কতা":"SOS Alerts"}</Badge> },
+    { key:"sos",           icon:<Icon name="emergency" size={15} />,               label: <Badge count={sosAlerts?.filter(a=>a.status==="open").length||0} size="small" offset={[8,0]}>{lang==="bn"?"SOS সতর্কতা":"SOS Alerts"}</Badge> },
     { key:"payments",      icon:<Icon name="card" size={15} />,               label: lang==="bn"?"পেমেন্ট":"Payments"         },
     { key:"notifications", icon:<NotificationOutlined />,      label: lang==="bn"?"বিজ্ঞপ্তি":"Notifications"},
     { key:"promos",        icon:<GiftOutlined />,              label: lang==="bn"?"প্রোমো কোড":"Promo Codes"},
@@ -996,7 +996,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     </Card>
                   </Col>
                   <Col xs={24} lg={10}>
-                    <Card title={lang==="bn"?"⏳ অনুমোদন অপেক্ষামাণ":"⏳ Pending Approvals"} bordered>
+                    <Card title={lang==="bn"?"অনুমোদন অপেক্ষামাণ":"Pending Approvals"} bordered>
                       {/* `status` used to be derived from `is_active`, and
                           "pending" meant is_active was neither 0 nor 1 —
                           which essentially never happened, so this list was
@@ -1849,7 +1849,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="sos" && (
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
-                  <Title level={4} style={{margin:0}}>🆘 {lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alerts"}</Title>
+                  <Title level={4} style={{margin:0}}>{lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alerts"}</Title>
                   <Button onClick={loadSos} loading={sosLoading}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
                 </div>
                 <Row gutter={[12,12]} style={{marginBottom:20}}>

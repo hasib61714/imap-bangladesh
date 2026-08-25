@@ -194,7 +194,7 @@ export default function ProviderStanding({ C, lang, providerId, onOpenKyc, compa
               return (
                 <div key={c.clause} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5 }}>
                   <span style={{ color: c.ok ? "#00C170" : C.muted, fontWeight: 700, lineHeight: 1.5 }}>
-                    {c.ok ? "" : "○"}
+                    <Icon name={c.ok ? "success" : "pending"} size={13} color={c.ok ? C.p : C.muted} />
                   </span>
                   <span style={{ color: c.ok ? C.sub : C.text, lineHeight: 1.5 }}>
                     {lang === "bn" ? copy.bn : copy.en}

@@ -120,7 +120,7 @@ export default function NIDPage({onClose}) {
         }}>
           {verified_items.map(([l,done],i,arr)=>(
             <div key={i} className="row" style={{padding:"11px 14px",borderBottom:i<arr.length-1?`1px solid ${C.bdr}`:"none",gap:10}}>
-              <div className="jc" style={{width:28,height:28,borderRadius:8,background:done?"#D1FAE5":"#FEF9C3",fontSize:13}}>{done?"":"⏳"}</div>
+              <div className="jc" style={{width:28,height:28,borderRadius:8,background:done?"#D1FAE5":"#FEF9C3"}}><Icon name={done?"success":"pending"} size={14} color={done?"#059669":"#B45309"} /></div>
               <div style={{flex:1,fontSize:13}}>{l}</div>
               {!done&&<button className="btn btn-g" style={{padding:"5px 10px",fontSize:11}} onClick={()=>setStep(1)}>{tr.verifyBtn}</button>}
             </div>

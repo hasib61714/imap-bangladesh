@@ -112,7 +112,7 @@ export default function ServiceRequestPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← পিছনে"}</button>
-            <button onClick={doSubmit} disabled={srSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:srSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:srSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{srSubmitting?"⏳...":tr.srSubmit}</button>
+            <button onClick={doSubmit} disabled={srSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:srSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:srSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{srSubmitting?"...":tr.srSubmit}</button>
           </div>
         </div>
       )}

@@ -82,7 +82,7 @@ export default function LoyaltyPage(){
                     setRedeemingCode(null);
                   }} disabled={!canRedeem||isRedeemed||redeemingCode!=null}
                     style={{padding:"8px 14px",borderRadius:9,background:isRedeemed?"#D1FAE5":redeemingCode===r.code?"#9ca3af":canRedeem?C.p:C.bdr,border:"none",color:isRedeemed?"#065F46":canRedeem?"#fff":"#9CA3AF",fontSize:12,fontWeight:700,cursor:canRedeem&&!isRedeemed&&!redeemingCode?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-                    {isRedeemed?tr.lyRedeemed.split("!")[0]+"!":redeemingCode===r.code?"⏳...":tr.lyRedeem}
+                    {isRedeemed?tr.lyRedeemed.split("!")[0]+"!":redeemingCode===r.code?"...":tr.lyRedeem}
                   </button>
                 </div>
               );

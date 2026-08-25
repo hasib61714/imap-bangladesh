@@ -72,7 +72,7 @@ export default function ProviderDash() {
           boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4)`
         }}>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {(lang==="en"?["Electrical Expert","Top Rated","⏰ On Time","Trusted"]:["বিদ্যুৎ বিশেষজ্ঞ","সেরা রেটিং","⏰ সময়মতো","বিশ্বস্ত"]).map(b=>(
+            {(lang==="en"?["Electrical Expert","Top Rated","On Time","Trusted"]:["বিদ্যুৎ বিশেষজ্ঞ","সেরা রেটিং","সময়মতো","বিশ্বস্ত"]).map(b=>(
               <span key={b} className="badge" style={{background:C.plt,color:C.p,fontSize:11,padding:"5px 11px"}}>{b}</span>
             ))}
           </div>
