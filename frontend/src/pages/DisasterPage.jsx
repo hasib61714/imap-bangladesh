@@ -92,7 +92,7 @@ export default function DisasterPage() {
       {/* Hero */}
       <div style={{background:"linear-gradient(135deg,#7F1D1D,#DC2626)",borderRadius:18,padding:"20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-          <span style={{fontSize:28,animation:"pulse 2s infinite"}}>🚨</span>
+          <Icon name="emergency" size={28} />
           <div style={{fontSize:21,fontWeight:800}}>{tr.dsTitle}</div>
         </div>
         <div style={{fontSize:13,opacity:.85,marginBottom:14}}>{tr.dsActive}: <strong>{alerts.length}</strong></div>
@@ -110,7 +110,7 @@ export default function DisasterPage() {
             display:"flex",alignItems:"center",gap:5,
             boxShadow:"0 4px 14px rgba(0,0,0,.15)"
           }}>
-            🚨 999
+            <Icon name="emergency" size={15} style={{marginRight:6}} />999
           </a>
         </div>
         <div style={{position:"absolute",right:-16,top:-16,width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,.08)"}}/>       
@@ -129,14 +129,14 @@ export default function DisasterPage() {
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           {alerts.length===0&&(
             <div style={{textAlign:"center",padding:"40px 20px",color:C.muted}}>
-              <div style={{fontSize:48,marginBottom:8}}>✅</div>
+              <div style={{fontSize:48,marginBottom:8}}><Icon name="success" size={48} /></div>
               <div>{tr.dsNoAlert}</div>
             </div>
           )}
           {alerts.map((a,i)=>(
             <div key={a.id} className="card fu" style={{animationDelay:`${i*.07}s`,padding:"16px",borderLeft:`4px solid ${a.color}`,background:a.bg}}>
               <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                <div style={{fontSize:28,flexShrink:0,animation:a.level==="extreme"?"pulse 1.5s infinite":"none"}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={28} /></div>
+                <div style={{fontSize:28,flexShrink:0,animation:a.level==="extreme"?"pulse 1.5s infinite":"none"}}><Icon name={a.icon} size={28} /></div>
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                     <span style={{fontSize:11,fontWeight:800,background:LEVEL_COL[a.level],color:"#fff",borderRadius:6,padding:"2px 8px"}}>{LEVEL_LBL[a.level]}</span>
@@ -150,10 +150,10 @@ export default function DisasterPage() {
           ))}
           {/* Hotlines */}
           <div style={{background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`}}>
-            <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>📞 {tr.dsHotline}</div>
+            <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}><Icon name="phone" size={14} style={{marginRight:6}} />{tr.dsHotline}</div>
             {HOTLINES.map((h,i)=>(
               <a key={i} href={`tel:${h.label}`} style={{display:"flex",alignItems:"center",gap:12,padding:"9px 0",borderBottom:i<HOTLINES.length-1?`1px solid ${C.bdr}`:"none",textDecoration:"none"}}>
-                <span style={{fontSize:18}}><Icon name=<Icon name={h.icon} size={14} style={{marginRight:6}} />size={18} /></span>
+                <span style={{fontSize:18}}><Icon name={h.icon} size={18} /></span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:800,color:"#DC2626"}}>{h.label}</div>
                   <div style={{fontSize:12,color:C.muted}}>{h.desc}</div>
@@ -170,16 +170,16 @@ export default function DisasterPage() {
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {SHELTERS.map((s,i)=>(
             <div key={i} className="card fu" style={{animationDelay:`${i*.07}s`,padding:"16px",display:"flex",gap:14,alignItems:"center"}}>
-              <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🏕️</div>
+              <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}><Icon name="home" size={20} /></div>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
-                <div style={{fontSize:12,color:C.muted,marginTop:3}}>👥 {s.cap.toLocaleString()} {lang==="en"?"capacity":"জন’র ধারণ ক্ষমতা"} · 📍 {s.dist} km</div>
+                <div style={{fontSize:12,color:C.muted,marginTop:3}}><Icon name="team" size={14} style={{marginRight:6}} />{s.cap.toLocaleString()} {lang==="en"?"capacity":"জন’র ধারণ ক্ষমতা"} · <Icon name="location" size={12} style={{margin:"0 4px"}} />{s.dist} km</div>
               </div>
               <button style={{padding:"7px 13px",borderRadius:9,background:C.p,border:"none",color:C.onP,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Navigate":"যান"}</button>
             </div>
           ))}
           <div style={{background:"rgba(16,185,129,.1)",borderRadius:14,padding:"14px 16px",border:"1px solid rgba(16,185,129,.3)",fontSize:13,color:"#065F46",display:"flex",alignItems:"flex-start",gap:10,marginTop:4}}>
-            <span style={{fontSize:20}}>ℹ️</span>
+            <Icon name="info" size={20} />
             <div style={{lineHeight:1.6}}>{lang==="en"?"All shelters are government-approved and stocked with food, water and medical supplies.":"সকল আশ্রয়কেন্দ্র সরকারি অনুমোদিত এবং খাদ্য, পানি ও চিকিৎসা সরবরাহদে সজ্জিত।"}</div>
           </div>
         </div>
@@ -204,9 +204,9 @@ export default function DisasterPage() {
       {/* REPORT TAB */}
       {tab==="report"&&(
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>📋 {tr.dsReportBtn}</div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}><Icon name="document" size={14} style={{marginRight:6}} />{tr.dsReportBtn}</div>
           {reported&&(
-            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}>✅ {tr.dsReported}</div>
+            <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}><Icon name="success" size={14} style={{marginRight:6}} />{tr.dsReported}</div>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
@@ -226,7 +226,7 @@ export default function DisasterPage() {
             </div>
             <button onClick={sendReport} disabled={!repType||reporting}
               style={{width:"100%",padding:"13px",borderRadius:12,background:repType&&!reporting?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:repType&&!reporting?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-              {reporting?(lang==="en"?"Submitting...":"পাঠানো হচ্ছে..."):`🚨 ${tr.dsReportBtn}`}
+              {reporting?(lang==="en"?"Submitting...":"পাঠানো হচ্ছে..."):tr.dsReportBtn}
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { SVCS } from "../constants/data";
@@ -48,16 +49,16 @@ export default function SearchFilter({onClose,onBook,onView}) {
     <div style={{padding:22}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:16}}>
         <div style={{fontSize:17,fontWeight:700}}>{tr.searchTitle}</div>
-        {onClose&&<button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}>✕</button>}
+        {onClose&&<button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}><Icon name="close" size={16} /></button>}
       </div>
       <div style={{position:"relative",marginBottom:aiHint?6:14,display:"flex",gap:7,alignItems:"center"}}>
         <div style={{position:"relative",flex:1}}>
-          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,color:C.muted}}>🔍</div>
+          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,color:C.muted}}><Icon name="search" size={15} /></div>
           <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAiSearch()} placeholder={tr.searchPh} style={{width:"100%",padding:"11px 14px 11px 38px",border:`1.5px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,background:C.bg}} onFocus={e=>e.target.style.borderColor=C.p} onBlur={e=>e.target.style.borderColor=C.bdr}/>
         </div>
         <button onClick={doAiSearch} disabled={aiSearching||!query.trim()} className="btn btn-g" style={{padding:"10px 13px",borderRadius:11,fontSize:12,fontWeight:700,flexShrink:0,opacity:!query.trim()?0.4:1}}>{aiSearching?"⏳":"AI"}</button>
       </div>
-      {aiHint&&<div style={{fontSize:11,color:C.p,fontWeight:600,marginBottom:10,padding:"4px 8px",background:C.plt,borderRadius:7}}>🤖 {aiHint}</div>}
+      {aiHint&&<div style={{fontSize:11,color:C.p,fontWeight:600,marginBottom:10,padding:"4px 8px",background:C.plt,borderRadius:7}}><Icon name="digital" size={14} style={{marginRight:6}} />{aiHint}</div>}
       <div className="sx" style={{marginBottom:14}}>
         <div style={{display:"flex",gap:7,width:"max-content"}}>
           {cats.slice(0,9).map(cat=>(
@@ -73,7 +74,7 @@ export default function SearchFilter({onClose,onBook,onView}) {
         <input type="range" min={200} max={2000} step={50} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{width:"100%",accentColor:C.p}}/>
         <div className="row" style={{justifyContent:"space-between",marginTop:10}}>
           <div style={{fontSize:13,fontWeight:600}}>{tr.minRating}</div>
-          <div style={{fontSize:13,fontWeight:700,color:C.p}}>{minRating>0?`${minRating}★`:tr.allRating}</div>
+          <div style={{fontSize:13,fontWeight:700,color:C.p}}>{minRating>0 ? <><Icon name="star-filled" size={11} style={{marginRight:3}} />{minRating}</> : tr.allRating}</div>
         </div>
         <input type="range" min={0} max={4.5} step={0.5} value={minRating} onChange={e=>setMinRating(+e.target.value)} style={{width:"100%",accentColor:C.p}}/>
       </div>

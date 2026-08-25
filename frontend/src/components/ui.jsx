@@ -1,4 +1,5 @@
 import { useC } from "../contexts";
+import Icon from "../components/Icon";
 
 export const Av = ({av, col, size=52, fs=18, rad=14}) =>
   <div className="jc" style={{
@@ -19,7 +20,7 @@ export const Av = ({av, col, size=52, fs=18, rad=14}) =>
 
 export const Stars = ({r, size=13}) =>
   <span>{[1,2,3,4,5].map(s=>(
-    <span key={s} className={s<=Math.round(r)?"star-on":"star-off"} style={{fontSize:size, transition:"transform .1s"}}>★</span>
+    <span key={s} className={s<=Math.round(r)?"star-on":"star-off"} style={{fontSize:size, transition:"transform .1s"}}><Icon name="star-filled" size={16} /></span>
   ))}</span>;
 
 export const PBar = ({v, col}) => {

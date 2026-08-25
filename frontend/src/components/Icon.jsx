@@ -74,6 +74,11 @@ import {
   ShareAltOutlined, LinkOutlined, InfoCircleOutlined, QuestionCircleOutlined,
   BookOutlined, ShopOutlined, CustomerServiceOutlined, RocketOutlined,
   FontSizeOutlined, FileDoneOutlined,
+  // Added while converting the remaining screens
+  AudioOutlined, WifiOutlined, FileTextOutlined, PrinterOutlined,
+  FolderOpenOutlined, AimOutlined, LikeOutlined, HighlightOutlined,
+  CheckOutlined, CaretRightOutlined, DownloadOutlined, SyncOutlined,
+  FlagOutlined, TagOutlined, StopOutlined, SendOutlined, PlusCircleOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -195,6 +200,25 @@ const REGISTRY = {
   // The trust section's "Full Legal Protection" card. ⚖️ has no line-art
   // equivalent in this set; a signed document is the nearer idea anyway.
   "legal":            FileDoneOutlined,        // ⚖️
+
+  // ── The rest of the app ─────────────────────────────────────
+  "mic":              AudioOutlined,           // 🎙️
+  "live":             WifiOutlined,            // 📡 — a live feed, not a dish
+  "receipt":          FileTextOutlined,        // 🧾
+  "print":            PrinterOutlined,         // 🖨️
+  "folder":           FolderOpenOutlined,      // 🗂️
+  "target":           AimOutlined,             // 🎯
+  "thanks":           LikeOutlined,            // 🙏 👋
+  "sign":             HighlightOutlined,       // ✍️
+  "check":            CheckOutlined,           // ✓ — the bare mark, not the circled one
+  "chevron":          CaretRightOutlined,      // ➤
+  "download":         DownloadOutlined,        // ⬇️
+  "refresh":          SyncOutlined,            // 🔄
+  "flag":             FlagOutlined,            // 🚩
+  "tag":              TagOutlined,             // 🏷️ 🎟️
+  "blocked":          StopOutlined,            // 🚫
+  "send":             SendOutlined,            // ➤ in a chat
+  "add-circle":       PlusCircleOutlined,      // ➕
 };
 
 /** Names the registry knows, for the test that keeps data.js in step with it. */

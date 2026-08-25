@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, FavsCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { Av, Stars } from "../components/ui";
@@ -23,12 +24,12 @@ export default function PCard({p,delay=0,onBook,onView}) {
         <div style={{flex:1,minWidth:0}}>
           <div className="row" style={{gap:5,flexWrap:"wrap"}}>
             <span style={{fontSize:15,fontWeight:700,color:C.text,lineHeight:1.2}}>{name}</span>
-            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46",fontSize:10}}>✓</span>}
-            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03",fontSize:10}}>⭐ {p.badge}</span>}
-            {p.ai_score>=80&&<span className="badge" style={{background:"rgba(139,92,246,.12)",color:"#5B21B6",fontSize:10}}>🏆 AI Pick</span>}
-            {p.ai_score>=60&&p.ai_score<80&&<span className="badge" style={{background:"rgba(59,130,246,.12)",color:"#1E40AF",fontSize:10}}>⭐ Recommended</span>}
+            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46",fontSize:10}}><Icon name="check" size={16} /></span>}
+            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03",fontSize:10}}><Icon name="star" size={14} style={{marginRight:6}} />{p.badge}</span>}
+            {p.ai_score>=80&&<span className="badge" style={{background:"rgba(139,92,246,.12)",color:"#5B21B6",fontSize:10}}><Icon name="trophy" size={14} style={{marginRight:6}} />AI Pick</span>}
+            {p.ai_score>=60&&p.ai_score<80&&<span className="badge" style={{background:"rgba(59,130,246,.12)",color:"#1E40AF",fontSize:10}}><Icon name="star" size={14} style={{marginRight:6}} />Recommended</span>}
           </div>
-          <div style={{fontSize:12,color:C.muted,marginTop:2}}>{svc} · 📍 {loc}</div>
+          <div style={{fontSize:12,color:C.muted,marginTop:2}}>{svc} · <Icon name="location" size={11} style={{margin:"0 3px"}} />{loc}</div>
           <div className="row" style={{gap:5,marginTop:4}}><Stars r={p.r} size={11}/><span style={{fontSize:12,fontWeight:700}}>{p.r}</span><span style={{fontSize:11,color:C.muted}}>({p.rev}) · {p.jobs} {tr.jobs}</span></div>
         </div>
       </div>

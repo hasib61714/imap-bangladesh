@@ -128,7 +128,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
         }}/>
         {preview
           ? <img src={preview} alt="preview" style={{width:"100%",height:56,objectFit:"cover",borderRadius:8,marginBottom:4}}/>
-          : <div style={{fontSize:22,marginBottom:4}}>📷</div>}
+          : <div style={{fontSize:22,marginBottom:4}}><Icon name="camera" size={22} /></div>}
         <div style={{fontSize:11,fontWeight:600,color:value?C.p:C.muted}}>{value?tr.kycUploaded:label}</div>
       </label>
     );
@@ -146,12 +146,12 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:22,paddingTop:8,animation:"kyc-fadeUp .35s ease both"}}>
         <button onClick={onClose} style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:10,width:38,height:38,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
         <div>
-          <div style={{fontWeight:800,fontSize:18}}>🛡️ {tr.kycTitle}</div>
+          <div style={{fontWeight:800,fontSize:18}}><Icon name="security" size={14} style={{marginRight:6}} />{tr.kycTitle}</div>
           <div style={{fontSize:12,color:C.muted}}>{tr.kycSub}</div>
         </div>
       </div>
 
-      {loading&&<div style={{textAlign:"center",padding:40,color:C.muted}}>⏳ {lang==="bn"?"লোড হচ্ছে...":"Loading..."}</div>}
+      {loading&&<div style={{textAlign:"center",padding:40,color:C.muted}}><Icon name="pending" size={14} style={{marginRight:6}} />{lang==="bn"?"লোড হচ্ছে...":"Loading..."}</div>}
 
       {/* Status banner */}
       {!loading&&docs.length>0&&(
@@ -177,7 +177,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
               <div key={doc.id} style={{background:C.card,borderRadius:14,padding:"16px",border:`1px solid ${C.bdr}`,marginBottom:10,borderLeft:`3px solid ${docStatus==="verified"?C.p:docStatus==="pending"?"#F59E0B":"#EF4444"}`,animation:`kyc-fadeUp .4s ease ${i*.1}s both`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:26}}><Icon name=<Icon name={dtype.icon} size={14} style={{marginRight:6}} />size={26} /></span>
+                    <span style={{fontSize:26}}><Icon name={dtype.icon} size={26} /></span>
                     <div>
                       <div style={{fontWeight:700,fontSize:14}}>{lang==="bn"?dtype.lbn:dtype.len}</div>
                       <div style={{fontSize:12,color:C.muted}}>{lang==="bn"?"নথি নম্বর:":"Doc #:"} {docNumber}</div>
@@ -193,7 +193,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
                 )}
                 {docStatus==="rejected"&&(
                   <button onClick={()=>{setAdding(true);setSelType(doc.type||doc.doc_type||"nid");setDocNum(docNumber);setImgFront("");setImgBack("");setImgSelfie("");}} style={{marginTop:10,padding:"8px 16px",background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    🔄 {tr.kycResubmit}
+                    <Icon name="refresh" size={15} style={{marginRight:6}} />{tr.kycResubmit}
                   </button>
                 )}
               </div>
@@ -205,18 +205,18 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
       {/* Add new document */}
       {!loading&&(!adding?(
         <button onClick={()=>setAdding(true)} style={{width:"100%",padding:"14px",background:C.p,color:C.onP,border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-          ➕ {docs.length===0?tr.kycSubmit:tr.kycAddDoc}
+          <Icon name="add" size={15} style={{marginRight:6}} />{docs.length===0?tr.kycSubmit:tr.kycAddDoc}
         </button>
       ):(
         <div style={{background:C.card,borderRadius:16,padding:20,border:`2px solid ${C.p}`,animation:"kyc-pop .35s ease"}}>
-          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>📋 {lang==="bn"?"নথির তথ্য দিন":"Document Details"}</div>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}><Icon name="document" size={14} style={{marginRight:6}} />{lang==="bn"?"নথির তথ্য দিন":"Document Details"}</div>
 
           {/* Doc type selection */}
           <div style={{fontSize:12,color:C.muted,fontWeight:600,marginBottom:8}}>{tr.kycSelectType}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:16}}>
             {DOC_TYPES.map(dt=>(
               <button key={dt.key} onClick={()=>setSelType(dt.key)} style={{padding:"10px 8px",borderRadius:11,border:`2px solid ${selType===dt.key?C.p:C.bdr}`,background:selType===dt.key?C.plt:C.bg,cursor:"pointer",fontFamily:"inherit",textAlign:"center",transition:"all .2s"}}>
-                <div style={{fontSize:20,marginBottom:3}}><Icon name=<Icon name={dt.icon} size={14} style={{marginRight:6}} />size={20} /></div>
+                <div style={{fontSize:20,marginBottom:3}}><Icon name={dt.icon} size={20} /></div>
                 <div style={{fontSize:11,fontWeight:700,color:selType===dt.key?C.p:C.text}}>{lang==="bn"?dt.lbn:dt.len}</div>
               </button>
             ))}
@@ -245,7 +245,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
             <div style={{marginTop:3}}>{lang==="bn"
               ? "সেলফিতে পরিচয়পত্রটি হাতে ধরে রাখুন, যেন মুখ ও নথি একসাথে দেখা যায়।"
               : "In the selfie, hold your ID up so your face and the document are both visible."}</div>
-            <div style={{marginTop:3}}>🔒 {lang==="bn"
+            <div style={{marginTop:3}}><Icon name="locked" size={14} style={{marginRight:6}} />{lang==="bn"
               ? "আপনার নথি এনক্রিপ্টেড সংরক্ষণে থাকে। শুধু যাচাইকারী দল কারণ উল্লেখ করে দেখতে পারেন, এবং প্রতিটি দেখা রেকর্ড হয়।"
               : "Your documents are stored privately. Only the verification team can open them, only with a stated reason, and every viewing is recorded."}</div>
           </div>

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import L from "leaflet";
 import { useC, useTr } from "../contexts";
 import { C_DARK } from "../constants/theme";
@@ -68,7 +69,7 @@ export default function LiveMap({tracking,setTracking}) {
     uMark.current=L.marker([23.8103,90.4125],{icon:mkUser(),zIndexOffset:1000}).addTo(map);
 
     // Provider car marker
-    const mkCar=()=>L.divIcon({className:"",html:`<div style="font-size:30px;line-height:1;filter:drop-shadow(1px 3px 6px rgba(0,0,0,.45))">🚗</div>`,iconSize:[34,34],iconAnchor:[17,22]});
+    const mkCar=()=>L.divIcon({className:"",html:`<div style="font-size:30px;line-height:1;filter:drop-shadow(1px 3px 6px rgba(0,0,0,.45))"><Icon name="moving" size={16} /></div>`,iconSize:[34,34],iconAnchor:[17,22]});
     pMark.current=L.marker(PROV_START,{icon:mkCar(),zIndexOffset:999}).addTo(map);
 
     // Initial route
@@ -142,7 +143,7 @@ export default function LiveMap({tracking,setTracking}) {
       {/* GPS acquiring indicator */}
       {!gpsOk&&(
         <div style={{position:"absolute",top:10,left:10,background:"rgba(255,255,255,.88)",backdropFilter:"blur(2px) saturate(120%)",WebkitBackdropFilter:"blur(2px) saturate(120%)",borderRadius:10,padding:"4px 10px",fontSize:10,color:"#888",display:"flex",alignItems:"center",gap:5,boxShadow:"0 4px 14px rgba(0,0,0,.1)",border:"1px solid rgba(255,255,255,.6)"}}>
-          <span>📍</span> {lang==="bn"?"লোকেশন নিচ্ছে...":"Getting location..."}
+          <Icon name="location" size={15} /> {lang==="bn"?"লোকেশন নিচ্ছে...":"Getting location..."}
         </div>
       )}
 
@@ -164,10 +165,10 @@ export default function LiveMap({tracking,setTracking}) {
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:800,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:6}}>
                 {lang==="bn"?"রাকিব হোসেন":"Rakib Hossain"}
-                <span style={{background:"rgba(16,185,129,.15)",color:C.p,fontSize:9,fontWeight:700,borderRadius:6,padding:"2px 7px"}}>★ 4.9</span>
+                <span style={{background:"rgba(16,185,129,.15)",color:C.p,fontSize:9,fontWeight:700,borderRadius:6,padding:"2px 7px"}}><Icon name="star-filled" size={11} style={{marginRight:3}} />4.9</span>
               </div>
               <div style={{fontSize:11,color:"#888",marginTop:2}}>
-                🛵 {lang==="bn"?"মিরপুর রোড দিয়ে আসছেন":"via Mirpur Road"} · <span style={{color:C.p,fontWeight:700}}>{speed} km/h</span>
+                <Icon name="moving" size={15} style={{marginRight:6}} />{lang==="bn"?"মিরপুর রোড দিয়ে আসছেন":"via Mirpur Road"} · <span style={{color:C.p,fontWeight:700}}>{speed} km/h</span>
               </div>
             </div>
             {/* ETA box */}
@@ -187,13 +188,13 @@ export default function LiveMap({tracking,setTracking}) {
           {/* Buttons */}
           <div style={{display:"flex",gap:8}}>
             <button style={{flex:1,padding:"10px 6px",background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,border:"none",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-              💬 {lang==="bn"?"চ্যাট":"Chat"}
+              <Icon name="chat" size={15} style={{marginRight:6}} />{lang==="bn"?"চ্যাট":"Chat"}
             </button>
             <button style={{flex:1,padding:"10px 6px",background:"rgba(29,191,115,.1)",color:C.p,border:`1.5px solid ${C.p}55`,borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-              📞 {lang==="bn"?"কল":"Call"}
+              <Icon name="phone" size={15} style={{marginRight:6}} />{lang==="bn"?"কল":"Call"}
             </button>
             <button onClick={()=>setTracking(false)} style={{flex:1,padding:"10px 6px",background:"rgba(239,68,68,.1)",color:"#EF4444",border:"1.5px solid rgba(239,68,68,.35)",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-              ✕ {lang==="bn"?"বাতিল":"Cancel"}
+              <Icon name="close" size={15} style={{marginRight:6}} />{lang==="bn"?"বাতিল":"Cancel"}
             </button>
           </div>
         </div>
@@ -210,11 +211,11 @@ export default function LiveMap({tracking,setTracking}) {
             boxShadow:`0 6px 20px rgba(16,24,20,0.10),inset 0 1px 0 rgba(255,255,255,.25)`,
             display:"flex",alignItems:"center",justifyContent:"center",gap:7
           }}>
-            📍 {lang==="bn"?"লাইভ ট্র্যাকিং শুরু করুন":"Start Live Tracking"}
+            <Icon name="location" size={15} style={{marginRight:6}} />{lang==="bn"?"লাইভ ট্র্যাকিং শুরু করুন":"Start Live Tracking"}
           </button>
           {gpsOk&&(
             <div style={{width:42,height:42,background:"rgba(255,255,255,.9)",backdropFilter:"blur(3px) saturate(120%)",WebkitBackdropFilter:"blur(3px) saturate(120%)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:C.p,boxShadow:`0 4px 14px rgba(0,0,0,.1),0 0 0 1px ${C.p}22`,border:`1px solid ${C.p}22`,flexDirection:"column",gap:1}}>
-              <span style={{fontSize:15}}>📡</span><span>GPS</span>
+              <Icon name="live" size={15} /><span>GPS</span>
             </div>
           )}
         </div>

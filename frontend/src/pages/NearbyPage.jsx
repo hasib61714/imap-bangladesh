@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useLiveData } from "../contexts";
 import { toUiProv, haversine } from "../utils/helpers";
 import PCard from "./PCard";
@@ -52,17 +53,17 @@ export default function NearbyPage({onBook,onView}) {
             display:"flex",alignItems:"center",gap:7,
             boxShadow:"0 4px 16px rgba(0,0,0,.15)"
           }}>
-            <span>📍</span>{tr.gpsDetect}
+            <Icon name="location" size={15} />{tr.gpsDetect}
           </button>
         )}
         {status==="detecting"&&(
           <div style={{display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,.18)",borderRadius:12,padding:"10px 16px",fontSize:14,fontWeight:600}}>
-            <span style={{animation:"pulse 1s infinite"}}>📡</span> {tr.gpsDetecting}
+            <span style={{animation:"pulse 1s infinite"}}><Icon name="live" size={16} /></span> {tr.gpsDetecting}
           </div>
         )}
         {(status==="done"||status==="error"||status==="denied")&&(
           <button onClick={detect} style={{background:"rgba(255,255,255,.2)",color:"#fff",border:"1.5px solid rgba(255,255,255,.5)",borderRadius:12,padding:"8px 16px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            🔄 {tr.gpsDetect}
+            <Icon name="refresh" size={15} style={{marginRight:6}} />{tr.gpsDetect}
           </button>
         )}
         <div style={{position:"absolute",right:-18,top:-18,width:90,height:90,borderRadius:"50%",background:"rgba(255,255,255,.08)"}}/>
@@ -72,19 +73,19 @@ export default function NearbyPage({onBook,onView}) {
       {/* Error states */}
       {status==="denied"&&(
         <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.35)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#856404",display:"flex",alignItems:"center",gap:9}}>
-          🔒 {tr.gpsPermDenied}
+          <Icon name="locked" size={15} style={{marginRight:6}} />{tr.gpsPermDenied}
         </div>
       )}
       {status==="error"&&(
         <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.35)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:13,color:"#991B1B",display:"flex",alignItems:"center",gap:9}}>
-          ⚠️ {tr.gpsError}
+          <Icon name="warning" size={15} style={{marginRight:6}} />{tr.gpsError}
         </div>
       )}
 
       {/* User location badge */}
       {userPos&&(
         <div style={{display:"flex",alignItems:"center",gap:8,background:C.plt,borderRadius:12,padding:"10px 16px",marginBottom:16,fontSize:13,color:C.pdk,fontWeight:600}}>
-          📍 {userPos.lat.toFixed(4)}°N, {userPos.lng.toFixed(4)}°E
+          <Icon name="location" size={15} style={{marginRight:6}} />{userPos.lat.toFixed(4)}°N, {userPos.lng.toFixed(4)}°E
         </div>
       )}
 

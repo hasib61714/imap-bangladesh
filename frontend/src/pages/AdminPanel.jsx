@@ -410,12 +410,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { key:"revenue",       icon:<BarChartOutlined />,          label: lang==="bn"?"রাজস্ব":"Revenue"        },
     { key:"complaints",    icon:<WarningOutlined />,           label: <Badge count={openTickets} size="small" offset={[8,0]}>{lang==="bn"?"অভিযোগ":"Complaints"}</Badge> },
     { key:"sos",           icon:<span>🆘</span>,               label: <Badge count={sosAlerts?.filter(a=>a.status==="open").length||0} size="small" offset={[8,0]}>{lang==="bn"?"SOS সতর্কতা":"SOS Alerts"}</Badge> },
-    { key:"payments",      icon:<span>💳</span>,               label: lang==="bn"?"পেমেন্ট":"Payments"         },
+    { key:"payments",      icon:<Icon name="card" size={15} />,               label: lang==="bn"?"পেমেন্ট":"Payments"         },
     { key:"notifications", icon:<NotificationOutlined />,      label: lang==="bn"?"বিজ্ঞপ্তি":"Notifications"},
     { key:"promos",        icon:<GiftOutlined />,              label: lang==="bn"?"প্রোমো কোড":"Promo Codes"},
-    { key:"loans",         icon:<span>💹</span>,               label: lang==="bn"?"মাইক্রো-লোন":"Micro Loans"     },
+    { key:"loans",         icon:<Icon name="earnings" size={15} />,               label: lang==="bn"?"মাইক্রো-লোন":"Micro Loans"     },
     { key:"categories",    icon:<AppstoreOutlined />,          label: lang==="bn"?"সেবা বিভাগ":"Categories" },
-    { key:"ai",            icon:<span>🤖</span>,               label: lang==="bn"?"AI Analytics":"AI Analytics" },
+    { key:"ai",            icon:<Icon name="digital" size={15} />,               label: lang==="bn"?"AI Analytics":"AI Analytics" },
     { key:"settings",      icon:<SettingOutlined />,           label: lang==="bn"?"সেটিংস":"Settings"       },
   ];
 
@@ -746,7 +746,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     { title:lang==="bn"?"নাম":"Name",    dataIndex:"name",    key:"name",    render:n=><Text strong>{n}</Text> },
     { title:lang==="bn"?"সেবা":"Service", dataIndex:"service", key:"service" },
     { title:lang==="bn"?"এলাকা":"Area",   dataIndex:"area",    key:"area"    },
-    { title:lang==="bn"?"রেটিং":"Rating", dataIndex:"rating",  key:"rating",  render:v=><Text style={{color:"#F59E0B"}}>⭐ {v}</Text> },
+    { title:lang==="bn"?"রেটিং":"Rating", dataIndex:"rating",  key:"rating",  render:v=><Text style={{color:"#F59E0B"}}><Icon name="star" size={14} style={{marginRight:6}} />{v}</Text> },
     { title:lang==="bn"?"কাজ":"Jobs",     dataIndex:"jobs",    key:"jobs"    },
     {
       title: lang==="bn"?"পরিচয়":"Identity", key:"identity",
@@ -873,7 +873,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             width={220} theme={dark?"dark":"light"}>
             <div style={{padding:collapsed?"16px 8px":"16px 20px", marginBottom:8}}>
               <Space>
-                <span style={{fontSize:22}}>🌿</span>
+                <Icon name="home" size={22} />
                 {!collapsed && <Text strong style={{color:"#006A4E",fontSize:15}}>IMAP Admin</Text>}
               </Space>
             </div>
@@ -901,7 +901,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Button type="text" onClick={()=>setCollapsed(!collapsed)}
                   icon={collapsed?<MenuUnfoldOutlined/>:<MenuFoldOutlined/>} />
               )}
-              {isMobile && <><span style={{fontSize:20}}>🌿</span><Text strong style={{color:"#006A4E"}}>IMAP Admin</Text></>}
+              {isMobile && <><Icon name="home" size={20} /><Text strong style={{color:"#006A4E"}}>IMAP Admin</Text></>}
             </Space>
             <Space size={8}>
               <Button size="small" onClick={()=>setLang(lang==="bn"?"en":"bn")}>{lang==="bn"?"EN":"বাং"}</Button>
@@ -944,7 +944,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── OVERVIEW ── */}
             {tab==="overview" && (
               <>
-                <Title level={4} style={{marginBottom:20}}>📊 {lang==="bn"?"সারাংশ":"Overview"}</Title>
+                <Title level={4} style={{marginBottom:20}}><Icon name="dashboard" size={14} style={{marginRight:6}} />{lang==="bn"?"সারাংশ":"Overview"}</Title>
                 <Row gutter={[16,16]} style={{marginBottom:24}}>
                   {[
                     {title:lang==="bn"?"মোট ব্যবহারকারী":"Total Users",  value:realStats?.users??users.length+providers.length, color:"#3B82F6"},
@@ -964,7 +964,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 </Row>
                 {/* SVG Revenue + Bookings Chart */}
                 {monthlyRev2.length>0&&(
-                  <Card title={`📈 ${lang==="bn"?"মাসিক রাজস্ব (৳)":"Monthly Revenue (৳)"}`} bordered style={{marginBottom:20}}>
+                  <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="earnings" size={15} />{lang==="bn"?"মাসিক রাজস্ব (৳)":"Monthly Revenue (৳)"}</span>} bordered style={{marginBottom:20}}>
                     <div style={{overflowX:"auto"}}>
                       <svg width={Math.max(500,monthlyRev2.length*80)} height={160} style={{display:"block"}}>
                         {(()=>{
@@ -1042,7 +1042,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="providers" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <Title level={4} style={{margin:0}}>👷 {lang==="bn"?"প্রদানকারী":"Providers"}</Title>
+                  <Title level={4} style={{margin:0}}><Icon name="shop" size={14} style={{marginRight:6}} />{lang==="bn"?"প্রদানকারী":"Providers"}</Title>
                   <Input prefix={<SearchOutlined/>} value={pSearch}
                     onChange={e=>{setPSearch(e.target.value); loadProviders(e.target.value);}}
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
@@ -1080,7 +1080,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="users" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <Title level={4} style={{margin:0}}>👥 {lang==="bn"?"ব্যবহারকারী":"Users"}</Title>
+                  <Title level={4} style={{margin:0}}><Icon name="team" size={14} style={{marginRight:6}} />{lang==="bn"?"ব্যবহারকারী":"Users"}</Title>
                   <Input prefix={<SearchOutlined/>} value={uSearch}
                     onChange={e=>{setUSearch(e.target.value); loadUsers(e.target.value);}}
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
@@ -1094,7 +1094,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="bookings" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <Title level={4} style={{margin:0}}>📋 {lang==="bn"?"বুকিং":"Bookings"}</Title>
+                  <Title level={4} style={{margin:0}}><Icon name="document" size={14} style={{marginRight:6}} />{lang==="bn"?"বুকিং":"Bookings"}</Title>
                   <Space>
                     <Select value={bFilter} onChange={v=>{setBFilter(v); loadBookings(v);}}
                       style={{width:150}} size="middle"
@@ -1127,7 +1127,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── VERIFICATION ── */}
             {tab==="kyc" && (
               <>
-                <Title level={4} style={{marginBottom:4}}>🪪 {lang==="bn"?"পরিচয় যাচাই":"Identity verification"}</Title>
+                <Title level={4} style={{marginBottom:4}}><Icon name="identity" size={14} style={{marginRight:6}} />{lang==="bn"?"পরিচয় যাচাই":"Identity verification"}</Title>
                 <Paragraph type="secondary" style={{fontSize:13,marginBottom:16,maxWidth:640}}>
                   {lang==="bn"
                     ? "একটি নথি খোলা রেকর্ড করা হয় — কে খুলেছেন, কখন, এবং কেন। সিদ্ধান্ত মানুষই নেন; কোনো স্বয়ংক্রিয় অনুমোদন নেই।"
@@ -1155,7 +1155,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     was never something an operator could see. */}
                 {!dataLoading && kycList.length===0 && (
                   <Card bordered style={{textAlign:"center",padding:"32px 16px"}}>
-                    <div style={{fontSize:40,marginBottom:8}}>✅</div>
+                    <div style={{fontSize:40,marginBottom:8}}><Icon name="success" size={40} /></div>
                     <Text strong style={{display:"block",marginBottom:4}}>
                       {lang==="bn"?"এই তালিকায় কিছু নেই":"Nothing in this list"}
                     </Text>
@@ -1318,10 +1318,10 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="revenue" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
-                  <Title level={4} style={{margin:0}}>💹 {lang==="bn"?"রাজস্ব ও বিশ্লেষণ":"Revenue & Analytics"}</Title>
+                  <Title level={4} style={{margin:0}}><Icon name="earnings" size={14} style={{marginRight:6}} />{lang==="bn"?"রাজস্ব ও বিশ্লেষণ":"Revenue & Analytics"}</Title>
                   <Space wrap>
-                    <Button onClick={exportRevenueCSV} icon={<span>📥</span>}>{lang==="bn"?"CSV এক্সপোর্ট":"Export CSV"}</Button>
-                    <Button onClick={printRevenueReport} type="primary" icon={<span>🖨️</span>}>{lang==="bn"?"রিপোর্ট প্রিন্ট":"Print Report"}</Button>
+                    <Button onClick={exportRevenueCSV} icon={<Icon name="download" size={15} />}>{lang==="bn"?"CSV এক্সপোর্ট":"Export CSV"}</Button>
+                    <Button onClick={printRevenueReport} type="primary" icon={<Icon name="print" size={15} />}>{lang==="bn"?"রিপোর্ট প্রিন্ট":"Print Report"}</Button>
                   </Space>
                 </div>
                 <Row gutter={[16,16]} style={{marginBottom:24}}>
@@ -1384,7 +1384,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── COMPLAINTS ── */}
             {tab==="complaints" && (
               <>
-                <Title level={4}>⚠️ {lang==="bn"?"অভিযোগ ব্যবস্থাপনা":"Complaint Management"}</Title>
+                <Title level={4}><Icon name="warning" size={14} style={{marginRight:6}} />{lang==="bn"?"অভিযোগ ব্যবস্থাপনা":"Complaint Management"}</Title>
                 <Space style={{marginBottom:16}} wrap>
                   {[
                     {v:"all",      l:lang==="bn"?"সব":"All"},
@@ -1410,7 +1410,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                                 </Tag>
                               </Space>
                               <Text strong style={{display:"block"}}>{t.issue}</Text>
-                              <Text type="secondary" style={{fontSize:12}}>👤 {t.customer} → 👷 {t.provider}</Text><br/>
+                              <Text type="secondary" style={{fontSize:12}}><Icon name="user" size={14} style={{marginRight:6}} />{t.customer} → <Icon name="shop" size={13} style={{margin:"0 4px"}} />{t.provider}</Text><br/>
                               <Text type="secondary" style={{fontSize:11}}>#{t.id} · {t.date}</Text>
                             </div>
                             {t.status==="open" && (
@@ -1443,7 +1443,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="notifications" && (
               <Row gutter={[16,16]}>
                 <Col xs={24} lg={12}>
-                  <Card title={`✍️ ${lang==="bn"?"নতুন বিজ্ঞপ্তি":"Compose Announcement"}`}
+                  <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="sign" size={15} />{lang==="bn"?"নতুন বিজ্ঞপ্তি":"Compose Announcement"}</span>}
                     bordered style={{borderTop:"3px solid #006A4E"}}>
                     <Form layout="vertical" size="middle">
                       <Form.Item label={lang==="bn"?"প্রাপক":"Recipients"}>
@@ -1481,7 +1481,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         <Text type="secondary" style={{fontSize:12}}>{a.msg}</Text><br/>
                         <Space style={{marginTop:8}} wrap>
                           <Tag color="green">{a.target==="all"?(lang==="bn"?"সবাই":"All"):a.target}</Tag>
-                          <Tag color="blue">👁️ {a.reach} {lang==="bn"?"জন":"reached"}</Tag>
+                          <Tag color="blue"><Icon name="review-queue" size={14} style={{marginRight:6}} />{a.reach} {lang==="bn"?"জন":"reached"}</Tag>
                           <Text type="secondary" style={{fontSize:11}}>{a.date}</Text>
                         </Space>
                       </Card>
@@ -1494,8 +1494,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── PROMO CODES ── */}
             {tab==="promos" && (
               <>
-                <Title level={4}>🎁 {lang==="bn"?"প্রোমো কোড":"Promo Codes"}</Title>
-                <Card title={`➕ ${lang==="bn"?"নতুন প্রোমো":"New Promo"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
+                <Title level={4}><Icon name="gift" size={14} style={{marginRight:6}} />{lang==="bn"?"প্রোমো কোড":"Promo Codes"}</Title>
+                <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="add" size={15} />{lang==="bn"?"নতুন প্রোমো":"New Promo"}</span>} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Row gutter={[12,12]} align="middle">
                     <Col xs={12} sm={6}>
                       <Input value={promoForm.code} onChange={e=>setPromoForm(f=>({...f,code:e.target.value.toUpperCase()}))}
@@ -1570,7 +1570,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="loans" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <Title level={4}>💹 {lang==="bn"?"মাইক্রো-লোন আবেদন":"Micro Loan Applications"}</Title>
+                  <Title level={4}><Icon name="earnings" size={14} style={{marginRight:6}} />{lang==="bn"?"মাইক্রো-লোন আবেদন":"Micro Loan Applications"}</Title>
                   <Space>
                     <Select value={loanFilter} onChange={v=>{setLoanFilter(v);}} style={{width:140}}>
                       <Select.Option value="">{lang==="bn"?"সব":"All"}</Select.Option>
@@ -1633,8 +1633,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {/* ── CATEGORIES ── */}
             {tab==="categories" && (
               <>
-                <Title level={4}>🗂️ {lang==="bn"?"সেবা বিভাগ":"Service Categories"}</Title>
-                <Card title={`➕ ${lang==="bn"?"নতুন বিভাগ":"New Category"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
+                <Title level={4}><Icon name="folder" size={14} style={{marginRight:6}} />{lang==="bn"?"সেবা বিভাগ":"Service Categories"}</Title>
+                <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="add" size={15} />{lang==="bn"?"নতুন বিভাগ":"New Category"}</span>} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Space wrap>
                     <Input value=<Icon name={newCat.icon} size={14} style={{marginRight:6}} />onChange={e=>setNewCat(c=>({...c,icon:e.target.value}))}
                       placeholder="" style={{width:60,textAlign:"center",fontSize:20}} />
@@ -1646,7 +1646,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       servicesApi.create({slug, name_bn:newCat.name, name_en:newCat.name, icon:newCat.icon||"\ud83d\udd27"})
                         .then(()=>loadCategories()).catch(()=>{});
                       setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"",name:newCat.name,providers:0,active:true}]);
-                      setNewCat({icon:"",name:""});
+                      setNewCat({icon:"info",name:""});
                       toast(lang==="bn"?"বিভাগ যোগ":"Added");
                     }}>{lang==="bn"?"যোগ করুন":"Add"}</Button>
                   </Space>
@@ -1672,14 +1672,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="ai" && (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-                  <Title level={4}>🤖 {lang==="bn"?"AI Analytics ড্যাশবোর্ড":"AI Analytics Dashboard"}</Title>
+                  <Title level={4}><Icon name="digital" size={14} style={{marginRight:6}} />{lang==="bn"?"AI Analytics ড্যাশবোর্ড":"AI Analytics Dashboard"}</Title>
                   <Button type="primary" loading={aiLoading} onClick={loadAiData}>{lang==="bn"?"রিফ্রেশ":"Refresh"}</Button>
                 </div>
 
                 {/* Revenue Forecast */}
                 <Row gutter={[14,14]} style={{marginBottom:16}}>
                   <Col xs={24} lg={12}>
-                    <Card title={`📈 ${lang==="bn"?"রাজস্ব পূর্বাভাস":"Revenue Forecast"}`} bordered style={{borderTop:"3px solid #006A4E"}}>
+                    <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="earnings" size={15} />{lang==="bn"?"রাজস্ব পূর্বাভাস":"Revenue Forecast"}</span>} bordered style={{borderTop:"3px solid #006A4E"}}>
                       {aiForecast?.forecastRevenue?.length ? (
                         <div style={{display:"flex",gap:16,marginBottom:10}}>
                           {aiForecast.forecastRevenue.map((f,i)=>(
@@ -1692,7 +1692,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         </div>
                       ) : (
                         <div style={{textAlign:"center",padding:"30px 0",color:"#888"}}>
-                          <div style={{fontSize:36,marginBottom:8}}>📊</div>
+                          <div style={{fontSize:36,marginBottom:8}}><Icon name="dashboard" size={36} /></div>
                           <div style={{fontSize:13}}>{lang==="bn"?"ডেটা লোড হচ্ছে...":"Loading data..."}</div>
                         </div>
                       )}
@@ -1719,7 +1719,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
                   {/* Service Demand */}
                   <Col xs={24} lg={12}>
-                    <Card title={`🔥 ${lang==="bn"?"সেবার চাহিদা (৩০ দিন)":"Service Demand (30 days)"}`} bordered style={{borderTop:"3px solid #F59E0B"}}>
+                    <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="hot" size={15} />{lang==="bn"?"সেবার চাহিদা (৩০ দিন)":"Service Demand (30 days)"}</span>} bordered style={{borderTop:"3px solid #F59E0B"}}>
                       {aiForecast?.serviceDemand?.length ? (
                         aiForecast.serviceDemand.slice(0,6).map((s,i)=>(
                           <div key={i} style={{marginBottom:8}}>
@@ -1743,7 +1743,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Row gutter={[14,14]} style={{marginBottom:16}}>
                   <Col xs={24} lg={12}>
                     <Card
-                      title={`⚠️ ${lang==="bn"?"ঝুঁকিপূর্ণ প্রদানকারী":"At-Risk Providers"} (${aiChurn?.providerChurn?.length||0})`}
+                      title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="warning" size={15} />{lang==="bn"?"ঝুঁকিপূর্ণ প্রদানকারী":"At-Risk Providers"} ({aiChurn?.providerChurn?.length||0})</span>}
                       bordered style={{borderTop:"3px solid #EF4444"}}
                     >
                       {aiChurn?.providerChurn?.length ? (
@@ -1761,14 +1761,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           ]}
                         />
                       ) : (
-                        <Alert type="success" message={lang==="bn"?"সকল provider সক্রিয়! ✅":"All providers are active! ✅"} />
+                        <Alert type="success" message={lang==="bn"?"সকল provider সক্রিয়!":"All providers are active!"} />
                       )}
                     </Card>
                   </Col>
 
                   <Col xs={24} lg={12}>
                     <Card
-                      title={`💤 ${lang==="bn"?"নিষ্ক্রিয় গ্রাহক":"Inactive Customers"} (${aiChurn?.customerChurn?.length||0})`}
+                      title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="pending" size={15} />{lang==="bn"?"নিষ্ক্রিয় গ্রাহক":"Inactive Customers"} ({aiChurn?.customerChurn?.length||0})</span>}
                       bordered style={{borderTop:"3px solid #6366F1"}}
                     >
                       {aiChurn?.customerChurn?.length ? (
@@ -1786,14 +1786,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           ]}
                         />
                       ) : (
-                        <Alert type="success" message={lang==="bn"?"সকল গ্রাহক সক্রিয়! ✅":"All customers active! ✅"} />
+                        <Alert type="success" message={lang==="bn"?"সকল গ্রাহক সক্রিয়!":"All customers active!"} />
                       )}
                     </Card>
                   </Col>
                 </Row>
 
                 {/* Area Heatmap */}
-                <Card title={`🗺️ ${lang==="bn"?"এলাকা চাহিদা হিটম্যাপ":"Area Demand Heatmap"}`} bordered style={{borderTop:"3px solid #0EA5E9",marginBottom:16}}>
+                <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="location" size={15} />{lang==="bn"?"এলাকা চাহিদা হিটম্যাপ":"Area Demand Heatmap"}</span>} bordered style={{borderTop:"3px solid #0EA5E9",marginBottom:16}}>
                   {aiHeatmap?.heatmap?.length ? (
                     <Row gutter={[10,10]}>
                       {aiHeatmap.heatmap.slice(0,12).map((h,i)=>{
@@ -1814,7 +1814,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     </Row>
                   ) : (
                     <div style={{textAlign:"center",padding:"32px 0",color:"#888"}}>
-                      <div style={{fontSize:40,marginBottom:8}}>🗺️</div>
+                      <div style={{fontSize:40,marginBottom:8}}><Icon name="location" size={40} /></div>
                       <div style={{fontSize:13}}>{lang==="bn"?"এলাকার ডেটা এখনো নেই। বুকিং এলে হিটম্যাপ দেখা যাবে।":"Area data will show here as bookings come in."}</div>
                     </div>
                   )}
@@ -1823,21 +1823,21 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 {/* AI Feature Cards */}
                 <Row gutter={[14,14]}>
                   {[
-                    {ic:"",lbn:"Real AI Chatbot",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#006A4E"},
-                    {ic:"",lbn:"ভয়েস ইনপুট",len:"Voice Input",d_bn:"Web Speech API — বাংলা ও ইংরেজি সাপোর্ট",d_en:"Web Speech API — Bangla & English supported",color:"#6366F1"},
-                    {ic:"",lbn:"স্মার্ট ম্যাচিং",len:"Smart Matching",d_bn:"AI স্কোর দিয়ে provider র‍্যাংকিং",d_en:"AI-scored provider ranking",color:"#F59E0B"},
-                    {ic:"",lbn:"ডায়নামিক প্রাইসিং",len:"Dynamic Pricing",d_bn:"চাহিদা ও সময়ভিত্তিক মূল্য",d_en:"Demand & time-based pricing",color:"#EF4444"},
-                    {ic:"",lbn:"ফ্রড ডিটেকশন",len:"Fraud Detection",d_bn:"সন্দেহজনক বুকিং স্বয়ংক্রিয়ভাবে ফ্ল্যাগ",d_en:"Auto-flag suspicious bookings",color:"#0EA5E9"},
-                    {ic:"",lbn:"ফেক রিভিউ চেক",len:"Fake Review Check",d_bn:"নকল রিভিউ AI দিয়ে শনাক্ত",d_en:"Detect fake reviews with AI",color:"#8B5CF6"},
-                    {ic:"",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#00C170"},
-                    {ic:"",lbn:"চার্ন প্রেডিকশন",len:"Churn Prediction",d_bn:"নিষ্ক্রিয় ব্যবহারকারী শনাক্ত",d_en:"Identify inactive users about to leave",color:"#F97316"},
+                    {ic:"digital",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#006A4E"},
+                    {ic:"mic",len:"Voice Input",d_bn:"Web Speech API — বাংলা ও ইংরেজি সাপোর্ট",d_en:"Web Speech API — Bangla & English supported",color:"#6366F1"},
+                    {ic:"target",len:"Smart Matching",d_bn:"AI স্কোর দিয়ে provider র‍্যাংকিং",d_en:"AI-scored provider ranking",color:"#F59E0B"},
+                    {ic:"cash",len:"Dynamic Pricing",d_bn:"চাহিদা ও সময়ভিত্তিক মূল্য",d_en:"Demand & time-based pricing",color:"#EF4444"},
+                    {ic:"security",len:"Fraud Detection",d_bn:"সন্দেহজনক বুকিং স্বয়ংক্রিয়ভাবে ফ্ল্যাগ",d_en:"Auto-flag suspicious bookings",color:"#0EA5E9"},
+                    {ic:"info",lbn:"ফেক রিভিউ চেক",len:"Fake Review Check",d_bn:"নকল রিভিউ AI দিয়ে শনাক্ত",d_en:"Detect fake reviews with AI",color:"#8B5CF6"},
+                    {ic:"info",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#00C170"},
+                    {ic:"earnings",len:"Churn Prediction",d_bn:"নিষ্ক্রিয় ব্যবহারকারী শনাক্ত",d_en:"Identify inactive users about to leave",color:"#F97316"},
                   ].map((f,i)=>(
                     <Col key={i} xs={24} sm={12} md={6}>
                       <Card bordered style={{borderTop:`3px solid ${f.color}`,textAlign:"center"}}>
-                        <div style={{fontSize:28,marginBottom:6}}><Icon name=<Icon name={f.ic} size={14} style={{marginRight:6}} />size={28} /></div>
+                        <div style={{fontSize:28,marginBottom:6}}><Icon name={f.ic} size={28} /></div>
                         <Text strong style={{fontSize:13,display:"block",marginBottom:4}}>{lang==="bn"?f.lbn:f.len}</Text>
                         <Text type="secondary" style={{fontSize:11}}>{lang==="bn"?f.d_bn:f.d_en}</Text>
-                        <Tag color="success" style={{marginTop:8,display:"block"}}>✅ Active</Tag>
+                        <Tag color="success" style={{marginTop:8,display:"block"}}><Icon name="success" size={14} style={{marginRight:6}} />Active</Tag>
                       </Card>
                     </Col>
                   ))}
@@ -1896,7 +1896,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="payments" && (
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
-                  <Title level={4} style={{margin:0}}>💳 {lang==="bn"?"পেমেন্ট ইতিহাস":"Payment History"}</Title>
+                  <Title level={4} style={{margin:0}}><Icon name="card" size={14} style={{marginRight:6}} />{lang==="bn"?"পেমেন্ট ইতিহাস":"Payment History"}</Title>
                   <Space wrap>
                     <Select value={payFilter} onChange={v=>{setPayFilter(v);loadPayments(v);}} style={{width:140}}
                       options={[
@@ -1953,12 +1953,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
             {tab==="settings" && (
               <Row gutter={[16,16]}>
                 <Col xs={24} md={12}>
-                  <Card title={`⚙️ ${lang==="bn"?"সিস্টেম সেটিংস":"System Settings"}`} bordered>
+                  <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="settings" size={15} />{lang==="bn"?"সিস্টেম সেটিংস":"System Settings"}</span>} bordered>
                     {sysSettingsList.map((item,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                         padding:"14px 0",borderBottom:i<sysSettingsList.length-1?"1px solid rgba(0,0,0,0.06)":"none"}}>
                         <Space>
-                          <span style={{fontSize:20}}><Icon name=<Icon name={item.icon} size={14} style={{marginRight:6}} />size={20} /></span>
+                          <span style={{fontSize:20}}><Icon name={item.icon} size={20} /></span>
                           <Text style={{fontSize:14}}>{lang==="bn"?item.lbn:item.len}</Text>
                         </Space>
                         <Switch checked={sysToggles[i]} onChange={async()=>{
@@ -1973,7 +1973,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   </Card>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Card title={`📊 ${lang==="bn"?"সিস্টেম তথ্য":"System Info"}`} bordered>
+                  <Card title={<span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon name="dashboard" size={15} />{lang==="bn"?"সিস্টেম তথ্য":"System Info"}</span>} bordered>
                     {[
                       ["Version","v5.0.0"],
                       ["Environment","Production"],

@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useUser } from "../contexts";
 import { T } from "../constants/translations";
 import { users as usersApi } from "../api";
@@ -52,7 +53,7 @@ export default function SettingsPage(){
       {tab==="profile"&&(
         <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.bdr}`}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:10}}>👤</div>
+            <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:10}}><Icon name="user" size={28} /></div>
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>{name}</div>
             <div style={{fontSize:12,color:C.muted}}>ID: IMAP-{authUser?.id||"User"}</div>
           </div>
@@ -74,7 +75,7 @@ export default function SettingsPage(){
             </div>
           ))}
           <div style={{marginTop:16,padding:"12px 14px",background:"rgba(239,68,68,.08)",borderRadius:12,border:"1px solid rgba(239,68,68,.25)",cursor:"pointer"}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>🗑️ {tr.stDeleteAcc}</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}><Icon name="delete" size={14} style={{marginRight:6}} />{tr.stDeleteAcc}</div>
             <div style={{fontSize:11,color:"#9CA3AF",marginTop:3}}>{lang==="en"?"This action cannot be undone":"এই পদক্ষেপ অপরিবর্তনযোগ্য"}</div>
           </div>
         </div>

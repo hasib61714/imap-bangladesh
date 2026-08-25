@@ -1,4 +1,5 @@
 import { useContext, useState, Suspense, lazy } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { REG_SERVICES } from "../constants/data";
@@ -21,7 +22,7 @@ export default function ProviderRegPage({onNavigate}){
 
   if(done) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:16}}>🎉</div>
+      <div style={{fontSize:64,marginBottom:16}}><Icon name="success" size={64} /></div>
       <div style={{fontSize:20,fontWeight:800,color:C.p,marginBottom:8}}>{tr.prRegDone}</div>
       {/*
         This screen used to promise a review "within 24–48 hours" — an SLA
@@ -90,9 +91,9 @@ export default function ProviderRegPage({onNavigate}){
             ))}
           </div>
           <div style={{background:C.plt,borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:12,color:C.sub}}>
-            <div style={{fontWeight:700,color:C.text,marginBottom:6}}>📋 {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
-            <div>👤 {name} • 📱 {phone}</div>
-            <div>🛠️ {svc} • 📍 {area} • ⏳ {exp} {lang==="en"?"yrs":"বছর"}</div>
+            <div style={{fontWeight:700,color:C.text,marginBottom:6}}><Icon name="document" size={14} style={{marginRight:6}} />{lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
+            <div><Icon name="user" size={14} style={{marginRight:6}} />{name} • <Icon name="phone" size={12} style={{margin:"0 4px"}} />{phone}</div>
+            <div><Icon name="repair" size={14} style={{marginRight:6}} />{svc} • <Icon name="location" size={12} style={{margin:"0 3px"}} />{area} • <Icon name="pending" size={12} style={{margin:"0 3px"}} />{exp} {lang==="en"?"yrs":"বছর"}</div>
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>←</button>

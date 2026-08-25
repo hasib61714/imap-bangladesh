@@ -73,11 +73,11 @@ export default function NotifPage() {
           {pushPerm==="granted"&&(
             <>
               <span style={{fontSize:11,color:C.p,padding:"5px 11px",background:C.plt,borderRadius:20,border:`1px solid ${C.p}30`,fontWeight:600}}>
-                🔔 {lang==="en"?"Push: On":"পুশ: চালু"}
+                <Icon name="notification" size={15} style={{marginRight:6}} />{lang==="en"?"Push: On":"পুশ: চালু"}
               </span>
               <button className="btn" onClick={()=>usersApi.testPush().then(()=>alert(lang==="en"?"Test push sent!":"পুশ পাঠানো হয়েছে!")).catch(e=>alert(""+e.message))}
                 style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
-                🔔 {lang==="en"?"Test":"টেস্ট"}
+                <Icon name="notification" size={15} style={{marginRight:6}} />{lang==="en"?"Test":"টেস্ট"}
               </button>
             </>
           )}
@@ -103,7 +103,7 @@ export default function NotifPage() {
           setNotifs(ns=>ns.map((x,j)=>j===i?{...x,unread:false}:x));
           if(n.id) usersApi.markNotifReadById(n.id).catch(()=>{});
         }} style={{display:"flex",gap:12,padding:13,background:n.unread?`${C.p}06`:"#fff",borderRadius:13,border:`1px solid ${n.unread?C.p+"30":C.bdr}`,cursor:"pointer",marginBottom:8,transition:"all .18s"}}>
-          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={18} /></div>
+          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}><Icon name={n.icon} size={18} /></div>
           <div style={{flex:1}}>
             <div className="row" style={{justifyContent:"space-between"}}>
               <div style={{fontSize:13,fontWeight:700}}>{lang==="en"?n.tEn:n.t}</div>

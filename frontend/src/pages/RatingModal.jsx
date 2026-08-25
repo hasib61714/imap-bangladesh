@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { Av } from "../components/ui";
@@ -20,7 +21,7 @@ export default function RatingModal({p,onClose,onSuccess}) {
   const TAGS=tr.rtags.split(",");
   if(done) return (
     <div style={{padding:28,textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:14}}>🎉</div>
+      <div style={{fontSize:64,marginBottom:14}}><Icon name="success" size={64} /></div>
       <div style={{fontSize:18,fontWeight:700}}>{tr.rDone}</div>
       <div style={{fontSize:13,color:C.muted,marginTop:6}}>{tr.rSubmitted}</div>
       <button className="btn btn-g" style={{marginTop:18,width:"100%",padding:"13px"}} onClick={onClose}>{tr.closeBtn}</button>
@@ -29,12 +30,12 @@ export default function RatingModal({p,onClose,onSuccess}) {
   return (
     <div style={{padding:24}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:16}}>
-        <div style={{fontSize:16,fontWeight:700}}>⭐ {tr.ratingTitle}</div>
-        <button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}>✕</button>
+        <div style={{fontSize:16,fontWeight:700}}><Icon name="star" size={14} style={{marginRight:6}} />{tr.ratingTitle}</div>
+        <button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}><Icon name="close" size={16} /></button>
       </div>
       {p&&<div style={{textAlign:"center",marginBottom:16}}><div style={{display:"flex",justifyContent:"center",marginBottom:8}}><Av av={p.av} col={p.col} size={56} rad={16}/></div><div style={{fontSize:16,fontWeight:700}}>{name}</div></div>}
       <div className="row" style={{justifyContent:"center",gap:8,marginBottom:8}}>
-        {[1,2,3,4,5].map(s=><div key={s} onMouseEnter={()=>setHover(s)} onMouseLeave={()=>setHover(0)} onClick={()=>setRating(s)} style={{fontSize:38,cursor:"pointer",color:(hover||rating)>=s?"#F59E0B":"#E5E7EB",transition:"all .12s",transform:(hover||rating)>=s?"scale(1.18)":"scale(1)"}}>★</div>)}
+        {[1,2,3,4,5].map(s=><div key={s} onMouseEnter={()=>setHover(s)} onMouseLeave={()=>setHover(0)} onClick={()=>setRating(s)} style={{fontSize:38,cursor:"pointer",color:(hover||rating)>=s?"#F59E0B":"#E5E7EB",transition:"all .12s",transform:(hover||rating)>=s?"scale(1.18)":"scale(1)"}}><Icon name="star-filled" size={16} /></div>)}
       </div>
       {rating>0&&<div style={{textAlign:"center",fontSize:14,color:C.p,fontWeight:600,marginBottom:12}}>{LABELS[rating]}</div>}
       <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:14}}>

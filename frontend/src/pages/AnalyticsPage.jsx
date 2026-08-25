@@ -35,7 +35,7 @@ export default function AnalyticsPage(){
   const svcMap={};
   ctxBk.forEach(b=>{const s=b.service_name_en||b.service_type||"Other";svcMap[s]=(svcMap[s]||0)+1;});
   const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const SCOLS=["#F59E0B","#00C170","#3B82F6","#EF4444","#8B5CF6"],SICONS=["","","","",""];
+  const SCOLS=["#F59E0B","#00C170","#3B82F6","#EF4444","#8B5CF6"],SICONS=["electrician","cleaning","plumber","healthcare","education"];
   const sTot=svcEntries.reduce((s,[,c])=>s+c,0)||1;
   const serviceData=svcEntries.length?svcEntries.map(([name,cnt],i)=>({icon:SICONS[i]||"",name,nameBn:name,pct:Math.round(cnt/sTot*100),color:SCOLS[i]||"#6B7280"})):AN_SERVICES;
 
@@ -47,7 +47,7 @@ export default function AnalyticsPage(){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
         {stats.map(([lbl,ic,val,chg,col])=>(
           <div key={lbl} style={{background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`}}>
-            <div style={{fontSize:22,marginBottom:6}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={22} /></div>
+            <div style={{fontSize:22,marginBottom:6}}><Icon name={ic} size={22} /></div>
             <div style={{fontSize:22,fontWeight:800,color:col}}>{val}</div>
             <div style={{fontSize:12,color:C.sub,marginTop:2}}>{lbl}</div>
             {chg&&<div style={{fontSize:11,color:"#006A4E",marginTop:4,fontWeight:700}}>{chg}</div>}
@@ -84,7 +84,7 @@ export default function AnalyticsPage(){
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>{tr.anRecent}</div>
         {activityData.map((a,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<activityData.length-1?`1px solid ${C.bdr}`:"none"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={17} /></div>
+            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}><Icon name={a.icon} size={17} /></div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?a.title:a.titleBn}</div>
               <div style={{fontSize:11,color:C.muted}}>{a.date}</div>

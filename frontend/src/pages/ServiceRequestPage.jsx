@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { SR_TYPES, SR_TIMES } from "../constants/data";
@@ -33,7 +34,7 @@ export default function ServiceRequestPage(){
 
   if(submitted) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:16}}>✅</div>
+      <div style={{fontSize:64,marginBottom:16}}><Icon name="success" size={64} /></div>
       <div style={{fontSize:20,fontWeight:800,color:C.p,marginBottom:8}}>{tr.srSubmitted}</div>
       <div style={{fontSize:13,color:C.sub,marginBottom:24}}>{lang==="en"?"We'll match you with the best provider soon!":"শীঘ্রই আপনাকে সেরা সেবাদাতার সাথে সংযুক্ত করা হবে!"}</div>
       <div style={{background:C.plt,borderRadius:14,padding:"12px 20px",fontSize:13,color:C.p,fontWeight:700}}>REQ-{Date.now().toString().slice(-6)}</div>
@@ -66,7 +67,7 @@ export default function ServiceRequestPage(){
             style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",resize:"none",boxSizing:"border-box"}}/>
           <div style={{display:"flex",alignItems:"center",gap:10,margin:"12px 0",padding:"10px 14px",background:urgent?"#FEF2F2":C.bg,borderRadius:10,border:`1.5px solid ${urgent?"#FCA5A5":C.bdr}`,cursor:"pointer"}} onClick={()=>setUrgent(!urgent)}>
             <input type="checkbox" checked={urgent} onChange={()=>{}} style={{accentColor:"#DC2626",width:16,height:16}}/>
-            <span style={{fontSize:13,fontWeight:700,color:urgent?"#DC2626":C.sub}}>🚨 {tr.srUrgent}</span>
+            <span style={{fontSize:13,fontWeight:700,color:urgent?"#DC2626":C.sub}}><Icon name="emergency" size={14} style={{marginRight:6}} />{tr.srUrgent}</span>
           </div>
           <button onClick={()=>canNext1&&setStep(2)} style={{width:"100%",padding:"12px",borderRadius:12,background:canNext1?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:canNext1?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",marginTop:6}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
         </div>
@@ -104,10 +105,10 @@ export default function ServiceRequestPage(){
             placeholder={lang==="en"?"Your budget (optional)":"বাজেট (ঐচ্ছিক)"}
             style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",marginBottom:16,boxSizing:"border-box"}}/>
           <div style={{background:C.plt,borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:12,color:C.sub}}>
-            <div style={{fontWeight:700,color:C.text,marginBottom:6}}>📋 {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
-            <div>✅ {svcType} • {urgent?"Urgent":""}</div>
-            <div>📍 {address.slice(0,40)}</div>
-            <div>📅 {date} {time}</div>
+            <div style={{fontWeight:700,color:C.text,marginBottom:6}}><Icon name="document" size={14} style={{marginRight:6}} />{lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
+            <div><Icon name="success" size={14} style={{marginRight:6}} />{svcType} • {urgent?"Urgent":""}</div>
+            <div><Icon name="location" size={14} style={{marginRight:6}} />{address.slice(0,40)}</div>
+            <div><Icon name="calendar" size={14} style={{marginRight:6}} />{date} {time}</div>
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← পিছনে"}</button>

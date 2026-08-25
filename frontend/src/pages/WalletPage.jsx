@@ -112,7 +112,7 @@ export default function WalletPage() {
     .footer{text-align:center;margin-top:18px;font-size:11px;color:#9CA3AF}
     @media print{body{background:#fff;padding:0}}</style></head>
     <body onload="window.print()"><div class="card">
-    <div class="header"><div class="logo">🧾</div><div class="title">IMAP Receipt</div>
+    <div class="header"><div class="logo"><Icon name="receipt" size={16} /></div><div class="title">IMAP Receipt</div>
     <div class="sub">পেমেন্ট রসিদ</div><div class="badge">✓ ${lang==="en"?"Successful":"সফল"}</div></div>
     <div class="amount"><div class="val">${txSign(t)}৳${Math.abs(t.amount)}</div></div>
     <div class="row"><label>Transaction ID</label><span style="font-family:monospace">${escHtml(t.id)}</span></div>
@@ -191,7 +191,7 @@ export default function WalletPage() {
             )}
             {filtered.map((t,i)=>(
               <div key={t.id} className="fu" style={{animationDelay:`${i*.04}s`,display:"flex",alignItems:"center",gap:14,padding:"13px 16px",background:C.card,borderRadius:i===0?"14px 14px 6px 6px":i===filtered.length-1?"6px 6px 14px 14px":"6px",marginBottom:2,border:`1px solid ${C.bdr}`}}>
-                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name=<Icon name={t.icon} size={14} style={{marginRight:6}} />size={18} /></div>
+                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name={t.icon} size={18} /></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lang==="en"?t.titleEn:t.titleBn}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>{t.id} · {t.method} · {lang==="en"?t.dateEn:t.date}</div>
@@ -199,9 +199,9 @@ export default function WalletPage() {
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontSize:15,fontWeight:800,color:txColor(t)}}>{txSign(t)}৳{Math.abs(t.amount)}</div>
                   <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end",marginTop:4}}>
-                    <div style={{fontSize:10,color:"#006A4E"}}>✓ {lang==="en"?"Success":"সফল"}</div>
+                    <div style={{fontSize:10,color:"#006A4E"}}><Icon name="check" size={14} style={{marginRight:6}} />{lang==="en"?"Success":"সফল"}</div>
                     <button onClick={()=>printReceipt(t)} title={lang==="en"?"Download Receipt":"রসিদ ডাউনলোড"}
-                      style={{background:"none",border:"none",cursor:"pointer",fontSize:13,padding:0,color:C.p,lineHeight:1}}>📄</button>
+                      style={{background:"none",border:"none",cursor:"pointer",fontSize:13,padding:0,color:C.p,lineHeight:1}}><Icon name="document" size={16} /></button>
                   </div>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function WalletPage() {
             {TOPUP_METHODS.map(m=>(
               <button key={m.id} onClick={()=>setSelMethod(m.id)}
                 style={{padding:"10px 6px",borderRadius:12,border:`2px solid ${selMethod===m.id?C.p:C.bdr}`,background:selMethod===m.id?C.plt:C.card,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>
-                <span style={{fontSize:20}}><Icon name=<Icon name={m.icon} size={14} style={{marginRight:6}} />size={20} /></span>
+                <span style={{fontSize:20}}><Icon name={m.icon} size={20} /></span>
                 <span style={{fontSize:11,fontWeight:700,color:selMethod===m.id?C.p:C.sub}}>{m.label}</span>
               </button>
             ))}
@@ -251,7 +251,9 @@ export default function WalletPage() {
 
           <button onClick={doTopUp} disabled={!finalAmt||finalAmt<10||topping}
             style={{width:"100%",padding:"14px",borderRadius:14,background:(finalAmt>=10&&!topping)?C.p:"#ccc",border:"none",color:C.onP,fontSize:15,fontWeight:700,cursor:(finalAmt>=10&&!topping)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            {topping?"⏳ প্রক্রিয়া হচ্ছে...":`➕ ${tr.wlTopUp} via ${TOPUP_METHODS.find(m=>m.id===selMethod)?.label}`}
+            {topping
+              ? <><Icon name="loading" size={14} style={{marginRight:6}} />{lang==="en"?"Processing…":"প্রক্রিয়া হচ্ছে..."}</>
+              : <><Icon name="add" size={14} style={{marginRight:6}} />{`${tr.wlTopUp} via ${TOPUP_METHODS.find(m=>m.id===selMethod)?.label}`}</>}
           </button>
         </div>
       )}

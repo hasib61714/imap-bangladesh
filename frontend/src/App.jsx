@@ -383,7 +383,7 @@ export default function IMAP() {
   useEffect(()=>{
     if(!authUser) return;
     const off=onSocketEvent("booking_updated",data=>{
-      showBrowserNotif("IMAP বুকিং আপডেট 📋",data?.message||"আপনার বুকিংয়ে পরিবর্তন হয়েছে");
+      showBrowserNotif("IMAP বুকিং আপডেট",data?.message||"আপনার বুকিংয়ে পরিবর্তন হয়েছে");
     });
     return off;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -394,7 +394,7 @@ export default function IMAP() {
   useEffect(()=>{
     if(unreadCount > prevUnreadRef.current && liveNotifs.length>0 && document.hidden){
       const n=liveNotifs.find(x=>x.unread);
-      if(n) showBrowserNotif(n.t||n.tEn||"IMAP নোটিফিকেশন 🔔", n.m||n.mEn||"নতুন বার্তা");
+      if(n) showBrowserNotif(n.t||n.tEn||"IMAP নোটিফিকেশন", n.m||n.mEn||"নতুন বার্তা");
     }
     prevUnreadRef.current=unreadCount;
   },[unreadCount]);
@@ -458,11 +458,11 @@ export default function IMAP() {
         <div className="g2" style={{marginBottom:12,gap:8}}>
           {(lang==="en"?["Ambulance","Nurse","Doctor","Blood Donor"]:["অ্যাম্বুলেন্স","নার্স","ডাক্তার","রক্তদাতা"]).map(item=>(
             <button key={item} onClick={()=>setEmgSvc(item)}
-              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"rgba(239,68,68,.08)",border:`2px solid ${emgSvc===item?"#DC2626":"rgba(220,38,38,.25)"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"":""}{item}</button>
+              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"rgba(239,68,68,.08)",border:`2px solid ${emgSvc===item?"#DC2626":"rgba(220,38,38,.25)"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{item}</button>
           ))}
         </div>
         {emgSvc&&(
-          <div style={{background:"rgba(239,68,68,.08)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:C.red,fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}>✅ {lang==="en"?`Requesting ${emgSvc}...`:`${emgSvc} অনুরোধ পাঠানো হচ্ছে...`}</div>
+          <div style={{background:"rgba(239,68,68,.08)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:C.red,fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}><Icon name="success" size={14} style={{marginRight:6}} />{lang==="en"?`Requesting ${emgSvc}...`:`${emgSvc} অনুরোধ পাঠানো হচ্ছে...`}</div>
         )}
         <button className="btn btn-gh" style={{width:"100%",border:`1px solid ${C.bdr}`}} onClick={()=>{setEmg(false);setEmgSvc(null);}}>{tr.emgCancel}</button>
       </div>
@@ -534,7 +534,7 @@ export default function IMAP() {
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"
             }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px rgba(16,24,20,0.05)`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
-              <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={16} color={C.sub} />
+              <Icon name={ic} size={16} color={C.sub} />
             </button>
           ))}
           {/* Notification bell */}
@@ -569,7 +569,7 @@ export default function IMAP() {
                 {liveNotifs.slice(0,4).map((n,i)=>(
                   <div key={i} style={{padding:"10px 15px",borderBottom:i<3?`1px solid ${C.bdr}`:"none",background:n.unread?`${C.p}06`:"#fff",cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background=n.unread?`${C.p}06`:"#fff"}>
                     <div className="row" style={{gap:9}}>
-                      <div className="jc" style={{width:34,height:34,borderRadius:9,background:C.plt,fontSize:14,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={14} /></div>
+                      <div className="jc" style={{width:34,height:34,borderRadius:9,background:C.plt,fontSize:14,flexShrink:0}}><Icon name={n.icon} size={14} /></div>
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:700}}>{lang==="en"?n.tEn:n.t}</div>
                         <div style={{fontSize:11,color:C.muted,marginTop:1}}>{lang==="en"?n.mEn:n.m}</div>
@@ -615,7 +615,7 @@ export default function IMAP() {
                   ["calendar",tr.calNav||"Calendar","calendar"],
                 ].map(([ic,item,pg],i)=>(
                   <div key={`acc-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                    <Icon name={ic} size={15} color={C.sub} />{item}
                   </div>
                 ))}
                 {/* গ্রুপ ২: আর্থিক ও বিশেষ সেবা */}
@@ -628,7 +628,7 @@ export default function IMAP() {
                   ["disaster",tr.dsNav||"Disaster Alerts","disaster"],
                 ].map(([ic,item,pg],i)=>(
                   <div key={`fin-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                    <Icon name={ic} size={15} color={C.sub} />{item}
                   </div>
                 ))}
                 {/* গ্রুপ ৩: যাচাই ও প্রদানকারী */}
@@ -647,14 +647,14 @@ export default function IMAP() {
                     else if(pg==="_loan")setModal("loan");
                     setProfDrop(false);
                   }} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                    <Icon name={ic} size={15} color={C.sub} />{item}
                   </div>
                 ))}
                 {/* ভাষা ও থিম */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
                 <div style={{padding:"9px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:13,color:C.sub}}>🌐 {lang==="bn"?"ভাষা":"Language"}</span>
-                  <button onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{lang==="bn"?"EN 🌐":"বাং 🌐"}</button>
+                  <span style={{fontSize:13,color:C.sub}}><Icon name="language" size={14} style={{marginRight:6}} />{lang==="bn"?"ভাষা":"Language"}</span>
+                  <button onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{lang==="bn"?"EN":"বাং"}</button>
                 </div>
                 <div style={{padding:"9px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <span style={{fontSize:13,color:C.sub,display:"inline-flex",alignItems:"center",gap:6}}><Icon name={dark?"light":"dark"} size={14} />{lang==="bn"?"থিম":"Theme"}</span>
@@ -663,16 +663,18 @@ export default function IMAP() {
                 {/* গ্রুপ ৪: সিস্টেম */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
                 {[
-                  [`⚙️ ${tr.stNav||"Settings"}`,"settings"],
-                  [`👴 ${tr.elderlyMode}`,"_elderly"],
-                  [`🚪 ${tr.logout}`,"_logout"],
-                ].map(([item,pg],i)=>(
+                  ["settings",tr.stNav||"Settings","settings"],
+                  ["large-text",tr.elderlyMode,"_elderly"],
+                  ["logout",tr.logout,"_logout"],
+                ].map(([ic,item,pg],i)=>(
                   <div key={`sys-${i}`} onClick={()=>{
                     if(pg==="settings")setPage(pg);
                     else if(pg==="_elderly")setElderly(true);
                     else if(pg==="_logout")doLogout();
                     setProfDrop(false);
-                  }} style={{padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s",color:pg==="_logout"?C.red:"inherit"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{item}</div>
+                  }} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s",color:pg==="_logout"?C.red:"inherit"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                    <Icon name={ic} size={15} color={pg==="_logout"?C.red:C.sub} />{item}
+                  </div>
                 ))}
               </div>
             )}
@@ -707,22 +709,22 @@ export default function IMAP() {
                     else if(act==="_map")setModal("map");
                     else if(act==="_search")setModal("search");
                   }} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} /><span>{lbl}</span>
+                    <Icon name={ic} size={15} color={C.sub} /><span>{lbl}</span>
                   </div>
                 ))}
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Lang toggle */}
                 <div onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setNavDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>🌐</span><span>{lang==="bn"?"English এ যান":"বাংলায় যান"}</span>
+                  <Icon name="language" size={15} /><span>{lang==="bn"?"English এ যান":"বাংলায় যান"}</span>
                 </div>
                 {/* Dark toggle */}
                 <div onClick={()=>{setDark(d=>!d);setNavDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>{dark?"":""}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                  <Icon name={dark?"light":"dark"} size={15} /><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
                 </div>
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Logout */}
                 <div onClick={()=>{setNavDotMenu(false);doLogout();}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.red,fontWeight:700,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>🚪</span><span>{tr.logout||"লগআউট"}</span>
+                  <Icon name="logout" size={15} /><span>{tr.logout||"লগআউট"}</span>
                 </div>
               </div>
             </>)}
@@ -735,7 +737,7 @@ export default function IMAP() {
   /* ── MOBILE BOTTOM NAV ── */
   const MobNav = ()=>(
     <div className="mnav">
-      {[["home","",tr.home],["services","",tr.services],["nearby","",tr.gpsNav||"Nearby"],["saved","",tr.favNav||"Saved"],["_profile","",tr.profile]].map(([id,icon,l])=>{
+      {[["home","home",tr.home],["services","repair",tr.services],["nearby","location",tr.gpsNav||"Nearby"],["saved","star",tr.favNav||"Saved"],["_profile","user",tr.profile]].map(([id,icon,l])=>{
         const active = page===id;
         return (
         <button key={id} aria-label={l} aria-current={active?"page":undefined} onClick={()=>{
@@ -745,7 +747,7 @@ export default function IMAP() {
         }} style={{position:"relative",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"8px 0",fontFamily:"'Hind Siliguri',sans-serif",WebkitTapHighlightColor:"transparent"}}>
           {/* animated active indicator */}
           <div style={{position:"absolute",top:0,width:active?24:0,height:3,borderRadius:"0 0 4px 4px",background:`linear-gradient(90deg,${C.p},${C.pdk})`,transition:"width .22s cubic-bezier(.4,0,.2,1)"}}/>
-          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px rgba(16,24,20,0.10)`:"none"}}><Icon name=<Icon name={icon} size={14} style={{marginRight:6}} />size={16} /></div>
+          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px rgba(16,24,20,0.10)`:"none"}}><Icon name={icon} size={16} /></div>
           <div style={{fontSize:10.5,fontWeight:active?800:600,color:active?C.p:C.muted,transition:"color .18s"}}>{l}</div>
         </button>
       )})}
@@ -768,7 +770,7 @@ export default function IMAP() {
                 </div>
                 <span style={{fontSize:12,fontWeight:700}}>
                   <span style={{color:"#F42A41"}}>{lang==="bn"?"বাংলাদেশের":"Bangladesh's"}</span>
-                  <span style={{color:"#00C170"}}>{lang==="bn"?" নম্বর ১ সেবা মার্কেটপ্লেস":" Number 1 Service Marketplace"}</span>
+                  <span style={{color:"#00C170"}}>{lang==="bn"?" বিশ্বস্ত সেবা মার্কেটপ্লেস":" Trusted Service Marketplace"}</span>
                 </span>
               </div>
               <h1 className="hh" style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:50,fontWeight:800,color:"#fff",lineHeight:1.15,marginBottom:16}}>
@@ -782,7 +784,7 @@ export default function IMAP() {
                 boxShadow:"0 10px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.9)",
                 border:"1px solid rgba(255,255,255,.6)"
               }}>
-                <span style={{fontSize:17}}>🔍</span>
+                <Icon name="search" size={17} />
                 <input readOnly placeholder={tr.search} style={{flex:1,border:"none",fontSize:13,color:C.text,background:"transparent",padding:"5px 0",cursor:"pointer"}} onClick={()=>setModal("search")}/>
                 <button className="btn btn-g" style={{padding:"10px 16px",fontSize:13,borderRadius:10,flexShrink:0}} onClick={()=>setModal("search")}>{tr.find}</button>
               </div>
@@ -796,12 +798,27 @@ export default function IMAP() {
             </div>
             {/* Hero stats (desktop) */}
             <div className="sb" style={{opacity:anim?1:0,transition:"opacity .8s ease .2s"}}>
-              {[{ic:"",vBn:"৪৮,২৩৫+",vEn:"48,235+",l:tr.statDone,g:"+12%",d:.3},{ic:"",vBn:"৮,৪৯২",vEn:"8,492",l:tr.statVerified,g:"+8%",d:.4},{ic:"",vBn:"২,১৫,৮৬৩",vEn:"215,863",l:tr.statHappy,g:"+23%",d:.5},{ic:"",vBn:"৬৪ জেলা",vEn:"64 Districts",l:tr.statNation,g:"100%",d:.6}].map((s,i)=>(
+              {/*
+                These read 48,235+ jobs done, 8,492 verified providers,
+                215,863 happy customers and 64 districts — each with a growth
+                figure beside it, "+12% ↑", which is a second invention
+                stacked on the first: a made-up total is a claim, a made-up
+                TREND in that total is a claim about measurement.
+
+                What is here instead is what the platform guarantees and can
+                be held to, with no number that has not been counted.
+              */}
+              {[
+                {ic:"verified", vBn:"যাচাইকৃত", vEn:"Verified",  l:lang==="bn"?"তালিকাভুক্তির আগে পরিচয় যাচাই":"Identity checked before listing", d:.3},
+                {ic:"cash",     vBn:"স্থির দাম", vEn:"Fixed price",l:lang==="bn"?"দাম সার্ভারে ঠিক হয়":"Priced on our servers, not in the app", d:.4},
+                {ic:"emergency",vBn:"SOS",       vEn:"SOS",       l:lang==="bn"?"প্রতিটি বুকিংয়ে":"On every booking", d:.5},
+                {ic:"locked",   vBn:"নিরাপদ",    vEn:"Settled",   l:lang==="bn"?"গেটওয়ে নিশ্চিত করলেই":"Only when the gateway confirms", d:.6},
+              ].map((s,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,.07)",backdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:20,animation:`fadeUp .5s ease ${s.d}s both`}}>
-                  <div style={{fontSize:27,marginBottom:8}}><Icon name=<Icon name={s.ic} size={14} style={{marginRight:6}} />size={27} /></div>
+                  <div style={{fontSize:27,marginBottom:8}}><Icon name={s.ic} size={27} /></div>
                   <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:24,fontWeight:800,color:"#fff"}}>{lang==="en"?s.vEn:s.vBn}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:3}}>{s.l}</div>
-                  <div style={{fontSize:11,color:C.p,marginTop:7,fontWeight:600}}>{s.g} ↑</div>
+
                 </div>
               ))}
             </div>
@@ -809,13 +826,13 @@ export default function IMAP() {
           {/* Emergency banner */}
           <div className="eb" style={{marginTop:36,background:"rgba(220,38,38,.82)",backdropFilter:"blur(2px)",borderRadius:14,padding:"15px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,border:"1px solid rgba(255,255,255,.14)"}}>
             <div className="row" style={{gap:12}}>
-              <span style={{fontSize:26,animation:"pulse 1.5s infinite"}}>🚨</span>
+              <Icon name="emergency" size={26} />
               <div>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{tr.emergencyQ}</div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,.78)"}}>{tr.emergencyDesc}</div>
               </div>
             </div>
-            <button className="btn" style={{padding:"11px 22px",background:"rgba(255,255,255,.15)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}>🚨 {tr.emergency}</button>
+            <button className="btn" style={{padding:"11px 22px",background:"rgba(255,255,255,.15)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",fontSize:13,fontWeight:700,borderRadius:11,whiteSpace:"nowrap",flexShrink:0}} onClick={()=>{setEmg(true);setEmgCnt(5);setEmgSvc(null);}}><Icon name="emergency" size={14} style={{marginRight:6}} />{tr.emergency}</button>
           </div>
         </div>
       </section>
@@ -824,7 +841,7 @@ export default function IMAP() {
       <div style={{background:C.p,padding:"9px 0",overflow:"hidden"}}>
         <div style={{display:"flex",gap:28,width:"max-content",animation:"ticker 22s linear infinite"}}>
           {[...Array(2)].map((_,ri)=>(
-            (lang==="en"?["1,245 services done today","342 providers active","Avg rating 4.8/5","Services in 64 districts","bKash · Nagad · Rocket","NID verified providers"]:["আজ ১,২৪৫ সেবা সম্পন্ন","৩৪২ জন সক্রিয়","গড় রেটিং ৪.৮/৫","৬৪ জেলায় সেবা","bKash · Nagad · Rocket","NID যাচাইকৃত"]).map((t,i)=>(
+            (lang==="en"?["Identity checked before listing","The price is set on our servers","SOS on every booking","Paid only when the gateway confirms","bKash · Nagad · Rocket","Refusals carry a stated reason"]:["তালিকাভুক্তির আগে পরিচয় যাচাই","দাম আমাদের সার্ভারে ঠিক হয়","প্রতিটি বুকিংয়ে SOS","গেটওয়ে নিশ্চিত করলেই পরিশোধিত","bKash · Nagad · Rocket","প্রত্যাখ্যানে কারণ লেখা থাকে"]).map((t,i)=>(
               <span key={`${ri}-${i}`} style={{fontSize:13,fontWeight:600,color:"#fff",whiteSpace:"nowrap",paddingRight:40}}>{t}</span>
             ))
           ))}
@@ -842,9 +859,9 @@ export default function IMAP() {
             <div className="sec-s">{tr.howSub}</div>
           </div>
           <div className="g3">
-            {[{n:"01",ic:"",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"02",ic:"",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"03",ic:"",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
+            {[{n:"01",ic:"search",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"02",ic:"calendar",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"03",ic:"success",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
               <div key={i} className="card" style={{padding:26,animation:`fadeUp .5s ease ${.2+i*.14}s both`}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:h.bg,fontSize:22,marginBottom:14}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={22} /></div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:h.bg,fontSize:22,marginBottom:14}}><Icon name={h.ic} size={22} /></div>
                 <div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:2,marginBottom:5}}>{tr.step} {h.n}</div>
                 <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:8}}>{h.t}</div>
                 <div style={{fontSize:13,color:C.muted,lineHeight:1.75}}>{h.d}</div>
@@ -858,7 +875,7 @@ export default function IMAP() {
       <section style={{padding:"48px 0",background:C.bg}}>
         <div className="wp">
           <div className="row" style={{justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:10}}>
-            <div><div className="sec-h">🗺️ {tr.mapTitle}</div><div className="sec-s">{tr.mapSub}</div></div>
+            <div><div className="sec-h"><Icon name="location" size={14} style={{marginRight:6}} />{tr.mapTitle}</div><div className="sec-s">{tr.mapSub}</div></div>
             <button className="btn btn-o" onClick={()=>setModal("map")}>{tr.mapFull}</button>
           </div>
           <LiveMap tracking={tracking} setTracking={setTracking}/>
@@ -875,7 +892,7 @@ export default function IMAP() {
           <div className="g6">
             {SVCS.map((s,i)=>(
               <div key={s.id} className="card" onClick={()=>setModal("search")} style={{padding:"18px 8px",textAlign:"center",cursor:"pointer",animation:`fadeUp .4s ease ${.04+i*.03}s both`}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,margin:"0 auto 10px"}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,margin:"0 auto 10px"}}><Icon name={s.icon} size={24} /></div>
                 <div style={{fontSize:12,fontWeight:600,color:C.text,lineHeight:1.3}}>{lang==="en"?s.nameEn:s.name}</div>
                 <div style={{fontSize:10,color:C.muted,marginTop:3}}>{s.count} {tr.available}</div>
                 <div style={{fontSize:11,color:C.p,marginTop:3,fontWeight:600}}>{s.avg} {tr.startFrom}</div>
@@ -911,7 +928,7 @@ export default function IMAP() {
           <div className="g4 wg">
             {[{ic:"security",t:tr.w1t,d:tr.w1d},{ic:"digital",t:tr.w2t,d:tr.w2d},{ic:"cash",t:tr.w3t,d:tr.w3d},{ic:"locked",t:tr.w4t,d:tr.w4d}].map((f,i)=>(
               <div key={i} style={{textAlign:"center",padding:18,animation:`fadeUp .5s ease ${i*.1}s both`}}>
-                <div className="jc" style={{width:58,height:58,borderRadius:16,background:"rgba(255,255,255,.08)",fontSize:26,margin:"0 auto 14px"}}><Icon name=<Icon name={f.ic} size={14} style={{marginRight:6}} />size={26} /></div>
+                <div className="jc" style={{width:58,height:58,borderRadius:16,background:"rgba(255,255,255,.08)",fontSize:26,margin:"0 auto 14px"}}><Icon name={f.ic} size={26} /></div>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:6}}>{f.t}</div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,.55)",lineHeight:1.7}}>{f.d}</div>
               </div>
@@ -940,7 +957,7 @@ export default function IMAP() {
                 <div className="row" style={{justifyContent:"space-between"}}>
                   <div className="row" style={{gap:9}}>
                     <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,fontWeight:700}}>{t.av}</div>
-                    <div><div style={{fontSize:13,fontWeight:700}}>{t.name}</div><div style={{fontSize:11,color:C.muted}}>📍 {t.loc}</div></div>
+                    <div><div style={{fontSize:13,fontWeight:700}}>{t.name}</div><div style={{fontSize:11,color:C.muted}}><Icon name="location" size={14} style={{marginRight:6}} />{t.loc}</div></div>
                   </div>
                   <span className="tag" style={{fontSize:10}}>{t.svc}</span>
                 </div>
@@ -957,15 +974,15 @@ export default function IMAP() {
             <div>
               <div className="sec-h" style={{marginBottom:6}}>{tr.impactTitle}</div>
               <div className="sec-s" style={{marginBottom:20}}>{tr.impactSub}</div>
-              {[[tr.si1,tr.si1v,""],[tr.si2,tr.si2v,""],[tr.si3,tr.si3v,""],[tr.si4,tr.si4v,""]].map(([l,v,ic],i)=>(
+              {[[tr.si1,tr.si1v,"team"],[tr.si2,tr.si2v,"verified"],[tr.si3,tr.si3v,"location"],[tr.si4,tr.si4v,"success"]].map(([l,v,ic],i)=>(
                 <div key={i} className="row" style={{justifyContent:"space-between",padding:"12px 0",borderBottom:i<3?`1px solid ${C.bdr}`:"none"}}>
-                  <div className="row" style={{gap:12}}><div className="jc" style={{width:42,height:42,borderRadius:11,background:C.plt,fontSize:20,flexShrink:0}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div><div style={{fontSize:14,fontWeight:600}}>{l}</div></div>
+                  <div className="row" style={{gap:12}}><div className="jc" style={{width:42,height:42,borderRadius:11,background:C.plt,fontSize:20,flexShrink:0}}><Icon name={ic} size={20} /></div><div style={{fontSize:14,fontWeight:600}}>{l}</div></div>
                   <div style={{fontSize:14,fontWeight:700,color:C.p}}>{v}</div>
                 </div>
               ))}
             </div>
             <div style={{background:`linear-gradient(140deg,${C.dark},#0F3326)`,borderRadius:22,padding:28}}>
-              <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:18}}>📊 {tr.liveTitle}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:18}}><Icon name="dashboard" size={14} style={{marginRight:6}} />{tr.liveTitle}</div>
               {[[tr.ls1,"১,২৪৫"],[tr.ls2,"৩৪২"],[tr.ls3,`8 ${tr.min}`],[tr.ls4,"৳৩,৪৫,৬৭৮"],[tr.ls5,"৪.৮/৫"]].map(([l,v],i)=>(
                 <div key={i} className="row" style={{justifyContent:"space-between",padding:"10px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.08)":"none"}}>
                   <div style={{fontSize:13,color:"rgba(255,255,255,.65)"}}>{l}</div>
@@ -1062,8 +1079,8 @@ export default function IMAP() {
             placeholder={lang==="en"?"Search services, e.g. plumber, nurse…":"সেবা খুঁজুন, যেমন প্লাম্বার, নার্স…"}
             style={{width:"100%",padding:"11px 14px 11px 38px",borderRadius:12,border:"none",background:"rgba(255,255,255,.98)",color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}
           />
-          <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
-          {svcSearch&&<span onClick={()=>setSvcSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:"#555"}}>✕</span>}
+          <Icon name="search" size={15} />
+          {svcSearch&&<span onClick={()=>setSvcSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:"#555"}}><Icon name="close" size={16} /></span>}
         </div>
         <div style={{position:"absolute",right:-18,top:-18,width:90,height:90,borderRadius:"50%",background:"rgba(255,255,255,.08)"}} />
       </div>
@@ -1085,13 +1102,13 @@ export default function IMAP() {
       {/* Result count */}
       <div style={{fontSize:14,fontWeight:700,marginBottom:14,color:C.text}}>
         {tr.servicesTitle} ({filteredSvcs.length}{filteredSvcs.length<SVCS.length?` / ${SVCS.length}`:""})
-        {(svcSearch||svcCat)&&<button onClick={()=>{setSvcCat(null);setSvcSearch("");}} style={{marginLeft:10,fontSize:11,color:C.p,background:"none",border:`1px solid ${C.p}`,borderRadius:20,padding:"2px 10px",cursor:"pointer",fontWeight:700}}>✕ {lang==="en"?"Clear":"মুছুন"}</button>}
+        {(svcSearch||svcCat)&&<button onClick={()=>{setSvcCat(null);setSvcSearch("");}} style={{marginLeft:10,fontSize:11,color:C.p,background:"none",border:`1px solid ${C.p}`,borderRadius:20,padding:"2px 10px",cursor:"pointer",fontWeight:700}}><Icon name="close" size={14} style={{marginRight:6}} />{lang==="en"?"Clear":"মুছুন"}</button>}
       </div>
 
       {/* Service cards */}
       {filteredSvcs.length===0
         ? <div style={{textAlign:"center",padding:"60px 20px",color:C.muted}}>
-            <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+            <div style={{fontSize:48,marginBottom:12}}><Icon name="search" size={48} /></div>
             <div style={{fontSize:15,fontWeight:700}}>{lang==="en"?"No services found":"কোনো সেবা পাওয়া যায়নি"}</div>
             <div style={{fontSize:13,marginTop:6}}>{lang==="en"?"Try a different search term":"অন্য শব্দ দিয়ে খুঁজুন"}</div>
             <button onClick={()=>{setSvcCat(null);setSvcSearch("");}} className="btn btn-g" style={{marginTop:16,padding:"10px 24px"}}>{lang==="en"?"Show all":"সব দেখুন"}</button>
@@ -1106,17 +1123,17 @@ export default function IMAP() {
             <div key={s.id} className="card" style={{padding:22,cursor:"pointer",animation:`fadeUp .4s ease ${i*.04}s both`,border:`1.5px solid ${svcCat===s.id?s.col:C.bdr}`,transition:"box-shadow .15s"}}>
               {/* Card header */}
               <div className="row" style={{gap:13,marginBottom:10}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}18`,fontSize:24,flexShrink:0,border:`1.5px solid ${s.col}30`}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}18`,fontSize:24,flexShrink:0,border:`1.5px solid ${s.col}30`}}><Icon name={s.icon} size={24} /></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:15,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>
                     {liveCount>0
-                      ? <span style={{color:"#006A4E",fontWeight:600}}>✓ {liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
+                      ? <span style={{color:"#006A4E",fontWeight:600}}><Icon name="check" size={14} style={{marginRight:6}} />{liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
                       : <span>{s.count} {tr.available}</span>
                     }
                   </div>
                 </div>
-                <div className="row" style={{gap:3,flexShrink:0}}><span style={{color:"#F59E0B",fontSize:13}}>★</span><span style={{fontSize:13,fontWeight:700}}>{s.r}</span></div>
+                <div className="row" style={{gap:3,flexShrink:0}}><Icon name="star-filled" size={13} /><span style={{fontSize:13,fontWeight:700}}>{s.r}</span></div>
               </div>
 
               {/* Sub-service pills (clickable) */}
@@ -1187,9 +1204,9 @@ export default function IMAP() {
         <div className="sec-h">{tr.howPageTitle}</div>
         <div className="sec-s">{tr.howPageSub}</div>
       </div>
-      {[{n:"1",ic:"",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"2",ic:"",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"3",ic:"",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
+      {[{n:"1",ic:"search",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"2",ic:"calendar",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"3",ic:"success",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
         <div key={i} className="card" style={{padding:28,marginBottom:16,display:"flex",gap:20,alignItems:"flex-start"}}>
-          <div className="jc" style={{width:56,height:56,borderRadius:16,background:h.bg,fontSize:24,flexShrink:0}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={24} /></div>
+          <div className="jc" style={{width:56,height:56,borderRadius:16,background:h.bg,fontSize:24,flexShrink:0}}><Icon name={h.ic} size={24} /></div>
           <div>
             <div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:2,marginBottom:5}}>{tr.step} {h.n}</div>
             <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{h.t}</div>
@@ -1244,7 +1261,7 @@ export default function IMAP() {
             boxShadow:"0 2px 12px rgba(0,0,0,.3)",
             borderBottom:"1px solid rgba(255,255,255,.08)"
           }}>
-            <span>📡</span> <span>{tr===T.en?"You are offline — some features may be unavailable":"আপনি অফলাইনে আছেন — কিছু ফিচার সাময়িকভাবে অনুপলব্ধ"}</span>
+            <Icon name="live" size={15} /> <span>{tr===T.en?"You are offline — some features may be unavailable":"আপনি অফলাইনে আছেন — কিছু ফিচার সাময়িকভাবে অনুপলব্ধ"}</span>
           </div>
         )}
         <div style={{minHeight:"calc(100vh - 62px)"}}>
@@ -1289,8 +1306,8 @@ export default function IMAP() {
         {/* Map modal */}
         {modal==="map"&&<div className="ov" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:500,padding:22}}>
           <div className="row" style={{justifyContent:"space-between",marginBottom:14}}>
-            <div style={{fontSize:16,fontWeight:700}}>🗺️ {tr.mapTitle}</div>
-            <button className="btn btn-gh" style={{fontSize:20}} onClick={()=>setModal(null)}>✕</button>
+            <div style={{fontSize:16,fontWeight:700}}><Icon name="location" size={14} style={{marginRight:6}} />{tr.mapTitle}</div>
+            <button className="btn btn-gh" style={{fontSize:20}} onClick={()=>setModal(null)}><Icon name="close" size={16} /></button>
           </div>
           <LiveMap tracking={tracking} setTracking={setTracking}/>
           <div style={{marginTop:14,display:"flex",gap:10}}>
@@ -1303,8 +1320,8 @@ export default function IMAP() {
         {/* Loan modal */}
         {modal==="loan"&&<div className="ov" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:460,padding:24}}>
           <div className="row" style={{justifyContent:"space-between",marginBottom:16}}>
-            <div style={{fontSize:16,fontWeight:700}}>💹 {tr.loanTitle}</div>
-            <button className="btn btn-gh" style={{fontSize:20}} onClick={()=>setModal(null)}>✕</button>
+            <div style={{fontSize:16,fontWeight:700}}><Icon name="earnings" size={14} style={{marginRight:6}} />{tr.loanTitle}</div>
+            <button className="btn btn-gh" style={{fontSize:20}} onClick={()=>setModal(null)}><Icon name="close" size={16} /></button>
           </div>
           <LoanScore/>
         </div></div>}
@@ -1315,26 +1332,26 @@ export default function IMAP() {
           <div className="ov" onClick={()=>{if(!payLoading){setShowPayment(false);setPayResult(null);setPayBookingId(null);}}}>
             <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,padding:28,textAlign:"center"}}>
               {payResult==="success"?(<>
-                <div style={{fontSize:64,marginBottom:8}}>✅</div>
+                <div style={{fontSize:64,marginBottom:8}}><Icon name="success" size={64} /></div>
                 <div style={{fontSize:19,fontWeight:700,color:"#006A4E",marginBottom:6}}>{lang==="bn"?"পেমেন্ট সফল!":"Payment Successful!"}</div>
                 <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="bn"?"আপনার বুকিং নিশ্চিত হয়েছে।":"Your booking has been confirmed."}</div>
                 {payResultTranId&&<div style={{fontSize:11,color:C.muted,marginBottom:20}}>TXN: {payResultTranId}</div>}
                 <button className="btn btn-g" onClick={()=>{setShowPayment(false);setPayResult(null);setPayBookingId(null);setPage("bookings");}} style={{padding:"10px 32px"}}>{lang==="bn"?"বুকিং দেখুন":"View Bookings"}</button>
               </>):payResult==="failed"?(<>
-                <div style={{fontSize:64,marginBottom:8}}>❌</div>
+                <div style={{fontSize:64,marginBottom:8}}><Icon name="error" size={64} /></div>
                 <div style={{fontSize:19,fontWeight:700,color:"#EF4444",marginBottom:6}}>{lang==="bn"?"পেমেন্ট ব্যর্থ":"Payment Failed"}</div>
                 <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="bn"?"পুনরায় চেষ্টা করুন।":"Please try again."}</div>
                 <button className="btn btn-gh" onClick={()=>{setShowPayment(false);setPayResult(null);}} style={{padding:"10px 32px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
               </>):payResult==="cancelled"?(<>
-                <div style={{fontSize:64,marginBottom:8}}>🚫</div>
+                <div style={{fontSize:64,marginBottom:8}}><Icon name="blocked" size={64} /></div>
                 <div style={{fontSize:19,fontWeight:700,color:C.muted,marginBottom:6}}>{lang==="bn"?"পেমেন্ট বাতিল":"Payment Cancelled"}</div>
                 <button className="btn btn-gh" onClick={()=>{setShowPayment(false);setPayResult(null);}} style={{padding:"10px 32px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>
               </>):(<>
-                <div style={{fontSize:42,marginBottom:10}}>💳</div>
+                <div style={{fontSize:42,marginBottom:10}}><Icon name="card" size={42} /></div>
                 <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{lang==="bn"?"পেমেন্ট করুন":"Complete Payment"}</div>
                 <div style={{fontSize:12,color:C.muted,marginBottom:20}}>{lang==="bn"?"SSLCommerz — bKash, Nagad, Rocket, Card সহ সকল পদ্ধতি":"SSLCommerz — bKash, Nagad, Rocket, uPay, Cards & more"}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",marginBottom:20}}>
-                  {[["","bKash"],["","Nagad"],["","Rocket"],["","uPay"],["","CelFin"],["","Card"]].map(([ic,lbl])=>(
+                  {[["mobile-banking","bKash"],["mobile-banking","Nagad"],["mobile-banking","Rocket"],["mobile-banking","uPay"],["mobile-banking","CelFin"],["card","Card"]].map(([ic,lbl])=>(
                     <div key={lbl} style={{padding:"6px 14px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:20,fontSize:12,fontWeight:600,color:C.text}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
                   ))}
                 </div>
@@ -1376,7 +1393,7 @@ export default function IMAP() {
             <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:380,padding:28,textAlign:"center"}}>
               {sosDone ? (
                 <>
-                  <div style={{fontSize:60,marginBottom:12}}>✅</div>
+                  <div style={{fontSize:60,marginBottom:12}}><Icon name="success" size={60} /></div>
                   <div style={{fontSize:18,fontWeight:700,color:"#006A4E",marginBottom:8}}>{lang==="bn"?"উর্ধ্বতন কর্তৃপক্ষকে জানানো হয়েছে":"Admin & Call Center Notified"}</div>
                   <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="bn"?"আমাদের টিম শীঘ্রই যোগাযোগ করবে। জরুরি নম্বর: ৯৯৯":"Our team will contact you shortly. Emergency: 999"}</div>
                   <button className="btn btn-g" onClick={()=>setShowSos(false)} style={{padding:"10px 28px"}}>{lang==="bn"?"ঠিক আছে":"OK"}</button>

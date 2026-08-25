@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useLiveData } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
@@ -32,8 +33,8 @@ export default function ProviderDash() {
             <div style={{fontSize:17,fontWeight:700,color:"#fff"}}>{name}</div>
             <div style={{fontSize:13,color:"rgba(255,255,255,.6)"}}>{svc} · {loc}</div>
             <div className="row" style={{gap:6,marginTop:5}}>
-              <span className="badge" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:10}}>✓ {lang==="en"?"Verified":"যাচাইকৃত"}</span>
-              <span className="badge" style={{background:"rgba(245,166,35,.3)",color:"#FCD34D",fontSize:10}}>★ {p.r}</span>
+              <span className="badge" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:10}}><Icon name="check" size={14} style={{marginRight:6}} />{lang==="en"?"Verified":"যাচাইকৃত"}</span>
+              <span className="badge" style={{background:"rgba(245,166,35,.3)",color:"#FCD34D",fontSize:10}}><Icon name="star-filled" size={14} style={{marginRight:6}} />{p.r}</span>
             </div>
           </div>
         </div>
@@ -53,7 +54,7 @@ export default function ProviderDash() {
       </div>
       {tab==="overview"&&<div>
         <div className="g2" style={{marginBottom:14}}>
-          {[{ic:"",l:tr.perfScore,v:`${p.score}/100`,col:C.p},{ic:"⏱️",l:tr.avgResp,v:`8 ${tr.min}`,col:"#3B82F6"},{ic:"",l:tr.todayJobs,v:"3",col:"#F59E0B"},{ic:"",l:tr.loanScoreL||"Loan Score",v:`${p.loanScore}/100`,col:"#8B5CF6"}].map((item,i)=>(
+          {[{ic:"target",l:tr.perfScore,v:`${p.score}/100`,col:C.p},{ic:"pending",l:tr.avgResp,v:`8 ${tr.min}`,col:"#3B82F6"},{ic:"calendar",l:tr.todayJobs,v:"3",col:"#F59E0B"},{ic:"earnings",l:tr.loanScoreL||"Loan Score",v:`${p.loanScore}/100`,col:"#8B5CF6"}].map((item,i)=>(
             <div key={i} style={{
               background:C.card,borderRadius:13,padding:14,
               border:`1px solid ${C.bdr}`,
@@ -86,7 +87,7 @@ export default function ProviderDash() {
                   <div style={{fontSize:14,fontWeight:700}}>{j.t}</div>
                   {j.urgent&&<span className="badge" style={{background:"rgba(239,68,68,.12)",color:"#B91C1C",fontSize:10}}>{tr.urgent}</span>}
                 </div>
-                <div style={{fontSize:12,color:C.muted,marginTop:3}}>📍 {j.loc} · {j.time}</div>
+                <div style={{fontSize:12,color:C.muted,marginTop:3}}><Icon name="location" size={14} style={{marginRight:6}} />{j.loc} · {j.time}</div>
               </div>
               <div style={{fontSize:16,fontWeight:700,color:C.p}}>{j.price}</div>
             </div>

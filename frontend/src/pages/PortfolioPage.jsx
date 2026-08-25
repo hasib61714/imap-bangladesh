@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
@@ -65,9 +66,9 @@ export default function PortfolioPage(){
             <div style={{fontSize:16,fontWeight:800,color:C.text}}>{sel.name}</div>
             <div style={{fontSize:13,color:C.p,fontWeight:700}}>{sel.skill}</div>
             <div style={{display:"flex",gap:12,marginTop:6}}>
-              <span style={{fontSize:12,color:C.sub}}>⭐ {sel.rating}</span>
-              <span style={{fontSize:12,color:C.sub}}>📋 {sel.jobs} {lang==="en"?"jobs":"কাজ"}</span>
-              <span style={{fontSize:12,color:C.sub}}>📅 {sel.exp} {tr.pfYears}</span>
+              <span style={{fontSize:12,color:C.sub}}><Icon name="star" size={14} style={{marginRight:6}} />{sel.rating}</span>
+              <span style={{fontSize:12,color:C.sub}}><Icon name="document" size={14} style={{marginRight:6}} />{sel.jobs} {lang==="en"?"jobs":"কাজ"}</span>
+              <span style={{fontSize:12,color:C.sub}}><Icon name="calendar" size={14} style={{marginRight:6}} />{sel.exp} {tr.pfYears}</span>
             </div>
           </div>
         </div>
@@ -78,7 +79,7 @@ export default function PortfolioPage(){
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:10}}>{tr.pfSkills}</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
           {sel.skills.map(s=>(
-            <span key={s} style={{padding:"5px 12px",borderRadius:20,background:C.plt,color:C.p,fontSize:12,fontWeight:700}}>✓ {s}</span>
+            <span key={s} style={{padding:"5px 12px",borderRadius:20,background:C.plt,color:C.p,fontSize:12,fontWeight:700}}><Icon name="check" size={14} style={{marginRight:6}} />{s}</span>
           ))}
         </div>
       </div>

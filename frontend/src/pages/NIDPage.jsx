@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useUser } from "../contexts";
 import { T } from "../constants/translations";
 import { PBar } from "../components/ui";
@@ -74,12 +75,12 @@ export default function NIDPage({onClose}) {
 
   if(step===2) return (
     <div style={{padding:24,textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:14}}>✅</div>
+      <div style={{fontSize:64,marginBottom:14}}><Icon name="success" size={64} /></div>
       <div style={{fontSize:18,fontWeight:700}}>{tr.nidProcessing}</div>
       <div style={{fontSize:13,color:C.muted,marginTop:6,lineHeight:1.65,whiteSpace:"pre-line"}}>{tr.nidMsg}</div>
       <div style={{background:C.plt,borderRadius:14,padding:16,margin:"16px 0",border:`1px solid ${C.p}30`}}>
         <div style={{fontSize:12,color:C.muted}}>{tr.nidScoreAfter}</div>
-        <div style={{fontSize:26,fontWeight:700,color:C.p,marginTop:4}}>100/100 🛡️</div>
+        <div style={{fontSize:26,fontWeight:700,color:C.p,marginTop:4}}>100/100<Icon name="security" size={13} style={{marginLeft:5}} /></div>
       </div>
       <button className="btn btn-g" style={{width:"100%",padding:"13px"}} onClick={onClose||null}>{tr.doneBtn||"Done"}</button>
     </div>
@@ -100,8 +101,8 @@ export default function NIDPage({onClose}) {
   return (
     <div style={{padding:24}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:18}}>
-        <div style={{fontSize:17,fontWeight:700}}>🪪 {tr.nidTitle}</div>
-        {onClose&&<button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}>✕</button>}
+        <div style={{fontSize:17,fontWeight:700}}><Icon name="identity" size={14} style={{marginRight:6}} />{tr.nidTitle}</div>
+        {onClose&&<button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}><Icon name="close" size={16} /></button>}
       </div>
       {step===0&&<>
         <div style={{background:`${C.p}10`,borderRadius:14,padding:16,marginBottom:16,border:`1px solid ${C.p}25`}}>
@@ -149,7 +150,7 @@ export default function NIDPage({onClose}) {
             <label style={{display:"block",background:uploads[key]?"#D1FAE5":"#fff",borderRadius:13,padding:16,marginBottom:10,border:`2px dashed ${uploads[key]?C.p:C.bdr}`,textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
               <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFileSelect(key,e.target.files[0])}/>
               {scanning===key
-                ?<div style={{fontSize:13,color:C.p,fontWeight:600,padding:"10px 0"}}>🔍 স্ক্যান হচ্ছে...</div>
+                ?<div style={{fontSize:13,color:C.p,fontWeight:600,padding:"10px 0"}}><Icon name="search" size={14} style={{marginRight:6}} />স্ক্যান হচ্ছে...</div>
                 :<>
                   {files[key]&&<img src={files[key]} alt="" style={{width:"100%",maxHeight:80,objectFit:"cover",borderRadius:8,marginBottom:6}}/>}
                   <div style={{fontSize:uploads[key]?22:26,marginBottom:4}}>{uploads[key]?"":""}</div>
@@ -162,7 +163,7 @@ export default function NIDPage({onClose}) {
         ))}
         {nidExtracted&&(
           <div style={{background:"rgba(16,185,129,.12)",borderRadius:11,padding:"10px 14px",marginBottom:10,border:"1.5px solid rgba(5,150,105,.4)"}}>
-            <div style={{fontSize:11,color:"#065F46",fontWeight:700,marginBottom:2}}>🤖 AI স্ক্যান — NID নম্বর:</div>
+            <div style={{fontSize:11,color:"#065F46",fontWeight:700,marginBottom:2}}><Icon name="digital" size={14} style={{marginRight:6}} />AI স্ক্যান — NID নম্বর:</div>
             <div style={{fontSize:16,fontWeight:700,letterSpacing:2,color:"#047857"}}>{nidExtracted}</div>
           </div>
         )}

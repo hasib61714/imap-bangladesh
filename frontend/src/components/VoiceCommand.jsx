@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useContext } from "react";
+import Icon from "./Icon";
 import { useC, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 
@@ -183,7 +184,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
     <div style={{position:"fixed",bottom:myBottom,right:18,zIndex:699}}>
       {showTip && (
         <div style={{position:"absolute",bottom:58,right:0,background:"rgba(255,255,255,.97)",border:`1px solid ${C.bdr}`,borderRadius:13,padding:"10px 14px",width:210,fontSize:11.5,color:C.sub,boxShadow:"0 6px 24px rgba(0,0,0,.13)",lineHeight:1.65,pointerEvents:"none"}}>
-          <div style={{fontWeight:700,color:C.text,marginBottom:4,fontSize:12}}>🎙️ {lang==="en"?"Voice Command":"ভয়েস কমান্ড"}</div>
+          <div style={{fontWeight:700,color:C.text,marginBottom:4,fontSize:12}}><Icon name="mic" size={14} style={{marginRight:6}} />{lang==="en"?"Voice Command":"ভয়েস কমান্ড"}</div>
           <div style={{color:"#EF4444",fontSize:11}}>
             {lang==="en"
               ? "Not supported in this browser. Please use Chrome or Edge."
@@ -197,7 +198,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
         onClick={()=>setShowTip(t=>!t)}
         style={{width:48,height:48,borderRadius:14,background:"rgba(0,0,0,.1)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,.15)",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.10)",opacity:.75}}
         title={lang==="en"?"Voice not available in this browser":"এই ব্রাউজারে ভয়েস নেই"}
-      >🎙️</button>
+      ><Icon name="mic" size={16} /></button>
     </div>
   );
 
@@ -295,7 +296,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
           lineHeight: 1.65,
         }}>
           <div style={{ fontWeight: 700, color: C.text, marginBottom: 5, fontSize: 12 }}>
-            🎙️ {lang === "en" ? "Voice Command" : "ভয়েস কমান্ড"}
+            <Icon name="mic" size={15} style={{marginRight:6}} />{lang === "en" ? "Voice Command" : "ভয়েস কমান্ড"}
           </div>
           <div style={{ color: C.muted, fontSize: 11 }}>
             {lang === "en"

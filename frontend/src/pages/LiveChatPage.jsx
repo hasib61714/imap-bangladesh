@@ -1,4 +1,5 @@
 import { useSocket } from "../hooks/useSocket";
+import Icon from "../components/Icon";
 import { useContext, useState, useRef, useEffect } from "react";
 import { useC, useTr, LangCtx } from "../contexts";
 import { C_DARK } from "../constants/theme";
@@ -130,7 +131,7 @@ export default function LiveChatPage({provider, onBack}) {
                 {m.text}
                 <div style={{fontSize:10,opacity:.65,marginTop:4,textAlign:isUser?"right":"left"}}>{m.time}</div>
               </div>
-              {isUser&&<div style={{width:28,height:28,borderRadius:"50%",background:"#5B8AF0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",flexShrink:0}}>👤</div>}
+              {isUser&&<div style={{width:28,height:28,borderRadius:"50%",background:"#5B8AF0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",flexShrink:0}}><Icon name="user" size={13} /></div>}
             </div>
           );
         })}
@@ -159,7 +160,7 @@ export default function LiveChatPage({provider, onBack}) {
         <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg(inp)}
           placeholder={tr.lcPh} style={{flex:1,border:`1.5px solid ${C.bdr}`,borderRadius:24,padding:"10px 16px",fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"'Hind Siliguri',sans-serif"}}/>
         <button onClick={()=>sendMsg(inp)} disabled={!inp.trim()} style={{width:44,height:44,borderRadius:"50%",background:inp.trim()?C.p:"#ccc",border:"none",cursor:inp.trim()?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,transition:"background .2s"}}>
-          ➤
+          <Icon name="chevron" size={16} />
         </button>
       </div>
     </div>

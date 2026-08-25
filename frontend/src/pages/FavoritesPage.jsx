@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { toUiProv } from "../utils/helpers";
@@ -13,7 +14,7 @@ export default function FavoritesPage({favs,onBook,onView,onToggle}) {
       <div style={{fontSize:18,fontWeight:700,marginBottom:20}}>{tr.favTitle} ({list.length})</div>
       {list.length===0
         ?<div style={{textAlign:"center",padding:"48px 20px",color:C.muted}}>
-            <div style={{fontSize:56,marginBottom:12}}>🔖</div>
+            <div style={{fontSize:56,marginBottom:12}}><Icon name="star" size={56} /></div>
             <div style={{fontSize:14,lineHeight:1.7}}>{tr.favEmpty}</div>
           </div>
         :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
