@@ -59,6 +59,13 @@ SELECT
 FROM providers;
 ```
 
+Measured on the replica (production's schema, not its data):
+`would_be_delisted` was **0** — migration 011 carries migration 002's
+grandfathering into `listing_state`, so an approved provider with no KYC keeps
+its listing state. Run the query against production anyway: the replica has
+one provider and production has more, and this is a count that only production
+can answer.
+
 If `would_be_delisted` is material, that is a business decision, not a
 technical one. The options are to run a verification drive first, to verify
 the existing providers in bulk (and record honestly in `decision_reason` that
@@ -66,62 +73,108 @@ it was a bulk grandfathering rather than a review), or to accept the drop.
 
 ---
 
-## 2b. STOP — production is not where the migration chain thinks it is
+## 2b. RESOLVED — production is on the *other* migration chain
 
-Measured 2026-08-25 with `scripts/schema-diff.mjs` (read-only):
+Measured 2026-08-25, first with `scripts/schema-diff.mjs` and then by
+rehearsing the whole thing against a replica.
+
+### What the divergence actually was
+
+This repository contains **two migration systems**:
+
+| runner | directory | ledger records |
+|---|---|---|
+| `scripts/migrate.js` | `backend/migrations/` | `001_baseline` … `012_…` |
+| `backend/database/migrator.js` | `backend/database/migrations/` | `001_initial.sql` … `005_referrals.sql` |
+
+Production's `schema_migrations` records the second list. Those filenames
+were not in the repository until main was merged, which is why the lineage
+looked unrecognisable. **Production was built by `database/migrator.js`, and
+it is seven migrations behind this chain — not on an unknown one.**
+
+### The rehearsal
+
+A replica was built by running the foreign chain into a local database, which
+reproduces production's ledger exactly. Running `scripts/migrate.js` against
+it — the deploy step — failed in three places, each of which would have
+happened to production:
+
+1. **The ledger has a different shape.** `schema_migrations` from the other
+   runner has `name` and `checksum` (both `NOT NULL`, no default) where this
+   one has `statements`, and declares `version` as `VARCHAR(20)` where
+   `003_formalise_runtime_tables` is 28 characters. The first `INSERT` failed
+   *after* migration 001 had applied its statements, leaving the database
+   changed and the ledger silent about it. `ensureTable()` in
+   `scripts/migrate.js` now reconciles a foreign ledger before writing to it.
+
+2. **Two different tables are called `audit_log`.** Migration 006 opens with
+   `CREATE TABLE IF NOT EXISTS audit_log`, which against production is a
+   silent no-op — it compares a name, not a shape. The chain then continued
+   as though its own table were there, and migration 008 **successfully added
+   `sod_bypass` and `deny_reason` to the live audit table** before failing on
+   an index over a column that does not exist there. Migration
+   `000_reconcile_foreign_schema.sql` moves the old table aside as
+   `audit_log_pre_i03`, whole and unmodified, and creates the right one.
+
+   The old rows are **not converted**. Doing so would mean inventing
+   `correlation_id`, `actor_via` and `outcome` for every historical row and
+   minting a UUID per `bigint` id. A fabricated audit record is worse than a
+   missing one. How long to keep `audit_log_pre_i03` is the owner's call;
+   nothing deletes it.
+
+3. **`media_assets`** exists in production and in no migration — main created
+   it. Nothing in this chain touches it, and it survives untouched.
+
+### The result
+
+After those two fixes, against a replica of production's schema:
 
 ```
-expected 37 tables, target has 25
-13 tables missing · 13 tables differ · 45 real differences
+✔ 000_reconcile_foreign_schema … ✔ 012_active_slot_null_safe
+schema-diff: The target already matches the migration chain.
+smoke:       59 passed  0 failed  0 skipped
 ```
 
-**`schema_migrations` records a different migration lineage.** The ledger has
-`001_initial.sql`, `002_security.sql`, `003_refresh_tokens.sql`,
-`004_push_media.sql`, `005_referrals.sql`, applied 2026-07-05. Those
-filenames do not exist in this repository — the chain here is
-`001_baseline.sql`, `002_phase05_containment.sql`, … `012_…`.
+The smoke suite there covers register → KYC → review → approve → list →
+book → pay end to end. `GET /api/providers` returns 200 with data — the
+endpoint that returns 500 on an unmigrated database while `/api/health` still
+reports green.
 
-So `migrate.js --status` reports **all twelve as pending**, and running it
-would try to apply the baseline to a live database holding real data.
-
-Missing entirely: `principal`, `credential`, `session`, `membership`,
-`account`, `contact_verification`, `area`, `otp_challenge`,
-`rate_limit_counter`, `job`, `verification_case`, `identity_document`,
-`blood_requests`.
-
-`audit_log` exists but has none of the columns the current writer uses —
-`actor_principal_id`, `correlation_id`, `before_json`, `after_json`,
-`actor_via`, `actor_account_id` — and its `id` is `bigint` where the chain
-expects `char(36)`.
-
-**Production's schema predates Phase 0.5.** Nothing from I-01 through I-07
-has been applied, and the deployed backend matches: `/api/verification/me`
-answers 404 on the live host.
-
-This is a schema reconciliation project, not a deploy step, and it blocks
-everything below. The shape of the work:
-
-1. Confirm the divergence is only additive. The diff says every difference is
-   a missing table, column or index, plus eleven genuine type differences.
-   Nothing in the chain drops or renames.
-2. Either **stamp** the ledger to the equivalent point and apply forward, or
-   generate a reconciliation migration from the diff. Stamping is safe only
-   for migrations whose effects are already present; the diff says which.
-3. Rehearse on a TiDB **branch** restored from production before touching
-   production.
-4. Then the sequence below.
+### Reproduce it before trusting it
 
 ```bash
-# read-only — run it yourself before believing any of the above
-set -a && . backend/.env && set +a
-REF_DB_HOST=127.0.0.1 REF_DB_PORT=3399 REF_DB_USER=root REF_DB_PASSWORD=...   node scripts/schema-diff.mjs
+# 1. build a replica of production's schema (local, disposable)
+cd backend
+DB_HOST=127.0.0.1 DB_PORT=3399 DB_USER=root DB_PASSWORD=… DB_NAME=imap_db   node -e "require('./database/migrator').runMigrations({log:console.log})"
+
+# 2. run the deploy step against it
+APP_ENV=test DATABASE_ENV=test DB_HOST=127.0.0.1 DB_PORT=3399 DB_USER=root DB_PASSWORD=… DB_NAME=imap_db DB_SSL=false   node scripts/migrate.js
+
+# 3. confirm
+cd .. && DB_HOST=127.0.0.1 … REF_DB_HOST=127.0.0.1 … node scripts/schema-diff.mjs
 ```
+
+Note that `database/migrations/001_initial.sql` contains `USE imap_db`, so
+that runner ignores `DB_NAME` and always migrates `imap_db`. That is a hazard
+in its own right and the reason the replica has to be called `imap_db`.
+
+### Still required before production
+
+- **A backup.** TiDB Cloud can restore to a point in time; this is the moment
+  to confirm that.
+- **Rehearse on a TiDB branch restored from production**, not only on the
+  local replica. The replica reproduces production's *schema*; it does not
+  reproduce its *data*, and the differences that matter under real data are
+  row counts and the `audit_log` history.
+- **Read `audit_log`'s row count first.** The rename is instant on any size,
+  but knowing what was preserved is worth recording before it moves.
 
 ---
 
 ## 3. The sequence
 
-**Only after §2b is resolved.**
+§2b is resolved; what follows assumes its two fixes are deployed — they are
+in `scripts/migrate.js` and `migrations/000_reconcile_foreign_schema.sql`.
 
 ### 3.1 Migrate production
 
@@ -140,8 +193,10 @@ IMAP_I_UNDERSTAND_THIS_IS_PRODUCTION=imap_db \
 … same variables … node scripts/migrate.js
 ```
 
-`--status` touches nothing and creates nothing. Run it first and confirm the
-pending list is exactly `011_verification` and `012_active_slot_null_safe`.
+`--status` touches nothing and creates nothing. Run it first. Against
+production the pending list will be **all thirteen**, `000_reconcile_foreign_schema`
+first — that is expected and is what §2b explains. `000` must be the first
+applied; it is numbered to sort there.
 
 Migration 011 also backfills: every `kyc_docs` row becomes a verification
 case so there is one review queue rather than two that diverge on the first
@@ -211,6 +266,8 @@ without reading what it does first.
 | Frontend | re-run the previous `deploy.yml` run |
 | Migration 011 | `DROP TABLE identity_document, verification_case; ALTER TABLE providers DROP COLUMN listing_state;` — additive, so this is clean |
 | Migration 012 | restore migration 009's constraint text |
+| Migration 000 | `RENAME TABLE audit_log TO audit_log_i03, audit_log_pre_i03 TO audit_log;` — the old table was never modified, so this is exact |
+| Ledger reconciliation | nothing to undo: it added a column, widened one, and relaxed two NOT NULLs. No row was changed |
 
 Rolling the code back without rolling the migration back is safe: the old
 code does not know those tables exist.
@@ -271,7 +328,9 @@ defence in depth on that engine rather than controls, which is the posture
 migration 009 already recorded for `chk_active_slot`. What matters is knowing
 which it is, rather than assuming.
 
-**The de-listing count.** §2 above.
+**The de-listing count.** Measured as 0 on a replica of production's schema
+(§2). Unmeasured against production's *data*, which is the number that
+decides it.
 
 **Landing-page claims.** "10,000+ satisfied customers", "8,492+ verified
 professionals", "98% satisfaction rate", and the named testimonials are

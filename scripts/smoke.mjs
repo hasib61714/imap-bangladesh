@@ -180,13 +180,27 @@ await step("a garbage token is refused", async () => {
 
 // ═══════════════════════════════════════════════════════════
 group("marketplace — the directory");
-await step("the public directory returns providers", async () => {
+/**
+ * Whether the directory is EMPTY is asserted later — after this run has
+ * approved a provider of its own, at "the approved provider now appears in
+ * the directory".
+ *
+ * It used to be asserted here, and here it is not a property of the software:
+ * a virgin database has nobody listed because nobody has been approved yet,
+ * which is correct. It only ever passed because the development database held
+ * providers left over from previous runs. Run against a freshly migrated
+ * database — which is the interesting case, since that is what a deploy
+ * produces — it failed with "THE MARKETPLACE IS EMPTY", and the marketplace
+ * was empty for the honest reason.
+ *
+ * What this step checks is what is true at this point: the endpoint answers,
+ * with the shape the client destructures.
+ */
+await step("the public directory answers", async () => {
   const r = await call("GET", "/providers");
   expectStatus(r, 200, "providers");
   expect(Array.isArray(r.body.providers), "no providers array");
-  expect(r.body.providers.length > 0,
-    "THE MARKETPLACE IS EMPTY — total=" + r.body.total + ". A customer opening the app sees nothing.");
-  ctx.someProvider = r.body.providers[0];
+  ctx.someProvider = r.body.providers[0] || null;
   return r.body.total + " listed";
 });
 
@@ -386,8 +400,20 @@ await step("the reviewer can approve the provider's listing", async () => {
 await step("the approved provider now appears in the directory", async () => {
   if (!ctx.admin || !ctx.provider.providerId) return "skip";
   const r = await call("GET", "/providers?limit=100");
-  const found = (r.body.providers || []).some((p) => p.id === ctx.provider.providerId);
+  const listed = r.body.providers || [];
+  const found = listed.find((p) => p.id === ctx.provider.providerId);
   expect(found, "an approved, verified provider is still not listed — the trust gate never opens");
+
+  // THIS is where an empty marketplace is a defect rather than an empty
+  // database: a provider has been verified and approved in this run, so the
+  // directory has something to return and a customer has something to see.
+  expect(listed.length > 0,
+    "THE MARKETPLACE IS EMPTY — total=" + r.body.total + ". A customer opening the app sees nothing.");
+
+  // On a freshly migrated database nothing was listed when the directory was
+  // first read, so the booking group has no provider to book. It does now.
+  if (!ctx.someProvider) ctx.someProvider = found;
+  return listed.length + " listed";
 });
 
 // ═══════════════════════════════════════════════════════════

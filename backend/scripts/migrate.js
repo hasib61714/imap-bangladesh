@@ -74,6 +74,32 @@ async function migrationsTableExists() {
   return rows[0].c > 0;
 }
 
+/**
+ * Create the ledger, and reconcile one that another runner created.
+ *
+ * `CREATE TABLE IF NOT EXISTS` succeeds silently against a `schema_migrations`
+ * that already exists with a DIFFERENT shape, and this repository contains a
+ * second migrator (`database/migrator.js`) whose ledger has `name` and
+ * `checksum` where this one has `statements`. Production was built by that
+ * one. So the first `INSERT` here failed with
+ *
+ *     Unknown column 'statements' in 'INSERT INTO'
+ *
+ * — after nineteen statements of migration 001 had already been applied, and
+ * with nothing recorded in the ledger to say so. The run is idempotent, so
+ * that is recoverable; a runner that leaves a database mid-migration and
+ * unable to record the fact is still not something to discover in production.
+ *
+ * Widening `version` matters for the same reason: the other ledger declares it
+ * VARCHAR(20), and `003_formalise_runtime_tables` is 28 characters. That would
+ * have failed six migrations later, at the point where truncation, not error,
+ * is the plausible outcome on a server not in STRICT mode.
+ *
+ * Both are additive and safe to re-run. Neither touches an applied row: the
+ * two ledgers use different version strings, so the five rows written by the
+ * other runner stay exactly as they are and are simply not recognised as this
+ * chain's — which is correct, because they are not.
+ */
 async function ensureTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -82,6 +108,66 @@ async function ensureTable() {
       statements INT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB
   `);
+
+  const [cols] = await pool.query(
+    `SELECT column_name AS name, character_maximum_length AS len,
+            is_nullable AS nul, column_default AS dflt, column_type AS ctype,
+            extra AS extra
+       FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'schema_migrations'`
+  );
+  /**
+   * Read one information_schema field, whatever case the server returned.
+   *
+   * MySQL 8 answers with UPPERCASE column names and MariaDB with lowercase,
+   * so every read needs both. It must NOT be written `c.dflt ?? c.DFLT`:
+   * `column_default` is legitimately NULL for a column that has no default,
+   * and `null ?? undefined` is `undefined`, which is not `null` — so the one
+   * case the check exists to detect is the one it silently misses. Key
+   * presence, not nullishness.
+   */
+  const field = (c, key) => (key in c ? c[key] : c[key.toUpperCase()]);
+  const by = new Map(cols.map((c) => [String(field(c, "name")).toLowerCase(), c]));
+
+  if (!by.has("statements")) {
+    console.log("· schema_migrations was created by another runner — adding `statements`");
+    await pool.query("ALTER TABLE schema_migrations ADD COLUMN statements INT NOT NULL DEFAULT 0");
+  }
+  const version = by.get("version");
+  const width = version ? Number(field(version, "len") || 0) : 0;
+  if (width && width < 64) {
+    console.log(`· schema_migrations.version is VARCHAR(${width}) — widening to 64`);
+    await pool.query("ALTER TABLE schema_migrations MODIFY version VARCHAR(64) NOT NULL");
+  }
+
+  /**
+   * Columns this runner does not write, that the other runner requires.
+   *
+   * The other ledger declares `name` and `checksum` NOT NULL with no default,
+   * so this runner's three-column INSERT failed with
+   *
+   *     Field 'name' doesn't have a default value
+   *
+   * — again after a migration's statements had already been applied. Rather
+   * than teach this runner about the other's columns (which is a coupling
+   * that rots), any foreign NOT NULL column without a default is made
+   * nullable. Nothing this runner records is lost, and rows the other runner
+   * wrote keep their values: NULL is permitted going forward, not applied
+   * backward.
+   */
+  const OURS = new Set(["version", "applied_at", "statements"]);
+  for (const c of cols) {
+    const name = String(field(c, "name")).toLowerCase();
+    if (OURS.has(name)) continue;
+    const nullable = String(field(c, "nul")).toUpperCase() === "YES";
+    const hasDefault = field(c, "dflt") != null;
+    const generated = /auto_increment|GENERATED/i.test(String(field(c, "extra") || ""));
+    if (nullable || hasDefault || generated) continue;
+    console.log(`· schema_migrations.${name} is required by another runner — making it nullable`);
+    await pool.query(
+      `ALTER TABLE schema_migrations MODIFY \`${name}\` ${field(c, "ctype")} NULL`
+    );
+  }
 }
 
 async function appliedVersions() {
