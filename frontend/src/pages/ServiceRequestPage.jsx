@@ -68,7 +68,7 @@ export default function ServiceRequestPage(){
             <input type="checkbox" checked={urgent} onChange={()=>{}} style={{accentColor:"#DC2626",width:16,height:16}}/>
             <span style={{fontSize:13,fontWeight:700,color:urgent?"#DC2626":C.sub}}>🚨 {tr.srUrgent}</span>
           </div>
-          <button onClick={()=>canNext1&&setStep(2)} style={{width:"100%",padding:"12px",borderRadius:12,background:canNext1?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:canNext1?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",marginTop:6}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
+          <button onClick={()=>canNext1&&setStep(2)} style={{width:"100%",padding:"12px",borderRadius:12,background:canNext1?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:canNext1?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",marginTop:6}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
         </div>
       )}
       {step===2&&(
@@ -88,7 +88,7 @@ export default function ServiceRequestPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(1)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← পিছনে"}</button>
-            <button onClick={()=>canNext2&&setStep(3)} style={{flex:2,padding:"12px",borderRadius:12,background:canNext2?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:canNext2?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
+            <button onClick={()=>canNext2&&setStep(3)} style={{flex:2,padding:"12px",borderRadius:12,background:canNext2?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:canNext2?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
           </div>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function ServiceRequestPage(){
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"← Back":"← পিছনে"}</button>
-            <button onClick={doSubmit} disabled={srSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:srSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:srSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{srSubmitting?"⏳...":tr.srSubmit}</button>
+            <button onClick={doSubmit} disabled={srSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:srSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:srSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{srSubmitting?"⏳...":tr.srSubmit}</button>
           </div>
         </div>
       )}

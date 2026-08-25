@@ -1,24 +1,100 @@
-/* Bangladesh flag colours — green #006A4E · red #E8192C */
-export const C_LIGHT = { p:"#006A4E",pdk:"#004D38",plt:"#E6F4EF",acc:"#E8192C",dark:"#0F1E18",text:"#1A2A24",sub:"#4A6A60",muted:"#8FAAA0",bdr:"#D4E8E0",bg:"#F4FBF7",card:"#FFFFFF",red:"#E8192C" };
-export const C_DARK  = { p:"#00C170",pdk:"#009954",plt:"#0A2018",acc:"#FF4D5E",dark:"#E0EDE8",text:"#D8ECE4",sub:"#8FAAA0",muted:"#6A8880",bdr:"#1E3828",bg:"#0A100E",card:"#1A2820",red:"#FF4D5E" };
+/**
+ * Colour tokens
+ *
+ * WHAT WAS WRONG WITH THE OLD PALETTE
+ * ───────────────────────────────────
+ * Every neutral carried the brand hue. Measured on the previous values:
+ *
+ *     bg     #F4FBF7   hue 146°   saturation 47%
+ *     border #D4E8E0   hue 156°   saturation 30%
+ *     text   #1A2A24   hue 158°   saturation 24%
+ *     muted  #8FAAA0   hue 158°   saturation 14%
+ *
+ * The "black" text was a green. So was the page, the borders and the greys.
+ * When the brand hue is in every surface, two things happen: nothing reads as
+ * clean, because there is no true neutral to compare against — and the brand
+ * colour itself stops registering, because it is no longer distinct from what
+ * surrounds it. That combination is what reads as dated.
+ *
+ * The neutrals below sit at 3-9% saturation: enough of a whisper to feel
+ * related to the brand, not enough to tint the page. The green then has
+ * somewhere to stand out FROM, which is the whole job of a neutral.
+ *
+ * CONTRAST, MEASURED RATHER THAN EYEBALLED
+ * ────────────────────────────────────────
+ * `muted` was 2.37:1 against the background — below WCAG AA's 4.5:1 for body
+ * text and below even the 3:1 large-text floor. Small print in it was
+ * genuinely hard to read. Every text token now passes AA:
+ *
+ *     LIGHT              DARK
+ *     text  16.84:1      text  16.19:1
+ *     sub    5.82:1      sub    7.96:1
+ *     muted  4.60:1      muted  5.40:1
+ *     p (as text) 6.22:1 p (as text) 8.95:1
+ *
+ * TWO TOKENS THE OLD SET DID NOT HAVE
+ * ───────────────────────────────────
+ * `onP` — the text colour for sitting ON a primary fill. Light mode is white;
+ * DARK MODE IS NOT. Dark mode's primary is a bright emerald, and white on it
+ * measures 2.14:1 — unreadable. It takes near-black. Hardcoding "#fff" on a
+ * primary button is therefore wrong in one of the two themes, which is why
+ * this is a token.
+ *
+ * `bdrStrong` — form-control borders. WCAG requires 3:1 for the boundary of
+ * an interactive control, and `bdr` is deliberately below that: a card
+ * outline at 1.25:1 is meant to be a hint, not a line. Inputs, selects and
+ * checkboxes use `bdrStrong`.
+ *
+ * SHADOWS
+ * ───────
+ * The old ones were tinted with the brand green at 33% alpha — every card sat
+ * in a green glow. Neutral, low-alpha shadows read as depth; coloured ones
+ * read as decoration.
+ */
+
+/* Bangladesh flag green #006A4E is kept as `p`: it is the brand, and it
+   happens to be one of the few greens that passes AA both AS text on the
+   page and UNDER white text on a button. `pLight` is for gradients and
+   large fills, where nothing is read off it directly. */
+export const C_LIGHT = {
+  p:"#006A4E", pdk:"#00543E", pLight:"#00A366", onP:"#FFFFFF",
+  plt:"#E8F4EF", acc:"#D92D20", red:"#D92D20",
+  dark:"#141816", text:"#141816", sub:"#5A6360", muted:"#6A736F",
+  bdr:"#E4E7E5", bdrStrong:"#868E8B",
+  bg:"#F7F8F8", card:"#FFFFFF",
+  shadowSm:"0 1px 2px rgba(16,24,20,.06)",
+  shadowMd:"0 4px 12px rgba(16,24,20,.08)",
+  shadowLg:"0 12px 32px rgba(16,24,20,.10)",
+};
+
+export const C_DARK = {
+  p:"#2BC98A", pdk:"#1DA872", pLight:"#4EE0A6", onP:"#06140E",
+  plt:"#12241C", acc:"#FF6B6B", red:"#FF6B6B",
+  dark:"#E9EDEB", text:"#E9EDEB", sub:"#A1A9A6", muted:"#828A87",
+  bdr:"#272C2A", bdrStrong:"#666F6B",
+  bg:"#0D100F", card:"#171B1A",
+  shadowSm:"0 1px 2px rgba(0,0,0,.40)",
+  shadowMd:"0 4px 12px rgba(0,0,0,.45)",
+  shadowLg:"0 12px 32px rgba(0,0,0,.55)",
+};
 
 export const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:#F4FBF7;color:#142018;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+html,body{font-family:'Hind Siliguri','Noto Sans Bengali',sans-serif;background:#F7F8F8;color:#141816;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
 /* ─── Premium Scrollbar ─── */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#006A4E,#004D38);border-radius:99px;}
-::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#00C170,#006A4E);}
+::-webkit-scrollbar-thumb{background:#C7CDCA;border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:#A9B1AE;}
 
 /* ─── Keyframe Animations ─── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
-@keyframes glow{0%,100%{box-shadow:0 0 20px #006A4E33,0 0 40px #006A4E11;}50%{box-shadow:0 0 30px #006A4E66,0 0 60px #006A4E33;}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(0,106,78,.28);}50%{box-shadow:0 0 0 8px rgba(0,106,78,0);}}
 @keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 @keyframes dot{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
 @keyframes bounce{0%,80%,100%{transform:scale(0);opacity:.4;}40%{transform:scale(1);opacity:1;}}

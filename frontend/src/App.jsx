@@ -489,7 +489,7 @@ export default function IMAP() {
             background:`linear-gradient(135deg,${C.p},${C.pdk})`,
             fontFamily:"'Plus Jakarta Sans',sans-serif",
             fontSize:17,fontWeight:800,color:"#fff",letterSpacing:-.5,
-            boxShadow:`0 4px 14px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`
+            boxShadow:`0 4px 14px rgba(16,24,20,0.10),inset 0 1px 0 rgba(255,255,255,.25)`
           }} aria-hidden="true">iM</div>
           <div>
             <div style={{
@@ -533,7 +533,7 @@ export default function IMAP() {
               backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"
-            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px rgba(16,24,20,0.05)`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
               <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={16} color={C.sub} />
             </button>
           ))}
@@ -547,7 +547,7 @@ export default function IMAP() {
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,position:"relative",transition:"all .2s",
               boxShadow:"0 2px 8px rgba(0,0,0,.06)"
-            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px rgba(16,24,20,0.05)`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
               <Icon name="notification" size={16} />
               {unreadCount>0&&<div className="jc" style={{position:"absolute",top:5,right:5,width:12,height:12,background:C.red,borderRadius:"50%",fontSize:8,color:"#fff",fontWeight:700}}>{unreadCount>9?"9+":unreadCount}</div>}
             </button>
@@ -587,7 +587,7 @@ export default function IMAP() {
               width:36,height:36,borderRadius:9,
               background:`linear-gradient(135deg,${C.p},${C.pdk})`,
               color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13,
-              boxShadow:`0 4px 14px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`,
+              boxShadow:`0 4px 14px rgba(16,24,20,0.10),inset 0 1px 0 rgba(255,255,255,.25)`,
               transition:"all .2s"
             }} onClick={()=>{setProfDrop(o=>!o);setNotifDrop(false);setNavDotMenu(false);}}>{authUser?.name?.[0]||"আ"}</div>
             {profDrop&&(
@@ -602,7 +602,7 @@ export default function IMAP() {
               }}>
                 {/* প্রোফাইল হেড */}
                 <div style={{padding:14,borderBottom:`1px solid ${C.bdr}`,textAlign:"center"}}>
-                  <div className="jc" style={{width:44,height:44,borderRadius:11,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:17,margin:"0 auto 7px"}}>{authUser?.name?.[0]||"আ"}</div>
+                  <div className="jc" style={{width:44,height:44,borderRadius:11,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,fontWeight:700,fontSize:17,margin:"0 auto 7px"}}>{authUser?.name?.[0]||"আ"}</div>
                   <div style={{fontSize:14,fontWeight:700}}>{authUser?.name||(lang==="en"?"Customer":"গ্রাহক")}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>{authUser?.phone||""}</div>
                 </div>
@@ -687,7 +687,7 @@ export default function IMAP() {
               <div style={{position:"absolute",right:0,top:42,width:200,background:dark?"rgba(10,22,16,.96)":"rgba(255,255,255,.96)",backdropFilter:"blur(6px) saturate(130%)",WebkitBackdropFilter:"blur(6px) saturate(130%)",borderRadius:16,boxShadow:`0 16px 48px rgba(0,0,0,.2),0 0 0 1px ${C.p}11,inset 0 1px 0 rgba(255,255,255,.15)`,border:`1px solid ${dark?"rgba(30,69,53,.5)":"rgba(255,255,255,.7)"}`,zIndex:700,overflow:"hidden",animation:"fadeUp .15s cubic-bezier(.16,1,.3,1)"}}>
                 {/* User info */}
                 <div style={{padding:"11px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:9}}>
-                  <div className="jc" style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{authUser?.name?.[0]||"আ"}</div>
+                  <div className="jc" style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,fontWeight:700,fontSize:13,flexShrink:0}}>{authUser?.name?.[0]||"আ"}</div>
                   <div>
                     <div style={{fontWeight:700,fontSize:12,color:C.text}}>{authUser?.name||(lang==="en"?"Customer":"গ্রাহক")}</div>
                     <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"সেবাগ্রহণকারী":"Customer"}</div>
@@ -745,7 +745,7 @@ export default function IMAP() {
         }} style={{position:"relative",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"8px 0",fontFamily:"'Hind Siliguri',sans-serif",WebkitTapHighlightColor:"transparent"}}>
           {/* animated active indicator */}
           <div style={{position:"absolute",top:0,width:active?24:0,height:3,borderRadius:"0 0 4px 4px",background:`linear-gradient(90deg,${C.p},${C.pdk})`,transition:"width .22s cubic-bezier(.4,0,.2,1)"}}/>
-          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px ${C.p}55`:"none"}}><Icon name=<Icon name={icon} size={14} style={{marginRight:6}} />size={16} /></div>
+          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px rgba(16,24,20,0.10)`:"none"}}><Icon name=<Icon name={icon} size={14} style={{marginRight:6}} />size={16} /></div>
           <div style={{fontSize:10.5,fontWeight:active?800:600,color:active?C.p:C.muted,transition:"color .18s"}}>{l}</div>
         </button>
       )})}
@@ -939,7 +939,7 @@ export default function IMAP() {
                 <div style={{fontSize:13,color:C.sub,lineHeight:1.8,marginBottom:14,fontStyle:"italic"}}>"{t.t}"</div>
                 <div className="row" style={{justifyContent:"space-between"}}>
                   <div className="row" style={{gap:9}}>
-                    <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",fontWeight:700}}>{t.av}</div>
+                    <div className="jc" style={{width:36,height:36,borderRadius:9,background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,fontWeight:700}}>{t.av}</div>
                     <div><div style={{fontSize:13,fontWeight:700}}>{t.name}</div><div style={{fontSize:11,color:C.muted}}>📍 {t.loc}</div></div>
                   </div>
                   <span className="tag" style={{fontSize:10}}>{t.svc}</span>
@@ -995,7 +995,7 @@ export default function IMAP() {
           <div className="fg" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:36,marginBottom:36}}>
             <div>
               <div className="row" style={{gap:9,marginBottom:14}}>
-                <div className="jc" style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${C.p},${C.pdk})`,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:800,color:"#fff",letterSpacing:-.5}} aria-hidden="true">iM</div>
+                <div className="jc" style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${C.p},${C.pdk})`,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:800,color:C.onP,letterSpacing:-.5}} aria-hidden="true">iM</div>
                 <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:18,fontWeight:800,color:"#fff"}}>IMAP</div>
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,.44)",lineHeight:1.8,maxWidth:260}}>{tr.footerDesc}</div>
@@ -1051,7 +1051,7 @@ export default function IMAP() {
     return (
     <div style={{padding:"28px 0 80px"}}>
       {/* Header */}
-      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#004D38"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#004D38"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:C.onP,position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{lang==="en"?"All Services":"সব সেবা সমূহ"}</div>
         <div style={{fontSize:13,opacity:.85,marginBottom:16}}>{SVCS.reduce((a,s)=>a+s.count,0).toLocaleString()}+ {lang==="en"?"service providers available":"সার্ভিস প্রোভাইডার উপলব্ধ"}</div>
         {/* Search bar */}

@@ -226,7 +226,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
           fontSize: 12,
           fontWeight: 700,
           color: C.p,
-          boxShadow: `0 4px 18px ${C.p}33`,
+          boxShadow: `0 4px 18px rgba(16,24,20,0.06)`,
           lineHeight: 1.4,
         }}>
           {liveText}
@@ -244,7 +244,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
           fontSize: 12,
           fontWeight: 700,
           color: C.p,
-          boxShadow: `0 4px 14px ${C.p}33`,
+          boxShadow: `0 4px 14px rgba(16,24,20,0.06)`,
           display: "flex",
           alignItems: "center",
           gap: 7,

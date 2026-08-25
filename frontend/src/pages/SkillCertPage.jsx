@@ -71,7 +71,7 @@ export default function SkillCertPage(){
                 </div>
               </div>
               <div style={{display:"flex",gap:8,marginTop:14}}>
-                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.p,border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⬇️ {tr.scDownload}</button>
+                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.p,border:"none",color:C.onP,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⬇️ {tr.scDownload}</button>
                 <button style={{flex:1,padding:"8px",borderRadius:10,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🔍 {tr.scVerify}</button>
               </div>
             </div>

@@ -42,7 +42,7 @@ export default function ElderlyMode({onExit,onBook,onEmergency}) {
         <div style={{fontSize:46,marginBottom:8}}>🎙️</div>
         <div style={{fontSize:19,fontWeight:700}}>{tr.voiceHelp}</div>
         <div style={{fontSize:15,color:C.muted,marginTop:5,marginBottom:16}}>{tr.voiceSub}</div>
-        <button className="jc" style={{width:68,height:68,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",cursor:"pointer",fontSize:28,margin:"0 auto",boxShadow:`0 4px 20px ${C.p}60`}}>🎙️</button>
+        <button className="jc" style={{width:68,height:68,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",cursor:"pointer",fontSize:28,margin:"0 auto",boxShadow:`0 4px 20px rgba(16,24,20,0.11)`}}>🎙️</button>
       </div>
     </div>
   );

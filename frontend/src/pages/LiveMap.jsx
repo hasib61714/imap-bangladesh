@@ -158,7 +158,7 @@ export default function LiveMap({tracking,setTracking}) {
         }}>
           {/* Provider row */}
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-            <div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:"#fff",flexShrink:0,boxShadow:`0 3px 12px ${C.p}44`}}>
+            <div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:C.onP,flexShrink:0,boxShadow:`0 3px 12px rgba(16,24,20,0.08)`}}>
               র
             </div>
             <div style={{flex:1,minWidth:0}}>
@@ -186,7 +186,7 @@ export default function LiveMap({tracking,setTracking}) {
           </div>
           {/* Buttons */}
           <div style={{display:"flex",gap:8}}>
-            <button style={{flex:1,padding:"10px 6px",background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:"#fff",border:"none",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <button style={{flex:1,padding:"10px 6px",background:`linear-gradient(135deg,${C.p},${C.pdk})`,color:C.onP,border:"none",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               💬 {lang==="bn"?"চ্যাট":"Chat"}
             </button>
             <button style={{flex:1,padding:"10px 6px",background:"rgba(29,191,115,.1)",color:C.p,border:`1.5px solid ${C.p}55`,borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
@@ -207,7 +207,7 @@ export default function LiveMap({tracking,setTracking}) {
             background:`linear-gradient(135deg,${C.p},${C.pdk})`,
             color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:14,
             fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-            boxShadow:`0 6px 20px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`,
+            boxShadow:`0 6px 20px rgba(16,24,20,0.10),inset 0 1px 0 rgba(255,255,255,.25)`,
             display:"flex",alignItems:"center",justifyContent:"center",gap:7
           }}>
             📍 {lang==="bn"?"লাইভ ট্র্যাকিং শুরু করুন":"Start Live Tracking"}

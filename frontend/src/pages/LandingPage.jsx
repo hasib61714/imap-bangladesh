@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "../components/Icon";
 import { SVCS } from "../constants/data";
+import { C_LIGHT, C_DARK } from "../constants/theme";
 
 /* ═══════════════════════════════════════════════════════════════════
    IMAP Bangladesh — LandingPage
@@ -12,18 +13,18 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
   /* ─────────── STATIC DATA ─────────── */
   const CATS = [
-    { icon:"emergency", nameBn:"জরুরি সেবা",         nameEn:"Emergency",        col:"#E8192C", priceEn:"Free",      priceBn:"বিনামূল্যে" },
-    { icon:"home-maintenance", nameBn:"গৃহ রক্ষণাবেক্ষণ",   nameEn:"Home Maintenance", col:"#F59E0B", priceEn:"From ৳350", priceBn:"৳৩৫০ থেকে" },
-    { icon:"cleaning", nameBn:"পরিষ্কার সেবা",      nameEn:"Cleaning",         col:"#14B8A6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"healthcare", nameBn:"স্বাস্থ্যসেবা",      nameEn:"Healthcare",       col:"#EF4444", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
-    { icon:"education", nameBn:"শিক্ষা সেবা",        nameEn:"Education",        col:"#8B5CF6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"moving", nameBn:"স্থানান্তর",          nameEn:"Moving Services",  col:"#F97316", priceEn:"From ৳2000",priceBn:"৳২০০০ থেকে" },
-    { icon:"food", nameBn:"রান্না ও খাবার",      nameEn:"Food & Cooking",   col:"#F59E0B", priceEn:"From ৳600", priceBn:"৳৬০০ থেকে" },
-    { icon:"professional", nameBn:"পেশাদার পরামর্শ",   nameEn:"Professional",     col:"#6366F1", priceEn:"From ৳800", priceBn:"৳৮০০ থেকে" },
-    { icon:"security", nameBn:"নিরাপত্তা সেবা",    nameEn:"Security",         col:"#374151", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
-    { icon:"errands", nameBn:"দৈনন্দিন সহায়তা",  nameEn:"Daily Errands",    col:"#EC4899", priceEn:"From ৳150", priceBn:"৳১৫০ থেকে" },
-    { icon:"elderly", nameBn:"বয়স্ক সেবা",        nameEn:"Elderly Care",     col:"#7C3AED", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"childcare", nameBn:"শিশু ও পরিবার",     nameEn:"Child & Family",   col:"#DB2777", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"emergency", nameBn:"জরুরি সেবা",         nameEn:"Emergency",        col:"#DD392E", priceEn:"Free",      priceBn:"বিনামূল্যে" },
+    { icon:"home-maintenance", nameBn:"গৃহ রক্ষণাবেক্ষণ",   nameEn:"Home Maintenance", col:"#C85321", priceEn:"From ৳350", priceBn:"৳৩৫০ থেকে" },
+    { icon:"cleaning", nameBn:"পরিষ্কার সেবা",      nameEn:"Cleaning",         col:"#168488", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"healthcare", nameBn:"স্বাস্থ্যসেবা",      nameEn:"Healthcare",       col:"#DD2F69", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
+    { icon:"education", nameBn:"শিক্ষা সেবা",        nameEn:"Education",        col:"#217AC9", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"moving", nameBn:"স্থানান্তর",          nameEn:"Moving Services",  col:"#AA681C", priceEn:"From ৳2000",priceBn:"৳২০০০ থেকে" },
+    { icon:"food", nameBn:"রান্না ও খাবার",      nameEn:"Food & Cooking",   col:"#947318", priceEn:"From ৳600", priceBn:"৳৬০০ থেকে" },
+    { icon:"professional", nameBn:"পেশাদার পরামর্শ",   nameEn:"Professional",     col:"#5D6BE5", priceEn:"From ৳800", priceBn:"৳৮০০ থেকে" },
+    { icon:"security", nameBn:"নিরাপত্তা সেবা",    nameEn:"Security",         col:"#3C73DF", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
+    { icon:"errands", nameBn:"দৈনন্দিন সহায়তা",  nameEn:"Daily Errands",    col:"#DB2492", priceEn:"From ৳150", priceBn:"৳১৫০ থেকে" },
+    { icon:"elderly", nameBn:"বয়স্ক সেবা",        nameEn:"Elderly Care",     col:"#8C5AE4", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"childcare", nameBn:"শিশু ও পরিবার",     nameEn:"Child & Family",   col:"#A54BE2", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
   ];
 
   const FAQ_DATA = {
@@ -186,19 +187,27 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   }, [statsVisible, liveProviders]);
 
   /* ─────────── COLOUR TOKENS ─────────── */
-  /*  Light: BD flag green + red on white; Dark: brighter shades on near-black */
-  const G        = dark ? "#00C170" : "#006A4E";   /* BD Green            */
-  const GD       = dark ? "#009954" : "#004D38";   /* BD Green dark       */
-  const GL       = dark ? "#0A2018" : "#E6F4EF";   /* Green light bg      */
-  const R        = dark ? "#FF4D5E" : "#E8192C";   /* BD Red              */
-  const RL       = dark ? "#1A0810" : "#FFF0F1";   /* Red light bg        */
-  const bg       = dark ? "#0A100E" : "#FFFFFF";   /* Page background     */
-  const bg2      = dark ? "#0F1A16" : "#F4FBF7";   /* Alternate section   */
-  const card     = dark ? "#1A2820" : "#FFFFFF";   /* Card surface        */
-  const cardBdr  = dark ? "#263C30" : "#DCE9E2";   /* Card border         */
-  const txt      = dark ? "#E0EDE8" : "#1A2A24";   /* Primary text        */
-  const sub      = dark ? "#8FAAA0" : "#4A6A60";   /* Secondary text      */
-  const muted    = dark ? "#6A8880" : "#8FAAA0";   /* Muted text          */
+  /*
+    Derived from `constants/theme.js` rather than restated. This block used to
+    hold its own copy of every hex, which is how the landing page and the app
+    came to disagree: the app's page background was #F4FBF7 and this one's was
+    #FFFFFF, and the two greens for dark mode had drifted apart entirely.
+
+    One source, so a palette change lands everywhere at once.
+  */
+  const C        = dark ? C_DARK : C_LIGHT;
+  const G        = C.p;            /* brand green                      */
+  const GD       = C.pdk;          /* deeper, for gradients and hover  */
+  const GL       = C.plt;          /* tinted surface                   */
+  const R        = C.red;
+  const RL       = dark ? "#2A1214" : "#FDF2F2";
+  const bg       = C.bg;
+  const bg2      = dark ? "#121615" : "#FFFFFF";   /* alternating band  */
+  const card     = C.card;
+  const cardBdr  = C.bdr;
+  const txt      = C.text;
+  const sub      = C.sub;
+  const muted    = C.muted;
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:"smooth" }); }, [aiChat]);
   useEffect(() => {
@@ -380,8 +389,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
         /* ── Buttons ── */
         .lp-btn{border:none;cursor:pointer;font-family:inherit;transition:all .2s cubic-bezier(.16,1,.3,1);font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
-        .lp-btn-g{background:linear-gradient(135deg,#008B65,#006A4E);color:#fff;padding:13px 30px;font-size:15px;border-radius:10px;box-shadow:0 4px 16px #006A4E44;}
-        .lp-btn-g:hover{background:linear-gradient(135deg,#009954,#007558);transform:translateY(-2px);box-shadow:0 8px 24px #006A4E55;}
+        .lp-btn-g{background:linear-gradient(135deg,#008B65,#006A4E);color:#fff;padding:13px 30px;font-size:15px;border-radius:10px;box-shadow:0 2px 8px rgba(16,24,20,.10);}
+        .lp-btn-g:hover{background:linear-gradient(135deg,#009954,#007558);transform:translateY(-2px);box-shadow:0 6px 18px rgba(16,24,20,.14);}
         .lp-btn-g:active{transform:translateY(0);}
         .lp-btn-r{background:linear-gradient(135deg,#E8192C,#C0001B);color:#fff;padding:13px 30px;font-size:15px;border-radius:10px;box-shadow:0 4px 16px #E8192C44;}
         .lp-btn-r:hover{background:linear-gradient(135deg,#F02030,#D0001F);transform:translateY(-2px);}
@@ -484,16 +493,33 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </nav>
 
       {/* ════════════ HERO ════════════ */}
+      {/*
+        The hero was a four-stop linear gradient whose stops were all within a
+        few percent of each other — #003D2B, #004D38, #006A4E, #005040 — so it
+        read as one flat dark green. A gradient with no tonal range is not a
+        gradient; it is a solid fill that costs more to paint.
+
+        This is a bright pool of light behind the headline falling away to a
+        deep base. The radial does the work and the linear only sets the
+        floor, which is what gives the section somewhere to recede TO.
+
+        The lightest point is #00875A, chosen rather than guessed: white text
+        on it measures 4.55:1, just over AA. #00925F would have been prettier
+        and lands at 3.98:1, which is a headline you have to squint at.
+
+        The 4px solid red border underneath is gone. A hard flag-coloured rule
+        between the hero and the wave that follows it was the most literal
+        thing on the page; the wave already separates them.
+      */}
       <header itemScope itemType="https://schema.org/WebSite" style={{
         background: dark
-          ? "linear-gradient(160deg,#040A06 0%,#061008 35%,#0A1F12 65%,#061008 100%)"
-          : "linear-gradient(160deg,#003D2B 0%,#004D38 35%,#006A4E 65%,#005040 100%)",
+          ? "radial-gradient(1100px 560px at 50% -8%, #17402C 0%, rgba(23,64,44,0) 62%), linear-gradient(180deg,#0A1912 0%,#060F0B 100%)"
+          : "radial-gradient(1100px 560px at 50% -8%, #00875A 0%, rgba(0,135,90,0) 62%), linear-gradient(180deg,#00553D 0%,#00382A 100%)",
         padding:"96px 24px 112px",
         position:"relative", overflow:"hidden",
-        borderBottom:`4px solid ${R}`,
       }}>
         {/* Subtle BD flag circle decoration */}
-        <div style={{ position:"absolute", right:"5%", top:"10%", width:280, height:280, borderRadius:"50%", background:`radial-gradient(circle,${R}18 0%,transparent 70%)`, pointerEvents:"none", animation:"lp-float 7s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", right:"5%", top:"10%", width:280, height:280, borderRadius:"50%", background:`radial-gradient(circle,${R}14 0%,transparent 70%)`, pointerEvents:"none", animation:"lp-float 7s ease-in-out infinite" }}/>
         <div style={{ position:"absolute", left:"-5%", bottom:"-10%", width:200, height:200, borderRadius:"50%", background:`radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)`, pointerEvents:"none" }}/>
         {/* Dot grid overlay */}
         <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px)", backgroundSize:"28px 28px", pointerEvents:"none" }}/>
@@ -646,7 +672,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                   <div itemProp="name" style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8, lineHeight:1.3 }}>
                     {lang === "en" ? c.nameEn : c.nameBn}
                   </div>
-                  <div style={{ fontSize:11, fontWeight:700, color:c.col, background:`${c.col}18`, borderRadius:20, padding:"3px 10px", display:"inline-block" }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:sub, background:`${c.col}14`, borderRadius:20, padding:"3px 10px", display:"inline-block" }}>
                     {lang === "en" ? c.priceEn : c.priceBn}
                   </div>
                 </article>
@@ -677,7 +703,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 style={{ transitionDelay:`${i * .12}s` }}>
                 <div className="lp-step">
                   {/* Step number circle */}
-                  <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${G}55` }}>{i + 1}</div>
+                  <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px rgba(16,24,20,0.10)` }}>{i + 1}</div>
                   <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}><Icon name={h.icon} size={44} /></div>
                   <div style={{ fontWeight:800, fontSize:15, marginBottom:8, color:txt }}>{h.t}</div>
                   <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{h.d}</div>
@@ -737,7 +763,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
             {/* KYC */}
             <div ref={revealRef} data-rid="safe-kyc" className={`lp-reveal-r${revealed["safe-kyc"]?" vis":""}`}>
-              <div style={{ background:dark?"#0A1A12":"#FFFFFF", border:`1.5px solid ${G}33`, borderLeft:`4px solid ${G}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px ${G}12` }}>
+              <div style={{ background:dark?"#0A1A12":"#FFFFFF", border:`1.5px solid ${G}33`, borderLeft:`4px solid ${G}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px rgba(16,24,20,0.05)` }}>
                 <div style={{ fontSize:42, marginBottom:14 }}>🪪</div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:G, marginBottom:10 }}>{T.kyc_title}</h3>
                 <p style={{ fontSize:14, color:dark?sub:"#0A3D20", lineHeight:1.75 }}>{T.kyc_desc}</p>
@@ -1002,7 +1028,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       {/* ════════════ FLOATING AI BUTTON ════════════ */}
       {!aiOpen && (
         <button onClick={() => setAiOpen(true)} aria-label="Open AI Assistant"
-          style={{ position:"fixed", bottom:28, right:20, width:56, height:56, borderRadius:16, background:`linear-gradient(135deg,${G},${GD})`, border:"none", cursor:"pointer", fontSize:24, boxShadow:`0 6px 24px ${G}55`, zIndex:800, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}
+          style={{ position:"fixed", bottom:28, right:20, width:56, height:56, borderRadius:16, background:`linear-gradient(135deg,${G},${GD})`, border:"none", cursor:"pointer", fontSize:24, boxShadow:`0 6px 24px rgba(16,24,20,0.10)`, zIndex:800, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}
           onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1) translateY(-2px)"; }}
           onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
           <Icon name="support" size={24} color="#fff" />

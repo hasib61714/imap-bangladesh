@@ -39,7 +39,7 @@ export default function NearbyPage({onBook,onView}) {
   return (
     <div>
       {/* Header */}
-      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:22,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:22,color:C.onP,position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{tr.gpsTitle}</div>
         <div style={{fontSize:13,opacity:.85,marginBottom:16}}>আপনার কাছের সেরা প্রদানকারী খুঁজুন</div>
         {status==="idle"&&(
@@ -108,7 +108,7 @@ export default function NearbyPage({onBook,onView}) {
           {list.map((p,i)=>(
             <div key={p.id} className="fu" style={{position:"relative",animationDelay:`${i*.07}s`}}>
               <PCard p={p} onBook={onBook} onView={onView}/>
-              <div style={{position:"absolute",top:12,left:12,background:C.p,color:"#fff",borderRadius:10,padding:"3px 10px",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4,pointerEvents:"none"}}>
+              <div style={{position:"absolute",top:12,left:12,background:C.p,color:C.onP,borderRadius:10,padding:"3px 10px",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4,pointerEvents:"none"}}>
                 {i===0?"":""} {fmtDist(p.dist)}
               </div>
             </div>

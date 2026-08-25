@@ -250,7 +250,7 @@ export default function WalletPage() {
           </div>
 
           <button onClick={doTopUp} disabled={!finalAmt||finalAmt<10||topping}
-            style={{width:"100%",padding:"14px",borderRadius:14,background:(finalAmt>=10&&!topping)?C.p:"#ccc",border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:(finalAmt>=10&&!topping)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+            style={{width:"100%",padding:"14px",borderRadius:14,background:(finalAmt>=10&&!topping)?C.p:"#ccc",border:"none",color:C.onP,fontSize:15,fontWeight:700,cursor:(finalAmt>=10&&!topping)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
             {topping?"⏳ প্রক্রিয়া হচ্ছে...":`➕ ${tr.wlTopUp} via ${TOPUP_METHODS.find(m=>m.id===selMethod)?.label}`}
           </button>
         </div>
