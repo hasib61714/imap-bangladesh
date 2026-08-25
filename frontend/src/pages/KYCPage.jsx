@@ -157,7 +157,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
       {!loading&&docs.length>0&&(
         <div style={{background:docs.some(d=>d.status==="verified")?C.plt:docs.some(d=>d.status==="pending")?"#FEF3C7":"#FEE2E2",borderRadius:14,padding:"14px 16px",marginBottom:18,border:`1px solid ${docs.some(d=>d.status==="verified")?C.p:docs.some(d=>d.status==="pending")?"#FCD34D":"#FCA5A5"}`,animation:"kyc-fadeUp .4s ease .1s both"}}>
           <div style={{fontWeight:700,fontSize:13,color:docs.some(d=>d.status==="verified")?C.p:docs.some(d=>d.status==="pending")?"#92400E":"#991B1B"}}>
-            {docs.some(d=>d.status==="verified")?""+tr.kycVerified:docs.some(d=>d.status==="pending")?"⏳ "+tr.kycPending:""+(lang==="bn"?"কিছু নথি প্রত্যাখ্যাত":"Some docs rejected")}
+            {docs.some(d=>d.status==="verified")?""+tr.kycVerified:docs.some(d=>d.status==="pending")?""+tr.kycPending:""+(lang==="bn"?"কিছু নথি প্রত্যাখ্যাত":"Some docs rejected")}
           </div>
           <div style={{fontSize:11,color:C.muted,marginTop:3}}>{tr.kycNote}</div>
         </div>
@@ -256,7 +256,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
               {lang==="bn"?"বাতিল":"Cancel"}
             </button>
             <button onClick={submitDoc} disabled={submitting} style={{flex:2,padding:"12px",background:submitting?"#ccc":C.p,color:C.onP,border:"none",borderRadius:11,fontSize:14,cursor:submitting?"default":"pointer",fontFamily:"inherit",fontWeight:700}}>
-              {submitting?"⏳ ...":(tr.kycSubmit)}
+              {submitting?"...":(tr.kycSubmit)}
             </button>
           </div>
         </div>

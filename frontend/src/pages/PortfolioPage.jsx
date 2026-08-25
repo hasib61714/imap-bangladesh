@@ -60,7 +60,7 @@ export default function PortfolioPage(){
       <div style={{background:C.card,borderRadius:16,padding:"18px",border:`1px solid ${C.bdr}`,marginBottom:16}}>
         <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
           <div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
-            {sel.skill==="Electrician"?"":""}
+            <Icon name={sel.skill==="Electrician"?"electrician":"cleaning"} size={26} />
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:16,fontWeight:800,color:C.text}}>{sel.name}</div>

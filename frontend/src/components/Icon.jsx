@@ -235,9 +235,28 @@ export default function Icon({ name, size = 18, color, style, className, ...rest
   const Glyph = REGISTRY[name];
 
   if (!Glyph) {
-    // A missing icon must not blank a row or crash a page. It renders as an
-    // empty box of the right size so the layout is unchanged, and says so
-    // once in development where somebody can act on it.
+    /**
+     * Two different failures, wearing the same face.
+     *
+     * A FALSY name means no icon was specified — `icon: n.icon || ""` where
+     * the API returned nothing. The row is fine; it just has no mark. It gets
+     * a neutral one, because a gap in a list of icons reads as broken while a
+     * neutral dot reads as "nothing particular".
+     *
+     * A non-empty name that is not registered is a TYPO, and that should stay
+     * visibly absent — filling it with a default would hide the mistake
+     * behind something plausible. It keeps the empty box, and the build-time
+     * check in scripts/check-icons.mjs fails on it.
+     */
+    if (!name) {
+      return (
+        <InfoCircleOutlined
+          aria-hidden="true"
+          style={{ fontSize: size, color: color || "currentColor", opacity: 0.45,
+                   lineHeight: 1, verticalAlign: "middle", ...style }}
+        />
+      );
+    }
     if (import.meta.env.DEV) {
       console.warn(`[Icon] no icon registered for "${name}" — add it to components/Icon.jsx`);
     }

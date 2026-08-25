@@ -59,10 +59,10 @@ export default function ReferralPage(){
       </div>
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:12,marginBottom:20}}>
-        {[[friends.length,tr.rfFriends,""],[totalEarned,"৳ "+tr.rfEarned,""],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
+        {[[friends.length,tr.rfFriends,""],[totalEarned,"৳ "+tr.rfEarned,""],[friends.filter(f=>f.status==="pending").length,tr.rfPending,""]].map(([val,lbl,ic])=>(
           <div key={lbl} style={{background:C.card,borderRadius:14,padding:"14px 10px",border:`1px solid ${C.bdr}`,textAlign:"center"}}>
             <div style={{fontSize:20}}><Icon name={ic} size={20} /></div>
-            <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:-1}}>{val}{lbl==="৳ "+tr.rfEarned?"":""}</div>
+            <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:-1}}>{val}</div>
             <div style={{fontSize:11,color:C.sub}}>{lbl}</div>
           </div>
         ))}

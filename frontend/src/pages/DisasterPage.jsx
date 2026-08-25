@@ -37,7 +37,7 @@ export default function DisasterPage() {
           // Normalize DB rows to match ALERTS format
           const mapped=r.alerts.map(a=>({
             id:a.id,
-            icon:a.type==="flood"?"":a.type==="cyclone"?"":a.type==="fire"?"":a.type==="earthquake"?"":"",
+            icon:a.type==="flood"?"disaster":a.type==="cyclone"?"disaster":a.type==="fire"?"hot":a.type==="earthquake"?"warning":"emergency",
             level:a.severity==="critical"?"extreme":a.severity==="high"?"high":"moderate",
             color:a.severity==="critical"?"#DC2626":a.severity==="high"?"#D97706":"#006A4E",
             bg:a.severity==="critical"?"#FEF2F2":a.severity==="high"?"#FFFBEB":"#F0FDF4",

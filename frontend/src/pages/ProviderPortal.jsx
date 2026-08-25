@@ -265,10 +265,18 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
 
   const statCards=[
     {icon:"professional",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
-    {icon:"loading",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
+    {icon:"pending",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
     {icon:"success",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
     {icon:"cash",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
-    {icon:"star",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
+    /*
+      Was a hardcoded "4.8". A provider who joined this morning and has
+      completed nothing was shown a rating, which is the same fabrication as
+      the review list that used to sit under it — and worse here, because a
+      provider may quote it.
+
+      An em dash until somebody has actually rated them.
+    */
+    {icon:"star",val:(earnings.rating ?? null) ? String(earnings.rating) : "—",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
     {icon:"document",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
   ];
 
@@ -311,12 +319,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
               {available&&<div style={{position:"absolute",inset:-4,borderRadius:"50%",background:C.p,opacity:.4,animation:"pp-pulse-ring 1.6s ease-out infinite"}}/>}
               <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
             </div>
-            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"":""):(available?tr.ppAvailable:tr.ppBusy)}</span>
+            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile ? <Icon name={available?"success":"pending"} size={13} /> : (available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>
           {/* Desktop-only: lang + dark + name */}
           {!isMobile&&<>
             <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
-            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"":""}</button>
+            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",cursor:"pointer"}}><Icon name={dark?"light":"dark"} size={14} /></button>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{background:C.p,color:C.onP,borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Icon name="shop" size={14} /></div>
               <div style={{display:"flex",flexDirection:"column"}}>
@@ -354,7 +362,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 </div>
                 {/* Dark toggle */}
                 <div onClick={()=>{setDark(!dark);setDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>{dark?"":""}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                  <Icon name={dark?"light":"dark"} size={14} /><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
                 </div>
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Logout */}
@@ -370,7 +378,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
       <div style={{display:"flex",background:C.card,borderBottom:`1px solid ${C.bdr}`,overflowX:"auto",gap:0}}>
         {tabs.map(t=>(
           <button key={t.v} onClick={()=>setTab(t.v)} style={{flex:"0 0 auto",padding:"12px 18px",border:"none",borderBottom:`2.5px solid ${tab===t.v?C.p:"transparent"}`,background:"transparent",color:tab===t.v?C.p:C.sub,fontWeight:tab===t.v?700:500,fontSize:12,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",transition:"all .15s"}}>
-            <span>{t.icon}</span><span>{lang==="bn"?t.lbn:t.len}</span>
+            <Icon name={t.icon} size={14} /><span>{lang==="bn"?t.lbn:t.len}</span>
             {t.v==="jobs"&&jobs.filter(j=>j.status==="incoming").length>0&&<span style={{background:C.p,color:C.onP,borderRadius:"50%",width:16,height:16,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{jobs.filter(j=>j.status==="incoming").length}</span>}
           </button>
         ))}
@@ -495,7 +503,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                       if(s.id) scheduleApi.toggle(s.id,newAvail).catch(()=>{});
                     }}
                     style={{padding:"9px 16px",borderRadius:10,background:s.avail?C.plt:"#F3F4F6",border:`1.5px solid ${s.avail?C.p:C.bdr}`,fontSize:13,fontWeight:600,color:s.avail?C.p:C.muted,cursor:"pointer",userSelect:"none"}}>
-                      {s.avail?"":""} {s.t}
+                      <Icon name={s.avail?"success":"pending"} size={12} style={{marginRight:5}} />{s.t}
                     </div>
                   ))}
                 </div>
@@ -560,7 +568,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                   }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
                   finally{ setWithdrawing(false); }
-                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"⏳...":"bKash/Nagad"}</button>
+                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"...":"bKash/Nagad"}</button>
               </div>
               <div style={{fontSize:12,color:C.muted,marginTop:8}}>{lang==="bn"?"bKash / Nagad / Rocket এ সরাসরি পাঠানো হবে":"Sent directly to your bKash / Nagad / Rocket"}</div>
             </div>
@@ -606,7 +614,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
               <div style={{fontSize:13,color:C.muted,marginTop:4}}>{profile.service} • {profile.area}</div>
               <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:10}}>
                 {user.nid?<span style={{background:C.plt,color:C.p,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}><Icon name="security" size={14} style={{marginRight:6}} />{lang==="bn"?"NID যাচাইকৃত":"NID Verified"}</span>:<span style={{background:"rgba(245,158,11,.12)",color:"#92400E",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}><Icon name="warning" size={14} style={{marginRight:6}} />{lang==="bn"?"যাচাই বাকি":"Not Verified"}</span>}
-                <span style={{background:"rgba(16,185,129,.15)",color:"#065F46",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}><Icon name="star-filled" size={11} style={{marginRight:3}} />4.8</span>
+                <span style={{background:"rgba(16,185,129,.15)",color:"#065F46",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}><Icon name="star-filled" size={11} style={{marginRight:3}} />{earnings.rating ?? "—"}</span>
               </div>
             </div>
             <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`,marginBottom:16}}>
@@ -660,7 +668,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 }catch(e){
                   showToast(lang==="bn"?"সংরক্ষণ ব্যর্থ হয়েছে":"Save failed");
                 }finally{ setSavingProfile(false); }
-              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
+              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"সংরক্ষণ...": tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
               <div style={{background:"rgba(245,158,11,.1)",borderRadius:14,padding:16,border:"1px solid rgba(245,158,11,.35)",marginBottom:16}}>

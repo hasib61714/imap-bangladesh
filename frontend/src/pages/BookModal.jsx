@@ -155,7 +155,7 @@ export default function BookModal({p,onClose,onSuccess}) {
       <div className="row" style={{gap:8}}>
         <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={()=>{setOtpStep(false);setOtpVal("");setOtpErr(false);}}>{tr.backBtn}</button>
         <button className="btn btn-g" style={{flex:2}} disabled={otpVal.length<6||loadingConfirm} onClick={()=>handleConfirm(false)}>
-          {loadingConfirm?"⏳...":(lang==="en"?"Verify & Pay":"যাচাই করে পেমেন্ট করুন")}
+          {loadingConfirm?(lang==="en"?"Verifying…":"যাচাই হচ্ছে…"):(lang==="en"?"Verify & Pay":"যাচাই করে পেমেন্ট করুন")}
         </button>
       </div>
     </div>

@@ -140,7 +140,7 @@ export default function BloodDonationPage() {
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
                     {d.avail
                       ?<span style={{fontSize:10,background:"rgba(16,185,129,.15)",color:"#065F46",borderRadius:6,padding:"2px 7px",fontWeight:700}}><Icon name="check" size={14} style={{marginRight:6}} />{tr.bdAvail}</span>
-                      :<span style={{fontSize:10,background:"rgba(0,0,0,.08)",color:C.muted,borderRadius:6,padding:"2px 7px",fontWeight:600}}>⏸ Unavailable</span>
+                      :<span style={{fontSize:10,background:"rgba(0,0,0,.08)",color:C.muted,borderRadius:6,padding:"2px 7px",fontWeight:600}}><Icon name="pending" size={11} style={{marginRight:4}} />Unavailable</span>
                     }
                     {d.avail&&(
                       <button onClick={()=>{
@@ -163,7 +163,7 @@ export default function BloodDonationPage() {
       {/* BLOOD REQUEST TAB */}
       {tab==="request"&&(
         <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`}}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>🆘 {tr.bdReq}</div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:16,color:C.text}}>{tr.bdReq}</div>
           {sent&&(
             <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#065F46",fontWeight:600,border:"1px solid rgba(16,185,129,.25)"}}><Icon name="success" size={14} style={{marginRight:6}} />{tr.bdSent}</div>
           )}
@@ -189,7 +189,7 @@ export default function BloodDonationPage() {
             </div>
             <button onClick={sendRequest} disabled={!reqBg||!reqName.trim()||sending}
               style={{width:"100%",padding:"13px",borderRadius:12,background:reqBg&&reqName.trim()&&!sending?"#DC2626":"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:reqBg&&reqName.trim()&&!sending?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
-              {sending?(lang==="en"?"Sending...":"পাঠানো হচ্ছে..."):`🆘 ${tr.bdRequest}`}
+              {sending?(lang==="en"?"Sending...":"পাঠানো হচ্ছে..."):`${tr.bdRequest}`}
             </button>
           </div>
         </div>

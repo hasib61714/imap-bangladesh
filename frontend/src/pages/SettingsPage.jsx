@@ -63,7 +63,7 @@ export default function SettingsPage(){
               <input value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}/>
             </div>
           ))}
-          <button onClick={doSave} disabled={saving} style={{width:"100%",padding:"12px",borderRadius:12,background:saving?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{saving?"⏳ সংরক্ষণ...": tr.stSave}</button>
+          <button onClick={doSave} disabled={saving} style={{width:"100%",padding:"12px",borderRadius:12,background:saving?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:saving?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{saving?"সংরক্ষণ...": tr.stSave}</button>
         </div>
       )}
       {tab==="security"&&(

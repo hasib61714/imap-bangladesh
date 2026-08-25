@@ -67,7 +67,7 @@ export default function NotifPage() {
           {pushPerm!=="granted"&&pushPerm!=="unsupported"&&(
             <button className="btn" disabled={pushLoading} onClick={subscribePush}
               style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
-              {pushLoading?"⏳":(lang==="en"?"Enable Push":"পুশ চালু করুন")}
+              {pushLoading?"":(lang==="en"?"Enable Push":"পুশ চালু করুন")}
             </button>
           )}
           {pushPerm==="granted"&&(

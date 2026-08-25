@@ -379,7 +379,7 @@ export default function IMAP() {
       usersApi.getNotifications().then(d=>{
         if(d?.notifications?.length){
           setLiveNotifs(d.notifications.map(n=>({
-            id:n.id, icon:n.icon||"",
+            id:n.id, icon:n.icon||"notification",
             t:n.title_bn||n.title||"", tEn:n.title_en||n.title||"",
             m:n.body_bn||n.body||"",   mEn:n.body_en||n.body||"",
             time:n.created_at||"", timeEn:n.created_at||"",
@@ -1490,7 +1490,7 @@ export default function IMAP() {
           <button onClick={()=>{setShowSos(true);setSosDone(false);setSosType("");setSosDesc("");}}
             title={lang==="bn"?"SOS জরুরি সতর্কতা":"SOS Emergency Alert"}
             style={{position:"fixed",bottom:isMobile?216:212,right:18,width:44,height:44,borderRadius:12,background:"#EF4444",border:"3px solid rgba(255,255,255,.7)",cursor:"pointer",fontSize:19,boxShadow:"0 4px 18px rgba(239,68,68,.55),0 0 0 1px rgba(239,68,68,.3),inset 0 1px 0 rgba(255,255,255,.25)",zIndex:698,display:"flex",alignItems:"center",justifyContent:"center",animation:"pulse 2s infinite"}}>
-            🆘
+            <Icon name="emergency" size={20} color="#fff" />
           </button>
         )}
         {/* SOS Modal */}
@@ -1506,7 +1506,7 @@ export default function IMAP() {
                 </>
               ) : (
                 <>
-                  <div style={{fontSize:50,marginBottom:10,animation:"pulse 1s infinite"}}>🆘</div>
+                  <div style={{marginBottom:10,color:"#DC2626",animation:"pulse 1s infinite"}}><Icon name="emergency" size={46} /></div>
                   <div style={{fontSize:18,fontWeight:700,color:"#EF4444",marginBottom:6}}>{lang==="bn"?"জরুরি সতর্কতা":"Emergency SOS Alert"}</div>
                   <div style={{fontSize:12,color:C.muted,marginBottom:18}}>{lang==="bn"?"আপনার Admin প্যানেল ও Call Center তাৎক্ষণিক সতর্ক হবে":"Admin panel & call center will be alerted immediately"}</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:16}}>
@@ -1534,7 +1534,7 @@ export default function IMAP() {
                           ()=>send(null,null)
                         );
                       }}>
-                      {sosLoading?"পাঠানো হচ্ছে…":lang==="bn"?"🆘 সতর্কতা পাঠান":"🆘 Send Alert"}
+                      {sosLoading?(lang==="bn"?"পাঠানো হচ্ছে…":"Sending…"):(lang==="bn"?"সতর্কতা পাঠান":"Send Alert")}
                     </button>
                   </div>
                   <div style={{marginTop:14,fontSize:11,color:"#EF4444",fontWeight:600}}>৯৯৯ · ১৯৯ বা সরাসরি ফোন করুন • 999 · 199 direct call</div>

@@ -108,7 +108,7 @@ export default function ProviderRegPage({onNavigate}){
               setDone(true);}
               catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
               finally{setRegSubmitting(false);}
-            }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>
+            }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"অপেক্ষাকরুন...": tr.prRegSubmit}</button>
           </div>
         </>}
       </div>

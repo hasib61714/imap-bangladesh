@@ -43,7 +43,7 @@ export default function SkillCertPage(){
                     <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?c.titleEn:c.titleBn}</div>
                     <div style={{display:"flex",gap:8,marginTop:5,flexWrap:"wrap"}}>
                       <span style={{fontSize:11,background:levelColor[c.level]+"22",color:levelColor[c.level],padding:"2px 8px",borderRadius:6,fontWeight:700}}>{c.level}</span>
-                      <span style={{fontSize:11,color:C.muted}}>⏱️ {lang==="en"?c.duration:c.durationBn}</span>
+                      <span style={{fontSize:11,color:C.muted}}><Icon name="pending" size={11} style={{marginRight:4}} />{lang==="en"?c.duration:c.durationBn}</span>
                       <span style={{fontSize:11,color:C.p,fontWeight:700}}>+{c.pts} pts</span>
                     </div>
                   </div>
