@@ -318,7 +318,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
             <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"":""}</button>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👷</div>
+              <div style={{background:C.p,color:C.onP,borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👷</div>
               <div style={{display:"flex",flexDirection:"column"}}>
                 <div style={{fontWeight:700,fontSize:12,color:C.text}}>{user.name}</div>
                 <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"প্রদানকারী":"Provider"}</div>
@@ -342,7 +342,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
               }}>
                 {/* User info */}
                 <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>👷</div>
+                  <div style={{background:C.p,color:C.onP,borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>👷</div>
                   <div>
                     <div style={{fontWeight:700,fontSize:13,color:C.text}}>{user.name}</div>
                     <div style={{fontSize:10,color:C.muted}}>{lang==="bn"?"সেবাদানকারী":"Service Provider"}</div>
@@ -371,7 +371,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
         {tabs.map(t=>(
           <button key={t.v} onClick={()=>setTab(t.v)} style={{flex:"0 0 auto",padding:"12px 18px",border:"none",borderBottom:`2.5px solid ${tab===t.v?C.p:"transparent"}`,background:"transparent",color:tab===t.v?C.p:C.sub,fontWeight:tab===t.v?700:500,fontSize:12,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",transition:"all .15s"}}>
             <span>{t.icon}</span><span>{lang==="bn"?t.lbn:t.len}</span>
-            {t.v==="jobs"&&jobs.filter(j=>j.status==="incoming").length>0&&<span style={{background:C.p,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{jobs.filter(j=>j.status==="incoming").length}</span>}
+            {t.v==="jobs"&&jobs.filter(j=>j.status==="incoming").length>0&&<span style={{background:C.p,color:C.onP,borderRadius:"50%",width:16,height:16,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{jobs.filter(j=>j.status==="incoming").length}</span>}
           </button>
         ))}
       </div>
@@ -405,7 +405,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <span style={{fontWeight:800,color:C.p,fontSize:14}}>৳{j.amount}</span>
-                      <button onClick={()=>acceptJob(j.id)} style={{background:C.p,color:"#fff",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
+                      <button onClick={()=>acceptJob(j.id)} style={{background:C.p,color:C.onP,border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
                       <button onClick={()=>declineJob(j.id)} style={{background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
                     </div>
                   </div>
@@ -455,7 +455,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                       </div>
                       {status==="incoming"&&(
                         <div style={{display:"flex",gap:8,marginTop:12}}>
-                          <button onClick={()=>acceptJob(j.id)} style={{flex:1,padding:"10px",background:C.p,color:"#fff",border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
+                          <button onClick={()=>acceptJob(j.id)} style={{flex:1,padding:"10px",background:C.p,color:C.onP,border:"none",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppAccept}</button>
                           <button onClick={()=>declineJob(j.id)} style={{flex:1,padding:"10px",background:"rgba(239,68,68,.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,.25)",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{tr.ppDecline}</button>
                         </div>
                       )}
@@ -560,7 +560,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                   }
                   catch(e){ showToast(e.data?.error||(lang==="bn"?"ব্যর্থ":"Failed")); }
                   finally{ setWithdrawing(false); }
-                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:"#fff",border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"⏳...":"bKash/Nagad"}</button>
+                }} disabled={withdrawing} style={{padding:"11px 20px",background:withdrawing?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:10,cursor:withdrawing?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13}}>{withdrawing?"⏳...":"bKash/Nagad"}</button>
               </div>
               <div style={{fontSize:12,color:C.muted,marginTop:8}}>{lang==="bn"?"bKash / Nagad / Rocket এ সরাসরি পাঠানো হবে":"Sent directly to your bKash / Nagad / Rocket"}</div>
             </div>
@@ -660,7 +660,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 }catch(e){
                   showToast(lang==="bn"?"সংরক্ষণ ব্যর্থ হয়েছে":"Save failed");
                 }finally{ setSavingProfile(false); }
-              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:"#fff",border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
+              }} disabled={savingProfile} style={{width:"100%",padding:"12px",background:savingProfile?"#9ca3af":C.p,color:C.onP,border:"none",borderRadius:12,fontSize:14,cursor:savingProfile?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700}}>{savingProfile?"⏳ সংরক্ষণ...": tr.ppSaveProfile}</button>}
             </div>
             {!user.nid&&(
               <div style={{background:"rgba(245,158,11,.1)",borderRadius:14,padding:16,border:"1px solid rgba(245,158,11,.35)",marginBottom:16}}>
@@ -735,7 +735,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                     <div style={{fontWeight:700,fontSize:14}}>{s.customer}</div>
                     <div style={{fontSize:12,color:C.muted}}>{s.job}</div>
                   </div>
-                  {s.unread>0&&<div style={{background:C.p,color:"#fff",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{s.unread}</div>}
+                  {s.unread>0&&<div style={{background:C.p,color:C.onP,borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{s.unread}</div>}
                   <span style={{color:C.muted,fontSize:16}}>›</span>
                 </div>
               ))
@@ -763,7 +763,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                   <div style={{display:"flex",gap:10,marginTop:12}}>
                     <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") sendChatMsg();}} placeholder={lang==="bn"?"বার্তা লিখুন...":"Type a message..."}
                       style={{flex:1,padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:12,fontSize:14,background:C.bg,color:C.text,outline:"none",fontFamily:"inherit"}}/>
-                    <button onClick={sendChatMsg} style={{padding:"0 18px",background:C.p,color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontSize:18}}>→</button>
+                    <button onClick={sendChatMsg} style={{padding:"0 18px",background:C.p,color:C.onP,border:"none",borderRadius:12,cursor:"pointer",fontSize:18}}>→</button>
                   </div>
                 </div>
               );

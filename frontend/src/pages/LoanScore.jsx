@@ -31,7 +31,7 @@ export default function LoanScore() {
 
   if(applyOffer&&!loanDone) return (
     <div>
-      <div style={{background:`linear-gradient(135deg,${C.dark},${C.p}99)`,borderRadius:18,padding:20,marginBottom:20,color:"#fff"}}>
+      <div style={{background:`linear-gradient(135deg,${C.dark},${C.p}99)`,borderRadius:18,padding:20,marginBottom:20,color:C.onP}}>
         <div style={{fontSize:12,opacity:.7,marginBottom:4}}>💹 {lang==="en"?"Loan Application":"ঋণ আবেদন"}</div>
         <div style={{fontSize:22,fontWeight:800}}>{applyOffer.amt}</div>
         <div style={{fontSize:13,opacity:.8}}>{applyOffer.rate} {tr.interestL} · {applyOffer.tenure} {lang==="en"?"months":"মাস"}</div>
@@ -61,7 +61,7 @@ export default function LoanScore() {
             alert(lang==="en"?`Application failed: ${e.data?.error||e.message}`:`আবেদন ব্যর্থ: ${e.data?.error||e.message}`);
           }
           setLoanLoading(false);
-        }} disabled={!loanName.trim()||!loanPhone.trim()||loanLoading} style={{flex:2,padding:"12px",borderRadius:12,background:loanName.trim()&&loanPhone.trim()&&!loanLoading?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:loanName.trim()&&loanPhone.trim()&&!loanLoading?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
+        }} disabled={!loanName.trim()||!loanPhone.trim()||loanLoading} style={{flex:2,padding:"12px",borderRadius:12,background:loanName.trim()&&loanPhone.trim()&&!loanLoading?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:loanName.trim()&&loanPhone.trim()&&!loanLoading?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>
           {loanLoading?(lang==="en"?"Submitting...":"জমা হচ্ছে..."):(lang==="en"?"Submit Application":"আবেদন জমা দিন")}
         </button>
       </div>
@@ -78,7 +78,7 @@ export default function LoanScore() {
         <div style={{fontSize:18,fontWeight:800,color:"#00C170",fontFamily:"monospace"}}>{loanRef}</div>
       </div>
       <br/>
-      <button onClick={()=>{setLoanDone(false);setApplyOffer(null);}} style={{padding:"11px 28px",borderRadius:12,background:C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Close":"বন্ধ করুন"}</button>
+      <button onClick={()=>{setLoanDone(false);setApplyOffer(null);}} style={{padding:"11px 28px",borderRadius:12,background:C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Close":"বন্ধ করুন"}</button>
     </div>
   );
 
@@ -115,7 +115,7 @@ export default function LoanScore() {
           background:o.best?`${C.p}06`:C.card,
           borderRadius:14,padding:15,marginBottom:10,
           border:`${o.best?"2px":"1px"} solid ${o.best?C.p:C.bdr}`,
-          boxShadow:o.best?`0 6px 20px ${C.p}25,inset 0 1px 0 rgba(255,255,255,.3)`:"0 2px 8px rgba(0,0,0,.04)"
+          boxShadow:o.best?`0 6px 20px rgba(16,24,20,0.05),inset 0 1px 0 rgba(255,255,255,.3)`:"0 2px 8px rgba(0,0,0,.04)"
         }}>
           {o.best&&<div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:1,marginBottom:5}}>{tr.bestOfferL}</div>}
           <div className="row" style={{justifyContent:"space-between"}}>

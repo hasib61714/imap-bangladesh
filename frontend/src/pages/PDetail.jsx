@@ -88,7 +88,7 @@ export default function PDetail({p,onClose,onBook,onChat}) {
       <div style={{
         background:`${C.p}0A`,borderRadius:13,padding:12,
         border:`1px solid ${C.p}25`,
-        boxShadow:`0 4px 16px ${C.p}12,inset 0 1px 0 rgba(255,255,255,.4)`
+        boxShadow:`0 4px 16px rgba(16,24,20,0.05),inset 0 1px 0 rgba(255,255,255,.4)`
       }}>
           <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:6}}>{tr.verifiedL}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>

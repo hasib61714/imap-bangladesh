@@ -69,7 +69,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
   return (
     <div style={{paddingBottom:80}}>
       {/* Hero card */}
-      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,padding:"36px 20px 28px",textAlign:"center",color:"#fff",position:"relative",backgroundAttachment:"local"}}>
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,padding:"36px 20px 28px",textAlign:"center",color:C.onP,position:"relative",backgroundAttachment:"local"}}>
         <label style={{cursor:"pointer",display:"inline-block",marginBottom:12}}>
           <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
             const f=e.target.files[0]; if(!f) return;

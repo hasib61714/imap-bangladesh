@@ -104,7 +104,7 @@ export default function LiveChatPage({provider, onBack}) {
         boxShadow:dark?"0 2px 20px rgba(0,0,0,.3)":"0 2px 12px rgba(21,163,96,.05)"
       }}>
         <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",fontSize:22,color:C.p,padding:"0 6px 0 0",lineHeight:1}}>←</button>
-        <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
+        <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:C.onP,flexShrink:0}}>
           {typeof avatar==="string"&&avatar.length===1?avatar:""}
         </div>
         <div style={{flex:1,minWidth:0}}>
@@ -123,7 +123,7 @@ export default function LiveChatPage({provider, onBack}) {
           const isUser=m.from==="user";
           return (
             <div key={m.id} style={{display:"flex",justifyContent:isUser?"flex-end":"flex-start",alignItems:"flex-end",gap:7}}>
-              {!isUser&&<div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
+              {!isUser&&<div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:C.onP,flexShrink:0}}>
                 {typeof avatar==="string"&&avatar.length===1?avatar:""}
               </div>}
               <div style={{maxWidth:"70%",background:isUser?C.p:C.card,color:isUser?"#fff":C.text,borderRadius:isUser?"18px 4px 18px 18px":"4px 18px 18px 18px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:`0 1px 4px ${C.bdr}`,wordBreak:"break-word"}}>
@@ -136,7 +136,7 @@ export default function LiveChatPage({provider, onBack}) {
         })}
         {typing&&(
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>
+            <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:C.onP}}>
               {typeof avatar==="string"&&avatar.length===1?avatar:""}
             </div>
             <div style={{background:C.card,borderRadius:"4px 18px 18px 18px",padding:"10px 18px",display:"flex",gap:5,alignItems:"center",boxShadow:`0 1px 4px ${C.bdr}`}}>

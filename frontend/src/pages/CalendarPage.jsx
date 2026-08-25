@@ -58,7 +58,7 @@ export default function CalendarPage({onBook}) {
   return (
     <div>
       {/* Header */}
-      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,borderRadius:18,padding:"20px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,borderRadius:18,padding:"20px",marginBottom:20,color:C.onP,position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:21,fontWeight:800,marginBottom:3}}>{tr.calTitle}</div>
         <div style={{fontSize:13,opacity:.85}}>{lang==="en"?"Book your preferred time slot":"আপনার পছন্দের সময় বুক করুন"}</div>
         <div style={{position:"absolute",right:-16,top:-16,width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,.08)"}}/>
@@ -145,7 +145,7 @@ export default function CalendarPage({onBook}) {
 
           {/* Book CTA */}
           <button onClick={handleBook} disabled={!selSlot||booked}
-            style={{width:"100%",padding:"14px",borderRadius:14,background:selSlot&&!booked?C.p:"#ccc",border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:selSlot&&!booked?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",transition:"background .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            style={{width:"100%",padding:"14px",borderRadius:14,background:selSlot&&!booked?C.p:"#ccc",border:"none",color:C.onP,fontSize:15,fontWeight:700,cursor:selSlot&&!booked?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",transition:"background .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             {booked?"বুকিং সম্পন্ন!":(selSlot?`${tr.calBook} ${selSlot}`:tr.calSelectSlot)}
           </button>
         </div>

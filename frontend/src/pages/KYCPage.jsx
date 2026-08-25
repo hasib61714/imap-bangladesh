@@ -204,7 +204,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
 
       {/* Add new document */}
       {!loading&&(!adding?(
-        <button onClick={()=>setAdding(true)} style={{width:"100%",padding:"14px",background:C.p,color:"#fff",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        <button onClick={()=>setAdding(true)} style={{width:"100%",padding:"14px",background:C.p,color:C.onP,border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
           ➕ {docs.length===0?tr.kycSubmit:tr.kycAddDoc}
         </button>
       ):(
@@ -255,7 +255,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
             <button onClick={()=>{setAdding(false);setDocNum("");setImgFront("");setImgBack("");setImgSelfie("");}} style={{flex:1,padding:"12px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:11,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:C.sub,fontWeight:600}}>
               {lang==="bn"?"বাতিল":"Cancel"}
             </button>
-            <button onClick={submitDoc} disabled={submitting} style={{flex:2,padding:"12px",background:submitting?"#ccc":C.p,color:"#fff",border:"none",borderRadius:11,fontSize:14,cursor:submitting?"default":"pointer",fontFamily:"inherit",fontWeight:700}}>
+            <button onClick={submitDoc} disabled={submitting} style={{flex:2,padding:"12px",background:submitting?"#ccc":C.p,color:C.onP,border:"none",borderRadius:11,fontSize:14,cursor:submitting?"default":"pointer",fontFamily:"inherit",fontWeight:700}}>
               {submitting?"⏳ ...":(tr.kycSubmit)}
             </button>
           </div>

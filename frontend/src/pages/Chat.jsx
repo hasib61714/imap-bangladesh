@@ -95,7 +95,7 @@ export default function Chat({isMobile}) {
 
   const bot=isMobile?76:28;
   if(!open)return(
-    <button onClick={()=>setOpen(true)} className="jc" style={{position:"fixed",bottom:bot,right:18,width:52,height:52,background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",borderRadius:15,cursor:"pointer",fontSize:22,boxShadow:`0 6px 22px ${C.p}66`,zIndex:700,animation:"glow 3s infinite"}}>🤖</button>
+    <button onClick={()=>setOpen(true)} className="jc" style={{position:"fixed",bottom:bot,right:18,width:52,height:52,background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",borderRadius:15,cursor:"pointer",fontSize:22,boxShadow:`0 6px 22px rgba(16,24,20,0.12)`,zIndex:700,animation:"glow 3s infinite"}}>🤖</button>
   );
 
   return(

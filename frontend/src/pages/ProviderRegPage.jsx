@@ -64,7 +64,7 @@ export default function ProviderRegPage({onNavigate}){
               <input type={type} value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",boxSizing:"border-box"}}/>
             </div>
           ))}
-          <button onClick={()=>(name&&phone&&nid)&&setStep(2)} style={{width:"100%",padding:"12px",borderRadius:12,background:(name&&phone&&nid)?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:(name&&phone&&nid)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
+          <button onClick={()=>(name&&phone&&nid)&&setStep(2)} style={{width:"100%",padding:"12px",borderRadius:12,background:(name&&phone&&nid)?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:(name&&phone&&nid)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
         </>}
         {step===2&&<>
           <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:14}}>{lang==="en"?"Service Details":"সেবার তথ্য"}</div>
@@ -78,7 +78,7 @@ export default function ProviderRegPage({onNavigate}){
           <input value={area} onChange={e=>setArea(e.target.value)} placeholder={lang==="en"?"Dhaka, Chittagong...":"ঢাকা, চট্টগ্রাম..."} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",marginBottom:14,boxSizing:"border-box"}}/>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setStep(1)} style={{flex:1,padding:"12px",borderRadius:12,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"←":"←"}</button>
-            <button onClick={()=>(svc&&area)&&setStep(3)} style={{flex:2,padding:"12px",borderRadius:12,background:(svc&&area)?C.p:"#ccc",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:(svc&&area)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
+            <button onClick={()=>(svc&&area)&&setStep(3)} style={{flex:2,padding:"12px",borderRadius:12,background:(svc&&area)?C.p:"#ccc",border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:(svc&&area)?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Next →":"পরবর্তী →"}</button>
           </div>
         </>}
         {step===3&&<>
@@ -107,7 +107,7 @@ export default function ProviderRegPage({onNavigate}){
               setDone(true);}
               catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
               finally{setRegSubmitting(false);}
-            }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>
+            }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:C.onP,fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>
           </div>
         </>}
       </div>

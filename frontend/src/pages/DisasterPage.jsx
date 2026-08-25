@@ -175,7 +175,7 @@ export default function DisasterPage() {
                 <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
                 <div style={{fontSize:12,color:C.muted,marginTop:3}}>👥 {s.cap.toLocaleString()} {lang==="en"?"capacity":"জন’র ধারণ ক্ষমতা"} · 📍 {s.dist} km</div>
               </div>
-              <button style={{padding:"7px 13px",borderRadius:9,background:C.p,border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Navigate":"যান"}</button>
+              <button style={{padding:"7px 13px",borderRadius:9,background:C.p,border:"none",color:C.onP,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lang==="en"?"Navigate":"যান"}</button>
             </div>
           ))}
           <div style={{background:"rgba(16,185,129,.1)",borderRadius:14,padding:"14px 16px",border:"1px solid rgba(16,185,129,.3)",fontSize:13,color:"#065F46",display:"flex",alignItems:"flex-start",gap:10,marginTop:4}}>

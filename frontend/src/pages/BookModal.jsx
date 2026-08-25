@@ -188,7 +188,7 @@ export default function BookModal({p,onClose,onSuccess}) {
         background:dark?"rgba(34,212,127,.06)":"rgba(29,191,115,.05)",
         borderRadius:16,padding:18,margin:"14px 0",
         border:`1.5px solid ${C.p}30`,
-        boxShadow:`0 8px 24px ${C.p}12,inset 0 1px 0 rgba(255,255,255,.3)`
+        boxShadow:`0 8px 24px rgba(16,24,20,0.05),inset 0 1px 0 rgba(255,255,255,.3)`
       }}>
         <div style={{fontSize:11,color:C.muted}}>{tr.bookId}</div>
         <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"BK-"+Math.floor(Math.random()*9000+1000)}</div>
