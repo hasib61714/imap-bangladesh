@@ -99,18 +99,54 @@ if (heavy.length) {
   ]);
 }
 
+/**
+ * Duplicates the owner has looked at and accepted, pending a replacement.
+ *
+ * This is not a way to make the check quiet. An entry here still prints on
+ * every build; it only stops the build failing. The point is that an accepted
+ * duplicate stays VISIBLE and attributable, instead of being resolved by
+ * re-encoding one of the pair until the hashes differ — which would leave two
+ * categories showing one photograph and nothing saying so.
+ *
+ * Remove an entry the moment that slot gets its own picture. An entry naming
+ * a pair that is no longer duplicated fails the build, so this list cannot
+ * quietly outlive the thing it excuses.
+ */
+const ACCEPTED_DUPLICATES = [
+  // Owner's call, 2026-08-26: ship the delivered set now, replace later.
+  // `utility` needs a rooftop water tank — see prompt 18 in docs/IMAGE-PROMPTS.md.
+  ["/category/home-maintenance.webp", "/category/utility.webp"],
+];
+
 // ── 3. The same file in two slots ────────────────────────────────
 const byHash = new Map();
 for (const f of files) {
   const h = crypto.createHash("sha256").update(fs.readFileSync(f)).digest("hex");
   byHash.set(h, [...(byHash.get(h) || []), f]);
 }
+const key = (g) => g.map(rel).sort().join(" == ");
+const accepted = new Set(ACCEPTED_DUPLICATES.map((p) => [...p].sort().join(" == ")));
+
 const dupes = [...byHash.values()].filter((g) => g.length > 1);
-if (dupes.length) {
+const unexpected = dupes.filter((g) => !accepted.has(key(g)));
+const tolerated = dupes.filter((g) => accepted.has(key(g)));
+
+if (unexpected.length) {
   problems.push([
-    `${dupes.length} photograph(s) are used in more than one slot`,
-    dupes.map((g) => g.map((f) => `img${rel(f)}`).join("  ==  ")),
-    "One picture per slot. Delete the copy and regenerate that slot.",
+    `${unexpected.length} photograph(s) are used in more than one slot`,
+    unexpected.map((g) => g.map((f) => `img${rel(f)}`).join("  ==  ")),
+    "One picture per slot. Regenerate that slot, or add the pair to ACCEPTED_DUPLICATES with a reason.",
+  ]);
+}
+
+// A stale entry is its own failure: it claims a duplicate that no longer
+// exists, so the list has stopped describing the repository.
+const stale = [...accepted].filter((k) => !dupes.some((g) => key(g) === k));
+if (stale.length) {
+  problems.push([
+    `${stale.length} entr(y/ies) in ACCEPTED_DUPLICATES no longer match a duplicate`,
+    stale,
+    "That slot has its own picture now. Delete the entry from check-images.mjs.",
   ]);
 }
 
@@ -128,7 +164,10 @@ if (problems.length) {
 // time, and AppImage renders a designed tile for the rest.
 const empty = [...referenced].filter((r) => !fs.existsSync(path.join(IMG, r.slice(1))));
 const filled = referenced.size - empty.length;
-console.log(`  images: ${filled}/${referenced.size} slot(s) filled, all within ${MAX_KB} KB, none duplicated.`);
+console.log(`  images: ${filled}/${referenced.size} slot(s) filled, all within ${MAX_KB} KB.`);
 if (empty.length) {
   console.log(`          ${empty.length} still on the fallback tile: ${empty.map((e) => e.split("/").pop().replace(".webp", "")).join(", ")}`);
+}
+for (const g of tolerated) {
+  console.log(`          accepted duplicate, awaiting its own picture: ${g.map((f) => `img${rel(f)}`).join("  ==  ")}`);
 }
