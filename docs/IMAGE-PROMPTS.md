@@ -48,9 +48,58 @@ It also never enlarges. A source smaller than its target is written at its own
 size with a note, because a slightly small photograph looks better than a
 blurry one.
 
-## If a result comes back wrong
+### Before you install a batch, check it for repeats
 
-The two failure modes to watch for, in order of how often they happen:
+```bash
+python scripts/check-image-duplicates.py ~/imap-images
+```
+
+This compares the pictures, not the filenames, and reports any two that are
+the same photograph — both inside the batch and against what is already
+committed. It is the only check that catches a scene generated twice, because
+two renders of one scene differ in every byte. Run it before `--apply`, not
+after.
+
+The build runs a cheaper version of the same idea
+(`frontend/scripts/check-images.mjs`): it refuses a file that matches no slot,
+one over 180 KB, and one byte-identical to another. It cannot see re-encoded
+repeats, which is why the command above exists.
+
+## The three that keep coming back wrong
+
+Every prompt below already ends with "no text, no logos, no watermarks", and
+generators keep ignoring it in the same three ways. These are not style
+preferences — each one is a reason to regenerate.
+
+**1. An invented brand on the uniform.** Batches have come back with `nexora`
+on a polo shirt, on a cap, on a toolbox and on a shopping bag, and
+`MOVING SERVICE` / `Expert Repair` on others. A made-up company name on a
+worker is worse than no image: this platform lists independent providers, and
+putting one brand on all of them says something untrue about the product. Add:
+
+> The clothing is plain. No brand name, no logo, no company name, no lettering
+> of any kind on shirts, caps, bags, vehicles or equipment.
+
+**2. A text panel composed into the frame.** Posters reading `YOUR GOALS OUR
+PLAN`, `Fix Maintain Improve Life`, a laptop showing `DESIGN`. They read as a
+marketing template, and they are usually half-cropped, which reads as a
+mistake. Add:
+
+> No posters, signs, screens or captions carrying legible words anywhere in
+> the frame.
+
+Genuine signage that belongs to the scene is fine — `AMBULANCE` on an
+ambulance, a `SECURITY` patch on a guard. The test is whether a real
+photographer would have found it there.
+
+**3. The same photograph in two slots.** One delivery of twenty-seven images
+was about twelve distinct photographs: one kitchen-floor shot filling
+`cleaning`, `hero-bg` and `og-share`; one office shot filling `professional`,
+`verification` and `step-3-book`. Two categories showing one picture is the
+most visible possible defect in a grid, and it survived because nothing was
+comparing pictures. Now something is — see below.
+
+### And the two older ones
 
 - **Someone smiling at the camera.** Add: *"The person is absorbed in the
   work and does not look at the camera."*
@@ -522,14 +571,15 @@ the image is duplicated, and each platform crops it differently.
 
 # Checklist
 
-Tick these off as they land in `frontend/public/img/`:
+Run `npm --prefix frontend run check:images` for the authoritative count; this
+is the state as of the last batch.
 
 ```
-category/    ☐ emergency          ☐ home-maintenance   ☐ cleaning
-             ☐ healthcare         ☐ education          ☐ moving
-             ☐ food               ☐ professional       ☐ security
+category/    ☑ emergency          ☑ home-maintenance   ☑ cleaning
+             ☑ healthcare         ☑ education          ☑ moving
+             ☑ food               ☑ professional       ☑ security
              ☐ errands            ☐ elderly            ☐ childcare
-             ☐ agro               ☐ events             ☐ lifestyle
+             ☑ agro               ☐ events             ☑ lifestyle
              ☐ repair             ☐ digital            ☐ utility
              ☐ beauty
 
@@ -540,5 +590,16 @@ empty/       ☐ portfolio
 social/      ☐ og-share
 ```
 
-The nineteen categories are the set worth doing first — that grid is the first
+**11 of 27.** The sixteen open ones each have a prompt above; the eight
+category slots are the set worth doing first, because that grid is the first
 thing a visitor scrolls to.
+
+Two of them need more than a re-run:
+
+- **`utility`** must not be another under-sink shot. `home-maintenance`
+  already owns that, and a batch that put the same plumbing photograph in
+  both is why prompt 18 specifies a **rooftop water tank** instead.
+- **`elderly`** must not be another nurse-with-a-blood-pressure-cuff.
+  `healthcare` already owns that. Prompt 11 asks for a carer steadying a
+  forearm as someone rises from a chair — a different action, and the reason
+  the two categories are distinct.
