@@ -632,7 +632,17 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {[
               { val: counters.svc,  suffix:"",   bn:"সেবা",           en:"Services"   },
               { val: counters.cat,  suffix:"",   bn:"বিভাগ",          en:"Categories" },
-              { val: counters.prov, suffix:"",   bn:"যাচাইকৃত Provider", en:"Verified Providers" },
+              /*
+                Only shown once there is at least one. The count is live and
+                honest either way — but a "0" set in 30px type, animated up
+                from nothing, makes the emptiness the loudest thing on the
+                page. Omitting the tile claims nothing; anyone who scrolls to
+                the directory still finds it empty, which is where that fact
+                belongs.
+
+                It reappears on its own the first time a provider is verified.
+              */
+              ...(liveProviders ? [{ val: counters.prov, suffix:"", bn:"যাচাইকৃত Provider", en:"Verified Providers" }] : []),
             ].map(({ val, suffix, bn, en }, i) => (
               <div key={i} className="lp-stat">
                 <div style={{
