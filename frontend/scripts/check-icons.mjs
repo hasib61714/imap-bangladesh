@@ -102,6 +102,34 @@ if (emptied.length) {
   process.exit(1);
 }
 
+/**
+ * An icon NAME printed as text.
+ *
+ * When an array of emoji became an array of registry names, any render site
+ * still doing `{t.icon}` stopped drawing a picture and started drawing the
+ * word. Every tab across the provider portal read "dashboard ড্যাশবোর্ড",
+ * "cash আয়", "star রিভিউ" — in production, for every provider.
+ *
+ * It compiles, it lints, the icon check passed, and the string is a valid
+ * registry name, so nothing downstream objects. Only the screen showed it.
+ */
+const asText = [];
+for (const f of files) {
+  if (f.endsWith(path.join("components", "Icon.jsx"))) continue;
+  const src = fs.readFileSync(f, "utf8");
+  const rel = path.relative(SRC, f);
+  for (const m of src.matchAll(/>\s*\{\s*[A-Za-z_$][\w$]*\.(?:icon|ic)\s*\}\s*</g)) {
+    const before = src.slice(0, m.index);
+    asText.push([rel, before.split(String.fromCharCode(10)).length]);
+  }
+}
+if (asText.length) {
+  console.error(`  ${asText.length} place(s) print an icon NAME as text instead of drawing it:`);
+  for (const [f, l] of asText) console.error(`    ${f}:${l}`);
+  console.error("  Wrap it: <Icon name={x.icon} size={N} />");
+  process.exit(1);
+}
+
 const missing = [];
 const notNames = [];
 for (const [name, where] of used) {

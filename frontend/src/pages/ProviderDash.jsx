@@ -60,7 +60,7 @@ export default function ProviderDash() {
               border:`1px solid ${C.bdr}`,
               boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4)`
             }}>
-              <div style={{fontSize:20,marginBottom:5}}>{item.ic}</div>
+              <div style={{marginBottom:5,color:item.col}}><Icon name={item.ic} size={20} /></div>
               <div style={{fontSize:16,fontWeight:700,color:item.col}}>{item.v}</div>
               <div style={{fontSize:11,color:C.muted}}>{item.l}</div>
             </div>

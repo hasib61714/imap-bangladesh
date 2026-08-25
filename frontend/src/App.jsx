@@ -379,7 +379,7 @@ export default function IMAP() {
       usersApi.getNotifications().then(d=>{
         if(d?.notifications?.length){
           setLiveNotifs(d.notifications.map(n=>({
-            id:n.id, icon:n.icon||"",
+            id:n.id, icon:n.icon||"notification",
             t:n.title_bn||n.title||"", tEn:n.title_en||n.title||"",
             m:n.body_bn||n.body||"",   mEn:n.body_en||n.body||"",
             time:n.created_at||"", timeEn:n.created_at||"",

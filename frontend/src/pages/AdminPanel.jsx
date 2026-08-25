@@ -663,7 +663,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
       if (Array.isArray(data) && data.length) {
         setCategories(data.map(c => ({
           id: c.id,
-          icon: c.icon || "",
+          icon: c.icon || "info",
           name: c.name_bn || c.name_en || c.name || "Service",
           providers: c.available_count || 0,
           active: c.is_active !== 0,
@@ -1645,7 +1645,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       const slug = newCat.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"") || "cat-"+Date.now();
                       servicesApi.create({slug, name_bn:newCat.name, name_en:newCat.name, icon:newCat.icon||"\ud83d\udd27"})
                         .then(()=>loadCategories()).catch(()=>{});
-                      setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"",name:newCat.name,providers:0,active:true}]);
+                      setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"info",name:newCat.name,providers:0,active:true}]);
                       setNewCat({icon:"info",name:""});
                       toast(lang==="bn"?"বিভাগ যোগ":"Added");
                     }}>{lang==="bn"?"যোগ করুন":"Add"}</Button>
