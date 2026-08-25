@@ -28,7 +28,7 @@ export default function ProviderDash() {
     <div>
       <div style={{background:`linear-gradient(135deg,${C.dark},#0F3326)`,borderRadius:18,padding:20,marginBottom:16}}>
         <div className="row" style={{gap:14,marginBottom:16}}>
-          <Av av={p.av} col={p.col} size={58} fs={20} rad={16}/>
+          <Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={58} fs={20} rad={16}/>
           <div style={{flex:1}}>
             <div style={{fontSize:17,fontWeight:700,color:"#fff"}}>{name}</div>
             <div style={{fontSize:13,color:"rgba(255,255,255,.6)"}}>{svc} · {loc}</div>

@@ -54,7 +54,7 @@ export default function PDetail({p,onClose,onBook,onChat}) {
   return (
     <div style={{padding:24,maxWidth:640,width:"100%"}}>
       <div className="row" style={{gap:14,alignItems:"flex-start",marginBottom:16}}>
-        <Av av={p.av} col={p.col} size={64} fs={22} rad={18}/>
+        <Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={64} fs={22} rad={18}/>
         <div style={{flex:1}}>
           <div className="row" style={{gap:7,flexWrap:"wrap"}}>
             <span style={{fontSize:19,fontWeight:700}}>{name}</span>

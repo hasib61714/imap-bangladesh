@@ -20,7 +20,7 @@ export default function PCard({p,delay=0,onBook,onView}) {
       {/* Bookmark btn */}
       <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} style={{position:"absolute",top:12,right:12,background:isFav?"#FEF9C3":C.bg,border:`1px solid ${isFav?"#F59E0B":C.bdr}`,borderRadius:8,width:30,height:30,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s",zIndex:1}}>{isFav?"":""}</button>
       <div className="row" style={{gap:12,marginBottom:12}}>
-        <Av av={p.av} col={p.col} size={52}/>
+        <Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={52}/>
         <div style={{flex:1,minWidth:0}}>
           <div className="row" style={{gap:5,flexWrap:"wrap"}}>
             <span style={{fontSize:15,fontWeight:700,color:C.text,lineHeight:1.2}}>{name}</span>
