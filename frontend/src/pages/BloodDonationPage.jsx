@@ -1,7 +1,8 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
-import { DONORS, BLOOD_GROUPS, BG_COL_MAP } from "../constants/data";
+import { BLOOD_GROUPS, BG_COL_MAP } from "../constants/data";
 import { blood as bloodApi } from "../api";
 import BloodDonorMap from "./BloodDonorMap";
 
@@ -15,14 +16,31 @@ export default function BloodDonationPage() {
   const [sent,setSent]=useState(false);
   const [sending,setSending]=useState(false);
   const [contacted,setContacted]=useState(()=>JSON.parse(localStorage.getItem("imap_blood_contacted")||"[]"));
-  const [donors,setDonors]=useState(DONORS);
+  /**
+   * This opened with eight fabricated donors — "Hasan Ali, O-, Baridhara,
+   * 01700-000005, available" — with sequential placeholder phone numbers.
+   *
+   * Every other invented list in this app costs someone a wrong impression.
+   * This one is different: a person looking for O- blood at 3am reads a name,
+   * a location and a number, calls it, and reaches nothing. There is no
+   * version of that which is an acceptable placeholder.
+   *
+   * The directory is empty until real donors register.
+   */
+  const [donors,setDonors]=useState([]);
+  const [donorsFailed,setDonorsFailed]=useState(false);
   const [donorsLoading,setDonorsLoading]=useState(false);
 
   useEffect(()=>{
     setDonorsLoading(true);
+    setDonorsFailed(false);
     bloodApi.getDonors(bgFilter==="all"?null:bgFilter)
-      .then(r=>{ if(r?.donors?.length) setDonors(r.donors); })
-      .catch(()=>{})
+      // An empty answer is an answer: assign it rather than keeping whatever
+      // was on screen from the previous blood group.
+      .then(r=>{ setDonors(Array.isArray(r?.donors) ? r.donors : []); })
+      // Distinguished from "nobody registered", because in an emergency those
+      // two facts lead somewhere different.
+      .catch(()=>{ setDonors([]); setDonorsFailed(true); })
       .finally(()=>setDonorsLoading(false));
   },[bgFilter]);
 
@@ -92,6 +110,19 @@ export default function BloodDonationPage() {
 
           {/* Donor cards */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {filtered.length === 0 && (
+              <EmptyState C={C}
+                icon="blood" tone={donorsFailed ? "error" : "neutral"}
+                title={donorsFailed
+                  ? (lang==="en" ? "Could not load the donor directory" : "ডোনার তালিকা লোড করা যায়নি")
+                  : (lang==="en" ? "No donors registered yet" : "এখনো কোনো ডোনার নিবন্ধিত নেই")}
+                description={donorsFailed
+                  ? (lang==="en" ? "Check your connection and try again. For an emergency, call 999."
+                                 : "সংযোগ পরীক্ষা করে আবার চেষ্টা করুন। জরুরি প্রয়োজনে ৯৯৯-এ কল করুন।")
+                  : (lang==="en" ? "Nobody has registered as a donor in this area yet. If you can donate, register below — someone will need it."
+                                 : "এই এলাকায় এখনো কেউ ডোনার হিসেবে নিবন্ধন করেননি। আপনি রক্ত দিতে পারলে নিচে নিবন্ধন করুন।")}
+              />
+            )}
             {filtered.map((d,i)=>{
               const name=lang==="en"?d.nameEn:d.name;
               const loc=lang==="en"?d.locEn:d.loc;

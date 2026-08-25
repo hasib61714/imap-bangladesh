@@ -1,23 +1,28 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useUser } from "../contexts";
 import { T } from "../constants/translations";
-import { RF_FRIENDS, RF_STEPS } from "../constants/data";
+import { RF_STEPS } from "../constants/data";
 import { users as usersApi } from "../api";
 
 export default function ReferralPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const {user:authUser}=useUser();
   const [copied,setCopied]=useState(false);
-  const [rfData,setRfData]=useState({referral_code:authUser?.referral_code||null, friends:RF_FRIENDS});
+    // Was seeded with three invented friends, and the loader below then did
+  // `d.friends?.length ? d.friends : prev.friends` — so a successful call
+  // reporting "you have referred nobody" was DISCARDED in favour of the
+  // invention. An empty answer is an answer.
+  const [rfData,setRfData]=useState({referral_code:authUser?.referral_code||null, friends:[]});
 
   useEffect(()=>{
     usersApi.getReferral()
-      .then(d=>{ if(d) setRfData(prev=>({...prev,...d,friends:d.friends?.length?d.friends:prev.friends})); })
+      .then(d=>{ if(d) setRfData(prev=>({...prev,...d,friends:Array.isArray(d.friends)?d.friends:prev.friends})); })
       .catch(()=>{});
   },[]);
 
   const refCode=rfData.referral_code||authUser?.referral_code||"IMAP-????";
-  const friends=rfData.friends||RF_FRIENDS;
+  const friends=rfData.friends||[];
   const totalEarned=friends.reduce((s,f)=>s+f.earned,0);
 
   const doShare=()=>{
@@ -77,6 +82,13 @@ export default function ReferralPage(){
       {/* Friends list */}
       <div style={{background:C.card,borderRadius:16,padding:"4px 0",border:`1px solid ${C.bdr}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,padding:"12px 16px 8px"}}>{tr.rfFriends}</div>
+        {friends.length === 0 && (
+          <EmptyState C={C} compact icon="referral"
+            title={lang==="bn" ? "এখনো কাউকে রেফার করেননি" : "No referrals yet"}
+            description={lang==="bn"
+              ? "উপরের কোডটি বন্ধুদের সাথে শেয়ার করুন। তারা নিবন্ধন করলে এখানে দেখা যাবে।"
+              : "Share your code above. Friends who sign up with it appear here."} />
+        )}
         {friends.map((f,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:`1px solid ${C.bdr}`}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",flexShrink:0}}>{f.name[0]}</div>

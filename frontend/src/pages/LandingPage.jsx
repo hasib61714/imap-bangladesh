@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import Icon from "../components/Icon";
 
 /* ═══════════════════════════════════════════════════════════════════
    IMAP Bangladesh — LandingPage
@@ -10,18 +11,18 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
   /* ─────────── STATIC DATA ─────────── */
   const CATS = [
-    { icon:"🚨", nameBn:"জরুরি সেবা",         nameEn:"Emergency",        col:"#E8192C", priceEn:"Free",      priceBn:"বিনামূল্যে" },
-    { icon:"🏠", nameBn:"গৃহ রক্ষণাবেক্ষণ",   nameEn:"Home Maintenance", col:"#F59E0B", priceEn:"From ৳350", priceBn:"৳৩৫০ থেকে" },
-    { icon:"🧹", nameBn:"পরিষ্কার সেবা",      nameEn:"Cleaning",         col:"#14B8A6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"👩‍⚕️", nameBn:"স্বাস্থ্যসেবা",      nameEn:"Healthcare",       col:"#EF4444", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
-    { icon:"📚", nameBn:"শিক্ষা সেবা",        nameEn:"Education",        col:"#8B5CF6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"🚚", nameBn:"স্থানান্তর",          nameEn:"Moving Services",  col:"#F97316", priceEn:"From ৳2000",priceBn:"৳২০০০ থেকে" },
-    { icon:"🍲", nameBn:"রান্না ও খাবার",      nameEn:"Food & Cooking",   col:"#F59E0B", priceEn:"From ৳600", priceBn:"৳৬০০ থেকে" },
-    { icon:"🧑‍💼", nameBn:"পেশাদার পরামর্শ",   nameEn:"Professional",     col:"#6366F1", priceEn:"From ৳800", priceBn:"৳৮০০ থেকে" },
-    { icon:"🛡️", nameBn:"নিরাপত্তা সেবা",    nameEn:"Security",         col:"#374151", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
-    { icon:"🛒", nameBn:"দৈনন্দিন সহায়তা",  nameEn:"Daily Errands",    col:"#EC4899", priceEn:"From ৳150", priceBn:"৳১৫০ থেকে" },
-    { icon:"🧓", nameBn:"বয়স্ক সেবা",        nameEn:"Elderly Care",     col:"#7C3AED", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
-    { icon:"👶", nameBn:"শিশু ও পরিবার",     nameEn:"Child & Family",   col:"#DB2777", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"emergency", nameBn:"জরুরি সেবা",         nameEn:"Emergency",        col:"#E8192C", priceEn:"Free",      priceBn:"বিনামূল্যে" },
+    { icon:"home-maintenance", nameBn:"গৃহ রক্ষণাবেক্ষণ",   nameEn:"Home Maintenance", col:"#F59E0B", priceEn:"From ৳350", priceBn:"৳৩৫০ থেকে" },
+    { icon:"cleaning", nameBn:"পরিষ্কার সেবা",      nameEn:"Cleaning",         col:"#14B8A6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"healthcare", nameBn:"স্বাস্থ্যসেবা",      nameEn:"Healthcare",       col:"#EF4444", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
+    { icon:"education", nameBn:"শিক্ষা সেবা",        nameEn:"Education",        col:"#8B5CF6", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"moving", nameBn:"স্থানান্তর",          nameEn:"Moving Services",  col:"#F97316", priceEn:"From ৳2000",priceBn:"৳২০০০ থেকে" },
+    { icon:"food", nameBn:"রান্না ও খাবার",      nameEn:"Food & Cooking",   col:"#F59E0B", priceEn:"From ৳600", priceBn:"৳৬০০ থেকে" },
+    { icon:"professional", nameBn:"পেশাদার পরামর্শ",   nameEn:"Professional",     col:"#6366F1", priceEn:"From ৳800", priceBn:"৳৮০০ থেকে" },
+    { icon:"security", nameBn:"নিরাপত্তা সেবা",    nameEn:"Security",         col:"#374151", priceEn:"From ৳500", priceBn:"৳৫০০ থেকে" },
+    { icon:"errands", nameBn:"দৈনন্দিন সহায়তা",  nameEn:"Daily Errands",    col:"#EC4899", priceEn:"From ৳150", priceBn:"৳১৫০ থেকে" },
+    { icon:"elderly", nameBn:"বয়স্ক সেবা",        nameEn:"Elderly Care",     col:"#7C3AED", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
+    { icon:"childcare", nameBn:"শিশু ও পরিবার",     nameEn:"Child & Family",   col:"#DB2777", priceEn:"From ৳400", priceBn:"৳৪০০ থেকে" },
   ];
 
   const FAQ_DATA = {
@@ -43,18 +44,39 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
     ],
   };
 
-  const TESTIMONIALS = {
-    bn: [
-      { name:"রহিমা বেগম",    role:"গৃহিণী, ঢাকা",           initials:"রব", text:"IMAP-এর মাধ্যমে ঘরে বসেই দ্রুত Plumber পেয়েছি। Provider সময়মতো এসেছেন, কাজও ভালো হয়েছে। সম্পূর্ণ নিরাপদ অনুভব করেছি।" },
-      { name:"তানভীর আহমেদ", role:"ব্যবসায়ী, চট্টগ্রাম",   initials:"তআ", text:"AC সার্ভিসিং এর জন্য IMAP ব্যবহার করেছি। দাম সাশ্রয়ী, KYC-ভেরিফাইড প্রফেশনাল এসেছেন। আর কোনো ঝামেলা নেই।" },
-      { name:"নাসরিন আক্তার", role:"চাকরিজীবী, সিলেট",     initials:"নআ", text:"বয়স্ক মায়ের জন্য Homecare নিয়েছিলাম। অত্যন্ত যত্নশীল Provider! IMAP-এর SOS ফিচারটা মনে অনেক শান্তি দেয়।" },
-    ],
-    en: [
-      { name:"Rahima Begum",   role:"Homemaker, Dhaka",          initials:"RB", text:"Found a plumber instantly through IMAP. The provider arrived on time and did great work. I felt completely safe throughout." },
-      { name:"Tanvir Ahmed",   role:"Business Owner, Chittagong",initials:"TA", text:"Used IMAP for AC servicing. Affordable pricing, KYC-verified professional. No more worries about finding trustworthy help." },
-      { name:"Nasrin Akter",   role:"Professional, Sylhet",      initials:"NA", text:"Arranged homecare for my elderly mother. Extremely caring provider! IMAP's SOS feature gives real peace of mind." },
-    ],
-  };
+  /**
+   * These were three testimonials per language, each with an invented name, a
+   * city, a job title and a quoted experience — "Rahima Begum, Homemaker,
+   * Dhaka" saying she found a plumber and felt completely safe. None of those
+   * people exist and none of that happened.
+   *
+   * They were also marked up as `schema.org/Review` with `itemProp="author"`,
+   * which tells search engines they are genuine customer reviews. Fabricated
+   * reviews in structured data are a search penalty in the best case and, in
+   * most consumer-protection regimes, an actionable false representation.
+   *
+   * What replaces them is a set of promises that are TRUE TODAY and checkable
+   * in the code, which is the only kind a platform with no customers yet can
+   * honestly make. Each one names the mechanism rather than the sentiment.
+   *
+   * When there are real customers, ask them, and put their words here with
+   * their permission. Then the schema.org markup can come back too.
+   */
+  const GUARANTEES = (lang === "en" ? [
+    { icon:"identity", t:"Verified before listed",
+      d:"A provider does not appear in the directory until a human reviewer has approved their identity documents. The rule is enforced by the database, not by a setting someone can switch off." },
+    { icon:"cash", t:"The price is ours, not the app's",
+      d:"What you are quoted is calculated on our servers from the provider's rate. A request that tries to name its own price is refused — the number you see is the number you pay." },
+    { icon:"locked", t:"Money moves only on confirmation",
+      d:"A booking is marked paid only when the payment gateway confirms it to us directly. Closing the browser at the wrong moment cannot lose your payment or charge you twice." },
+  ] : [
+    { icon:"identity", t:"যাচাইয়ের পরই তালিকায়",
+      d:"পরিচয়পত্র একজন পর্যালোচক অনুমোদন না করা পর্যন্ত কোনো Provider ডিরেক্টরিতে আসেন না। নিয়মটি ডেটাবেসে বসানো — কেউ সেটিংস বদলে বন্ধ করতে পারে না।" },
+    { icon:"cash", t:"দাম আমাদের সার্ভারে ঠিক হয়",
+      d:"আপনাকে যে দাম দেখানো হয় তা Provider-এর রেট থেকে আমাদের সার্ভারে হিসাব করা। নিজের দাম বলে দেওয়ার চেষ্টা প্রত্যাখ্যাত হয় — যা দেখছেন তাই দেবেন।" },
+    { icon:"locked", t:"নিশ্চিত হলেই টাকা কাটে",
+      d:"পেমেন্ট গেটওয়ে সরাসরি আমাদের নিশ্চিত করলে তবেই বুকিং 'পরিশোধিত' হয়। ভুল সময়ে ব্রাউজার বন্ধ হলেও টাকা হারাবে না বা দুবার কাটবে না।" },
+  ]);
 
   const matchFaq = (text, lng) => {
     const list  = FAQ_DATA[lng] || FAQ_DATA.bn;
@@ -162,20 +184,20 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   const T = (lang === "en" ? {
     annText:    "🎉 March Offer: 20% off your first service! Use code: IMAP20",
     heroTag:    "Bangladesh's Trusted Service Platform",
-    heroH1:     "Bangladesh's #1 AI-Powered Service Platform",
+    heroH1:     "Every Provider Verified Before You See Them",
     heroSub:    "Get trusted home services at your doorstep  •  Earn as a Provider  •  100% Safe & Verified",
     heroBtn1:"Get Service", heroBtn2:"Become a Provider", heroBtn3:"Ask AI",
     heroSearchPh:"What service do you need? e.g. electrician, cleaner",
     heroSearchBtn:"Search",
     heroCats:[{k:"elec",i:"⚡",l:"Electrician"},{k:"plumb",i:"🔧",l:"Plumber"},{k:"clean",i:"🧹",l:"Cleaner"},{k:"ac",i:"❄️",l:"AC Repair"},{k:"emg",i:"🚨",l:"Emergency"}],
-    svcLabel:"WHAT WE OFFER",   svcTitle:"Any Service, Any Time",    svcSub:"Browse 500+ services without login. Book in minutes.",
+    svcLabel:"WHAT WE OFFER",   svcTitle:"Any Service, Any Time",    svcSub:"Browse 110 services across 19 categories without login. Book in minutes.",
     viewAll:"View All Services →",
     howLabel:"HOW IT WORKS",    howTitle:"Get Service in 4 Simple Steps",
     trustLabel:"WHY CHOOSE US", trustTitle:"Reasons to Trust IMAP",
     safeLabel:"SAFETY FIRST",   safeTitle:"Safety Is Our Top Priority",
-    tmLabel:"TESTIMONIALS",     tmTitle:"Real Stories, Happy Customers",
+    tmLabel:"OUR GUARANTEES",   tmTitle:"What We Promise, and How It Is Enforced",
     faqLabel:"FAQ",              faqTitle:"Frequently Asked Questions",
-    ctaLabel:"GET STARTED TODAY",ctaTitle:"Join 10,000+ Satisfied Customers",
+    ctaLabel:"GET STARTED TODAY",ctaTitle:"Book a Verified Provider Today",
     ctaSub:"IMAP connects you with verified home service professionals across Bangladesh. Fast, safe, and reliable.",
     ctaBtn1:"Get Service Now", ctaBtn2:"Become a Provider",
     aiTitle:"AI Assistant",  aiPlaceholder:"Type your question…",
@@ -189,20 +211,20 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   } : {
     annText:    "🎉 মার্চ অফার: প্রথম সেবায় ২০% ছাড়! কোড ব্যবহার করুন: IMAP20",
     heroTag:    "বাংলাদেশের বিশ্বস্ত সার্ভিস প্ল্যাটফর্ম",
-    heroH1:     "বাংলাদেশের #১ AI-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম",
+    heroH1:     "প্রত্যেক Provider যাচাই হয়ে তবেই আপনার সামনে",
     heroSub:    "ঘরে বসে বিশ্বস্ত সেবা নিন  •  Provider হয়ে আয় করুন  •  সম্পূর্ণ নিরাপদ",
     heroBtn1:"সেবা নিন", heroBtn2:"সেবাদাতা হোন", heroBtn3:"AI-কে জিজ্ঞেস করুন",
     heroSearchPh:"কী সেবা দরকার? যেমন ইলেকট্রিশিয়ান, ক্লিনার",
     heroSearchBtn:"খুঁজুন",
     heroCats:[{k:"elec",i:"⚡",l:"ইলেকট্রিশিয়ান"},{k:"plumb",i:"🔧",l:"প্লাম্বার"},{k:"clean",i:"🧹",l:"ক্লিনার"},{k:"ac",i:"❄️",l:"এসি সার্ভিস"},{k:"emg",i:"🚨",l:"জরুরি সেবা"}],
-    svcLabel:"আমাদের সেবাসমূহ", svcTitle:"যেকোনো সেবা, যেকোনো সময়", svcSub:"লগইন ছাড়াই ৫০০+ সেবা ব্রাউজ করুন। মিনিটেই বুক করুন।",
+    svcLabel:"আমাদের সেবাসমূহ", svcTitle:"যেকোনো সেবা, যেকোনো সময়", svcSub:"লগইন ছাড়াই ১৯টি বিভাগে ১১০টি সেবা দেখুন। মিনিটেই বুক করুন।",
     viewAll:"সব সেবা দেখুন →",
     howLabel:"কিভাবে কাজ করে", howTitle:"৪টি সহজ ধাপে সেবা নিন",
     trustLabel:"কেন IMAP বেছে নেবেন", trustTitle:"আমাদের বিশ্বাস করার কারণ",
     safeLabel:"নিরাপত্তা",      safeTitle:"নিরাপত্তা আমাদের সর্বোচ্চ অগ্রাধিকার",
     tmLabel:"গ্রাহকের মতামত",   tmTitle:"সুখী গ্রাহকের বাস্তব অভিজ্ঞতা",
     faqLabel:"প্রশ্নোত্তর",      faqTitle:"সাধারণ জিজ্ঞাসা",
-    ctaLabel:"আজই শুরু করুন",   ctaTitle:"১০,০০০+ সন্তুষ্ট গ্রাহকের সাথে যোগ দিন",
+    ctaLabel:"আজই শুরু করুন",   ctaTitle:"আজই একজন যাচাইকৃত Provider বুক করুন",
     ctaSub:"IMAP বাংলাদেশ জুড়ে যাচাইকৃত সার্ভিস প্রফেশনালদের সাথে আপনাকে সংযুক্ত করে। দ্রুত, নিরাপদ ও নির্ভরযোগ্য।",
     ctaBtn1:"এখনই সেবা নিন", ctaBtn2:"সেবাদাতা হোন",
     aiTitle:"AI সহায়তা", aiPlaceholder:"যেকোনো প্রশ্ন লিখুন…",
@@ -216,35 +238,34 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   });
 
   const HOW_STEPS = (lang === "en" ? [
-    { icon:"🔍", t:"Browse Services",     d:"Explore 500+ services without login and compare packages" },
-    { icon:"📝", t:"Quick Registration",  d:"Sign up in 2 minutes with your phone number or email" },
-    { icon:"📅", t:"Confirm Booking",     d:"Choose a nearby verified provider, confirm time & price" },
-    { icon:"✅", t:"Enjoy the Service",   d:"Provider arrives on schedule — rate & review afterward" },
+    { icon:"search", t:"Browse Services",     d:"Explore 110 services across 19 categories without logging in" },
+    { icon:"edit", t:"Quick Registration",  d:"Sign up in 2 minutes with your phone number or email" },
+    { icon:"calendar", t:"Confirm Booking",     d:"Choose a nearby verified provider, confirm time & price" },
+    { icon:"success", t:"Enjoy the Service",   d:"Provider arrives on schedule — rate & review afterward" },
   ] : [
-    { icon:"🔍", t:"সেবা ব্রাউজ করুন",    d:"লগইন ছাড়াই ৫০০+ সেবা দেখুন এবং প্যাকেজ তুলনা করুন" },
-    { icon:"📝", t:"দ্রুত নিবন্ধন করুন",  d:"ফোন নম্বর বা ইমেইল দিয়ে মাত্র ২ মিনিটে রেজিস্ট্রেশন" },
-    { icon:"📅", t:"বুকিং নিশ্চিত করুন",  d:"কাছের যাচাইকৃত Provider বেছে নিন, সময় ও মূল্য নিশ্চিত করুন" },
-    { icon:"✅", t:"সেবা উপভোগ করুন",     d:"Provider নির্ধারিত সময়ে আসবেন — শেষে রেটিং দিন" },
+    { icon:"search", t:"সেবা ব্রাউজ করুন",    d:"লগইন ছাড়াই ১৯টি বিভাগে ১১০টি সেবা দেখুন ও তুলনা করুন" },
+    { icon:"edit", t:"দ্রুত নিবন্ধন করুন",  d:"ফোন নম্বর বা ইমেইল দিয়ে মাত্র ২ মিনিটে রেজিস্ট্রেশন" },
+    { icon:"calendar", t:"বুকিং নিশ্চিত করুন",  d:"কাছের যাচাইকৃত Provider বেছে নিন, সময় ও মূল্য নিশ্চিত করুন" },
+    { icon:"success", t:"সেবা উপভোগ করুন",     d:"Provider নির্ধারিত সময়ে আসবেন — শেষে রেটিং দিন" },
   ]);
 
   const TRUST_ITEMS = (lang === "en" ? [
-    { icon:"🪪", t:"NID / KYC Verified",         d:"Every provider must verify NID, face photo & credentials. No anonymous providers." },
-    { icon:"🔒", t:"Secure Encrypted Payments",  d:"bKash, Nagad, Card & Cash — all transactions encrypted. Money-back guarantee." },
-    { icon:"🆘", t:"Live SOS Emergency Button",  d:"One tap instantly alerts Admin & Call Center during any service. 24/7 active." },
-    { icon:"📞", t:"24/7 Customer Support",       d:"Our support center is always ready. All complaints resolved within 24 hours." },
+    { icon:"identity", t:"NID / KYC Verified",         d:"Every provider must verify NID, face photo & credentials. No anonymous providers." },
+    { icon:"locked", t:"Secure Encrypted Payments",  d:"bKash, Nagad, Card & Cash — all transactions encrypted. Money-back guarantee." },
+    { icon:"emergency", t:"Live SOS Emergency Button",  d:"One tap instantly alerts Admin & Call Center during any service. 24/7 active." },
+    { icon:"support", t:"24/7 Customer Support",       d:"Our support center is always ready. All complaints resolved within 24 hours." },
     { icon:"⚖️", t:"Full Legal Protection",      d:"Complete legal framework. Fraud & misconduct lead to immediate legal action." },
-    { icon:"⭐", t:"4.8★ Average Rating",        d:"10,000+ satisfied customers trust IMAP across all divisions of Bangladesh." },
+    { icon:"verified", t:"Verified Before Listed",    d:"A provider is not listed until a reviewer has approved their identity documents. No exceptions, enforced in the database." },
   ] : [
-    { icon:"🪪", t:"NID / KYC যাচাই বাধ্যতামূলক", d:"প্রতিটি Provider NID, মুখের ছবি ও সনদ যাচাই করা বাধ্যতামূলক। পরিচয়হীন কেউ নেই।" },
-    { icon:"🔒", t:"এনক্রিপ্টেড নিরাপদ পেমেন্ট",   d:"bKash, Nagad, Card ও Cash — সব লেনদেন এনক্রিপ্টেড। মানি-ব্যাক গ্যারান্টি।" },
-    { icon:"🆘", t:"লাইভ SOS জরুরি বাটন",          d:"একটি বাটনে তাৎক্ষণিক Admin ও Call Center সতর্ক। ২৪/৭ সক্রিয়।" },
-    { icon:"📞", t:"২৪/৭ গ্রাহক সেবা",              d:"আমাদের সাপোর্ট সেন্টার সর্বদা প্রস্তুত। সব অভিযোগ ২৪ ঘণ্টায় সমাধান।" },
+    { icon:"identity", t:"NID / KYC যাচাই বাধ্যতামূলক", d:"প্রতিটি Provider NID, মুখের ছবি ও সনদ যাচাই করা বাধ্যতামূলক। পরিচয়হীন কেউ নেই।" },
+    { icon:"locked", t:"এনক্রিপ্টেড নিরাপদ পেমেন্ট",   d:"bKash, Nagad, Card ও Cash — সব লেনদেন এনক্রিপ্টেড। মানি-ব্যাক গ্যারান্টি।" },
+    { icon:"emergency", t:"লাইভ SOS জরুরি বাটন",          d:"একটি বাটনে তাৎক্ষণিক Admin ও Call Center সতর্ক। ২৪/৭ সক্রিয়।" },
+    { icon:"support", t:"২৪/৭ গ্রাহক সেবা",              d:"আমাদের সাপোর্ট সেন্টার সর্বদা প্রস্তুত। সব অভিযোগ ২৪ ঘণ্টায় সমাধান।" },
     { icon:"⚖️", t:"সম্পূর্ণ আইনি সুরক্ষা",        d:"সম্পূর্ণ আইনি কাঠামো। প্রতারণা ও অসদাচরণে তাৎক্ষণিক আইনি ব্যবস্থা।" },
-    { icon:"⭐", t:"৪.৮★ গড় রেটিং",               d:"বাংলাদেশের সকল বিভাগে ১০,০০০+ সন্তুষ্ট গ্রাহক IMAP-এ বিশ্বাস রাখেন।" },
+    { icon:"verified", t:"তালিকাভুক্তির আগে যাচাই",  d:"পরিচয়পত্র পর্যালোচক অনুমোদন না করা পর্যন্ত কোনো Provider তালিকায় আসেন না। ব্যতিক্রম নেই।" },
   ]);
 
   const faqList   = FAQ_DATA[lang]    || FAQ_DATA.bn;
-  const tmList    = TESTIMONIALS[lang]|| TESTIMONIALS.bn;
 
   /* ─────────── RENDER ─────────── */
   return (
@@ -443,24 +464,38 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         {/* Dot grid overlay */}
         <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px)", backgroundSize:"28px 28px", pointerEvents:"none" }}/>
 
-        {/* ── Floating service icon decorations ── */}
+        {/*
+          The hero used to have eight emoji drifting around it — 🏠 🧹 🔧 👩‍⚕️
+          at 28-40px, each on its own float animation. It is the single
+          strongest source of the "cartoon" impression: eight small coloured
+          cartoons orbiting a headline about a platform that verifies
+          identities and moves money.
+
+          What replaces them is the same idea done with the page's own
+          material: line-art marks from the icon set, drawn in the hero's
+          white at low opacity so they read as texture rather than as
+          pictures, on the same drift animations. They take the theme, they
+          are one drawing on every device, and they stop competing with the
+          headline for attention.
+        */}
         {[
-          { icon:"🏠", top:"12%",  left:"4%",   size:40, anim:"lp-floatA", dur:"6s",  delay:"0s",   opacity:.55 },
-          { icon:"🧹", top:"68%",  left:"3%",   size:34, anim:"lp-floatB", dur:"7.5s",delay:".8s",  opacity:.45 },
-          { icon:"🔧", top:"22%",  right:"4%",  size:38, anim:"lp-floatC", dur:"5.5s",delay:".3s",  opacity:.5  },
-          { icon:"👩‍⚕️",top:"60%",  right:"5%",  size:36, anim:"lp-floatD", dur:"8s",  delay:"1s",   opacity:.45 },
-          { icon:"⚡", top:"40%",  left:"8%",   size:30, anim:"lp-floatB", dur:"6.5s",delay:"1.5s", opacity:.35 },
-          { icon:"🚚", top:"78%",  right:"10%", size:32, anim:"lp-floatA", dur:"7s",  delay:"2s",   opacity:.4  },
-          { icon:"📚", top:"8%",   right:"20%", size:28, anim:"lp-floatC", dur:"9s",  delay:".5s",  opacity:.3  },
-          { icon:"🛡️", top:"85%",  left:"18%",  size:28, anim:"lp-floatD", dur:"8.5s",delay:"1.2s", opacity:.3  },
+          { icon:"home-maintenance", top:"12%", left:"4%",   size:34, anim:"lp-floatA", dur:"6s",   delay:"0s",   opacity:.13 },
+          { icon:"cleaning",         top:"68%", left:"3%",   size:30, anim:"lp-floatB", dur:"7.5s", delay:".8s",  opacity:.11 },
+          { icon:"repair",           top:"22%", right:"4%",  size:32, anim:"lp-floatC", dur:"5.5s", delay:".3s",  opacity:.12 },
+          { icon:"healthcare",       top:"60%", right:"5%",  size:30, anim:"lp-floatD", dur:"8s",   delay:"1s",   opacity:.11 },
+          { icon:"electrician",      top:"40%", left:"8%",   size:26, anim:"lp-floatB", dur:"6.5s", delay:"1.5s", opacity:.09 },
+          { icon:"moving",           top:"78%", right:"10%", size:28, anim:"lp-floatA", dur:"7s",   delay:"2s",   opacity:.10 },
+          { icon:"education",        top:"8%",  right:"20%", size:24, anim:"lp-floatC", dur:"9s",   delay:".5s",  opacity:.08 },
+          { icon:"security",         top:"85%", left:"18%",  size:24, anim:"lp-floatD", dur:"8.5s", delay:"1.2s", opacity:.08 },
         ].map((f, i) => (
           <div key={i} style={{
             position:"absolute", top:f.top, left:f.left, right:f.right,
-            fontSize:f.size, opacity:f.opacity,
+            opacity:f.opacity, color:"#fff",
             animation:`${f.anim} ${f.dur} ease-in-out ${f.delay} infinite`,
             pointerEvents:"none", userSelect:"none", zIndex:0,
-            filter:"drop-shadow(0 4px 8px rgba(0,0,0,.3))",
-          }}>{f.icon}</div>
+          }}>
+            <Icon name={f.icon} size={f.size} />
+          </div>
         ))}
 
         <div style={{ maxWidth:820, margin:"0 auto", textAlign:"center", position:"relative", zIndex:1 }}>
@@ -565,7 +600,9 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                   onClick={onGetStarted}
                   style={{ borderTop:`3px solid ${c.col}` }}
                   itemScope itemType="https://schema.org/Service">
-                  <div className="svc-icon" style={{ fontSize:38, marginBottom:12 }}>{c.icon}</div>
+                  <div className="svc-icon" style={{ marginBottom:12, color:c.col }}>
+                    <Icon name={c.icon} size={30} />
+                  </div>
                   <div itemProp="name" style={{ fontSize:14, fontWeight:700, color:txt, marginBottom:8, lineHeight:1.3 }}>
                     {lang === "en" ? c.nameEn : c.nameBn}
                   </div>
@@ -703,24 +740,24 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           </div>
 
           <div className="lp-3col" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20 }}>
-            {tmList.map((tm, i) => (
-              <div key={i}
+            {GUARANTEES.map((g, i) => (
+              <div key={g.t}
                 ref={revealRef} data-rid={`tm-${i}`}
                 className={`tm-card-wrap lp-reveal${revealed[`tm-${i}`]?" vis":""}`}
                 style={{ transitionDelay:`${i * .15}s` }}>
-                <article className="lp-tm-card" itemScope itemType="https://schema.org/Review">
-                  {/* Stars */}
-                  <div style={{ display:"flex", gap:3, marginBottom:14 }}>
-                    {[1,2,3,4,5].map(s => <span key={s} style={{ color:"#F59E0B", fontSize:17 }}>★</span>)}
+                {/* Deliberately NOT schema.org/Review — nothing here is a review. */}
+                <article className="lp-tm-card">
+                  <div style={{
+                    width:44, height:44, borderRadius:12, marginBottom:16,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    background:`${G}14`, color:G,
+                  }}>
+                    <Icon name={g.icon} size={22} />
                   </div>
-                  <p itemProp="reviewBody" style={{ fontSize:14, color:sub, lineHeight:1.8, marginBottom:20, fontStyle:"italic" }}>"{tm.text}"</p>
-                  <div style={{ display:"flex", alignItems:"center", gap:12, borderTop:`1px solid ${cardBdr}`, paddingTop:16 }}>
-                    <div style={{ width:42, height:42, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#FFFFFF", fontWeight:800, fontSize:14, flexShrink:0 }}>{tm.initials}</div>
-                    <div>
-                      <div itemProp="author" style={{ fontWeight:700, fontSize:14, color:txt }}>{tm.name}</div>
-                      <div style={{ fontSize:12, color:muted }}>{tm.role}</div>
-                    </div>
+                  <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:txt, marginBottom:10 }}>
+                    {g.t}
                   </div>
+                  <p style={{ fontSize:13.5, color:sub, lineHeight:1.75, margin:0 }}>{g.d}</p>
                 </article>
               </div>
             ))}
@@ -729,11 +766,30 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           {/* Animated summary stats */}
           <div ref={revealRef} data-rid="tm-stats" className={`lp-reveal${revealed["tm-stats"]?" vis":""}`}
             style={{ display:"flex", justifyContent:"center", gap:56, marginTop:52, flexWrap:"wrap" }}>
+            {/*
+              These were "10,000+ Satisfied Customers", "4.9/5 Average
+              Rating", "98% Satisfaction Rate" and "64 Districts Covered".
+              None of them was measured. The platform has not yet served
+              10,000 customers, no rating has been averaged, no satisfaction
+              survey exists, and coverage is wherever a verified provider
+              happens to be.
+
+              A number on a landing page is a claim a customer relies on, and
+              inventing one is the same act whether it flatters the product by
+              a little or a lot. What is below is counted from the product
+              itself and stays true as it grows: the catalogue is real, and
+              the verification rule is enforced in code — a provider without a
+              verified identity case cannot appear in the directory at all
+              (TRUST-ARCHITECTURE §5).
+
+              When there are real customers and a real average rating, put
+              them back. Measured.
+            */}
             {[
-              ["১০,০০০+", "10,000+", "সন্তুষ্ট গ্রাহক", "Satisfied Customers"],
-              ["৪.৯/৫", "4.9/5", "গড় রেটিং", "Average Rating"],
-              ["৯৮%", "98%", "সন্তুষ্টির হার", "Satisfaction Rate"],
-              ["৬৪", "64", "জেলায় কভারেজ", "Districts Covered"],
+              ["১৯", "19", "সেবা বিভাগ", "Service Categories"],
+              ["১১০", "110", "আলাদা সেবা", "Distinct Services"],
+              ["১০০%", "100%", "পরিচয় যাচাইকৃত", "Identity Verified"],
+              ["২৪/৭", "24/7", "জরুরি SOS", "Emergency SOS"],
             ].map(([bn, en, lbn, len], i) => (
               <div key={bn} style={{ textAlign:"center", animation: revealed["tm-stats"] ? `lp-scaleIn .5s ease ${i*.1}s both` : "none" }}>
                 <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:34, fontWeight:800, color:G, lineHeight:1 }}>{lang === "en" ? en : bn}</div>
@@ -744,29 +800,19 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         </div>
       </section>
 
-      {/* ════════════ LIVE ACTIVITY TICKER ════════════ */}
-      <div style={{ background: dark ? "#0F1A16" : "#006A4E", padding:"12px 0", overflow:"hidden", position:"relative" }}>
-        <div style={{ display:"flex", width:"max-content", animation:"lp-slide-ticker 28s linear infinite" }}>
-          {[...Array(2)].map((_, gi) => (
-            <div key={gi} style={{ display:"flex", gap:0 }}>
-              {[
-                lang==="en" ? "🏠 Home Maintenance booked in Dhaka"   : "🏠 ঢাকায় গৃহ রক্ষণাবেক্ষণ বুক হয়েছে",
-                lang==="en" ? "🧹 Cleaning service confirmed"          : "🧹 পরিষ্কার সেবা নিশ্চিত হয়েছে",
-                lang==="en" ? "👩‍⚕️ Healthcare provider verified"      : "👩‍⚕️ স্বাস্থ্যসেবা Provider যাচাইয়ের হয়েছে",
-                lang==="en" ? "⚡ Electrical repair completed"         : "⚡ বৈদ্যুতিক মেরামত সম্পন্ন হয়েছে",
-                lang==="en" ? "🧓 Elderly care arranged in Chittagong" : "🧓 চট্টগ্রামে বয়স্ক সেবা ব্যবস্থা হয়েছে",
-                lang==="en" ? "📚 Tutor booked in Sylhet"             : "📚 সিলেটে গৃহশিক্ষক বুক হয়েছে",
-                lang==="en" ? "🚚 Moving service in progress"          : "🚚 স্থানান্তর সেবা চলছে",
-                lang==="en" ? "⭐ New 5-star review received"          : "⭐ নতুন ৫-তারা রিভিউ পাওয়া গেছে",
-              ].map((item, i) => (
-                <span key={i} style={{ whiteSpace:"nowrap", fontSize:13, color:"rgba(255,255,255,.88)", fontWeight:600, padding:"0 28px", borderRight:"1px solid rgba(255,255,255,.15)" }}>
-                  {item}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/*
+        A "LIVE ACTIVITY TICKER" used to scroll here — "🏠 Home Maintenance
+        booked in Dhaka", "📚 Tutor booked in Sylhet" — eight lines on a 28
+        second loop, hardcoded. Nothing about it was live. A visitor reading a
+        booking scroll past believes the marketplace is busy, and that belief
+        is the entire reason the component was there.
+
+        Removed rather than rebuilt. A real one would need a feed of recent
+        bookings, which is a privacy question before it is a feature question:
+        "Elderly care arranged in Chittagong" is a real person's arrangement
+        and a small enough city block to identify them. If it comes back it
+        should be counts over a period, not individual events.
+      */}
 
       {/* ════════════ FAQ ════════════ */}
       <section aria-labelledby="faq-heading" style={{ padding:"84px 24px", background:bg2 }}>

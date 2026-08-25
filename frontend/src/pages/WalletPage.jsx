@@ -1,7 +1,8 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
-import { TRANSACTIONS, TOPUP_AMOUNTS, TOPUP_METHODS } from "../constants/data";
+import { TOPUP_AMOUNTS, TOPUP_METHODS } from "../constants/data";
 import { escHtml } from "../utils/helpers";
 import { users as usersApi, payments as paymentsApi } from "../api";
 
@@ -44,7 +45,15 @@ export default function WalletPage() {
   // Keep local balance in sync when context changes (API load)
   useEffect(()=>{ setBalance(ctxBalance); },[ctxBalance]);
 
-  const displayTxns=apiTxns!=null?apiTxns:TRANSACTIONS;
+  /**
+   * This was `apiTxns != null ? apiTxns : TRANSACTIONS` — a hardcoded list
+   * with a ৳1,000 top-up and three spends in it. So a customer who had never
+   * used the wallet opened it and saw money moving in their own account, and
+   * a failed request looked exactly like a healthy one.
+   *
+   * An empty wallet is empty. A failed load says so.
+   */
+  const displayTxns = apiTxns || [];
   const income=displayTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const spent=Math.abs(displayTxns.filter(t=>t.amount<0).reduce((s,t)=>s+t.amount,0));
 
@@ -163,6 +172,22 @@ export default function WalletPage() {
 
           {/* Transaction list */}
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {filtered.length === 0 && (
+              <EmptyState C={C} compact
+                icon={apiTxns === null ? "warning" : "transaction"}
+                tone={apiTxns === null ? "error" : "neutral"}
+                title={apiTxns === null
+                  ? (lang==="bn" ? "লেনদেন লোড করা যায়নি" : "Could not load transactions")
+                  : filter !== "all"
+                    ? (lang==="bn" ? "এই ধরনের কোনো লেনদেন নেই" : "No transactions of this type")
+                    : (lang==="bn" ? "এখনো কোনো লেনদেন নেই" : "No transactions yet")}
+                description={apiTxns === null
+                  ? (lang==="bn" ? "সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।" : "Check your connection and try again.")
+                  : filter !== "all"
+                    ? (lang==="bn" ? "অন্য ফিল্টার বেছে নিন।" : "Try a different filter.")
+                    : (lang==="bn" ? "টপ-আপ করলে বা কোনো সেবার জন্য পেমেন্ট করলে এখানে দেখা যাবে।" : "Top up your wallet or pay for a service and it will appear here.")}
+              />
+            )}
             {filtered.map((t,i)=>(
               <div key={t.id} className="fu" style={{animationDelay:`${i*.04}s`,display:"flex",alignItems:"center",gap:14,padding:"13px 16px",background:C.card,borderRadius:i===0?"14px 14px 6px 6px":i===filtered.length-1?"6px 6px 14px 14px":"6px",marginBottom:2,border:`1px solid ${C.bdr}`}}>
                 <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{t.icon}</div>

@@ -1,16 +1,25 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
-import { PA_MONTHS, PA_EARNINGS, PA_REVIEWS } from "../constants/data";
+import { PA_MONTHS } from "../constants/data";
 import { providers as providersApi } from "../api";
 
 export default function ProviderAnalyticsPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [tab,setTab]=useState("overview");
   const [paMonths,setPaMonths]=useState(PA_MONTHS);
-  const [paEarnings,setPaEarnings]=useState(PA_EARNINGS);
-  const [paStats,setPaStats]=useState({jobs:48,rating:4.9,views:1200,thisMonth:PA_EARNINGS[PA_EARNINGS.length-1]});
-  const [paReviews,setPaReviews]=useState(PA_REVIEWS);
+  /**
+   * These opened as {jobs:48, rating:4.9, views:1200} over six months of
+   * invented earnings and three five-star reviews from people who do not
+   * exist. A provider who joined this morning saw a career.
+   *
+   * They start at zero now, which is what a provider who joined this morning
+   * has, and the reviews list stays empty until somebody writes one.
+   */
+  const [paEarnings,setPaEarnings]=useState([]);
+  const [paStats,setPaStats]=useState({jobs:0,rating:null,views:0,thisMonth:0});
+  const [paReviews,setPaReviews]=useState([]);
 
   useEffect(()=>{
     providersApi.analytics().then(data=>{
@@ -57,6 +66,13 @@ export default function ProviderAnalyticsPage(){
       )}
       {tab==="reviews"&&(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {paReviews.length === 0 && (
+            <EmptyState C={C} compact icon="star"
+              title={lang==="bn" ? "এখনো কোনো রিভিউ নেই" : "No reviews yet"}
+              description={lang==="bn"
+                ? "কাজ সম্পন্ন করার পর গ্রাহকরা রিভিউ দিলে এখানে দেখা যাবে।"
+                : "Reviews appear here once customers rate a completed job."} />
+          )}
           {paReviews.map((r,i)=>(
             <div key={i} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${C.bdr}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
