@@ -66,13 +66,67 @@ it was a bulk grandfathering rather than a review), or to accept the drop.
 
 ---
 
+## 2b. STOP — production is not where the migration chain thinks it is
+
+Measured 2026-08-25 with `scripts/schema-diff.mjs` (read-only):
+
+```
+expected 37 tables, target has 25
+13 tables missing · 13 tables differ · 45 real differences
+```
+
+**`schema_migrations` records a different migration lineage.** The ledger has
+`001_initial.sql`, `002_security.sql`, `003_refresh_tokens.sql`,
+`004_push_media.sql`, `005_referrals.sql`, applied 2026-07-05. Those
+filenames do not exist in this repository — the chain here is
+`001_baseline.sql`, `002_phase05_containment.sql`, … `012_…`.
+
+So `migrate.js --status` reports **all twelve as pending**, and running it
+would try to apply the baseline to a live database holding real data.
+
+Missing entirely: `principal`, `credential`, `session`, `membership`,
+`account`, `contact_verification`, `area`, `otp_challenge`,
+`rate_limit_counter`, `job`, `verification_case`, `identity_document`,
+`blood_requests`.
+
+`audit_log` exists but has none of the columns the current writer uses —
+`actor_principal_id`, `correlation_id`, `before_json`, `after_json`,
+`actor_via`, `actor_account_id` — and its `id` is `bigint` where the chain
+expects `char(36)`.
+
+**Production's schema predates Phase 0.5.** Nothing from I-01 through I-07
+has been applied, and the deployed backend matches: `/api/verification/me`
+answers 404 on the live host.
+
+This is a schema reconciliation project, not a deploy step, and it blocks
+everything below. The shape of the work:
+
+1. Confirm the divergence is only additive. The diff says every difference is
+   a missing table, column or index, plus eleven genuine type differences.
+   Nothing in the chain drops or renames.
+2. Either **stamp** the ledger to the equivalent point and apply forward, or
+   generate a reconciliation migration from the diff. Stamping is safe only
+   for migrations whose effects are already present; the diff says which.
+3. Rehearse on a TiDB **branch** restored from production before touching
+   production.
+4. Then the sequence below.
+
+```bash
+# read-only — run it yourself before believing any of the above
+set -a && . backend/.env && set +a
+REF_DB_HOST=127.0.0.1 REF_DB_PORT=3399 REF_DB_USER=root REF_DB_PASSWORD=...   node scripts/schema-diff.mjs
+```
+
+---
+
 ## 3. The sequence
+
+**Only after §2b is resolved.**
 
 ### 3.1 Migrate production
 
-TiDB compatibility for these two migrations is **unverified** — see §5. Take a
-backup first; TiDB Cloud can restore to a point in time, and this is the
-moment you want that to be true.
+Take a backup first; TiDB Cloud can restore to a point in time, and this is
+the moment you want that to be true.
 
 ```bash
 cd backend
@@ -165,16 +219,40 @@ code does not know those tables exist.
 
 ## 5. What is not verified
 
-**TiDB.** Migrations 011 and 012 are verified on MariaDB 12.2.2 and, through
-CI, on MySQL 8.0. Neither is TiDB. Specifically untested there:
+**TiDB — ANSWERED 2026-08-25.** Measured against the production cluster
+(`8.0.11-TiDB-v8.5.3-serverless`) with `scripts/migration-preflight.mjs`:
 
-- whether `CHECK` constraints are enforced at all — TiDB historically parsed
-  and ignored them. Where they are not enforced the repository and the domain
-  remain the primary controls and the constraints are defence in depth, so
-  this degrades rather than breaks.
-- whether `<=>` is accepted inside a `CHECK`
-- `ALTER TABLE … DROP CONSTRAINT` in migration 012
-- the query plans for `idx_queue` and the eligibility `EXISTS`
+| check | result |
+|---|---|
+| the DDL is accepted, including `<=>` inside a `CHECK` | pass |
+| `chk_reason_when_refused` is enforced | **FAIL — parsed and ignored** |
+| `chk_live_slot` is enforced | **FAIL — parsed and ignored** |
+| `uniq_live_document` refuses a duplicate live slot | pass |
+| NULL slots do not collide | pass |
+| `ALTER TABLE … DROP CONSTRAINT` (migration 012) | pass |
+
+**TiDB parses `CHECK` constraints and does not enforce them.** The migrations
+apply; the constraints are decorative on this engine.
+
+Survivable, and anticipated — migration 009 already recorded that enforcement
+was unverified and that the repository was the primary control. Concretely:
+
+- **R-1103** (a refusal carries a reason) holds at two layers rather than
+  three: the policy's `reasonRequired` denies at the kernel and the domain's
+  `requireReason` throws. The database will not catch a third-party writer.
+- **`live_slot`** integrity rests on `attachDocument` always setting it plus
+  `uniq_live_document`, which TiDB *does* enforce. The CHECK was defence in
+  depth against a shape the application never writes.
+- The same applies to `chk_active_slot` from migration 009 — so **migration
+  012, whose whole purpose was correcting that constraint, buys nothing on
+  TiDB.** Worth applying for engines where it does; worth knowing it does not
+  here.
+
+Do not describe these constraints as controls in a security review. They are
+not, on the engine that matters.
+
+Still unmeasured: the query plans for `idx_queue` and the eligibility
+`EXISTS` under real data volume.
 
 `scripts/migration-preflight.mjs` settles the first three in one command,
 without applying anything:
