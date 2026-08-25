@@ -73,6 +73,7 @@ import {
   CameraOutlined, UploadOutlined, DeleteOutlined, EditOutlined,
   ShareAltOutlined, LinkOutlined, InfoCircleOutlined, QuestionCircleOutlined,
   BookOutlined, ShopOutlined, CustomerServiceOutlined, RocketOutlined,
+  FontSizeOutlined, FileDoneOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -185,6 +186,15 @@ const REGISTRY = {
   "loyalty":          TrophyOutlined,          // 🏆
   "blood":            HeartOutlined,           // 🩸
   "disaster":         AlertOutlined,           // 🌊
+
+  // Elderly MODE is an accessibility setting — larger type — and is a
+  // different thing from the elderly-care service category above. They shared
+  // 👴 and should not share an icon.
+  "large-text":       FontSizeOutlined,        // 👴 on the accessibility toggle
+
+  // The trust section's "Full Legal Protection" card. ⚖️ has no line-art
+  // equivalent in this set; a signed document is the nearer idea anyway.
+  "legal":            FileDoneOutlined,        // ⚖️
 };
 
 /** Names the registry knows, for the test that keeps data.js in step with it. */

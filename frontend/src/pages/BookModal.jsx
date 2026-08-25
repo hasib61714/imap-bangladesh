@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
@@ -248,7 +249,7 @@ export default function BookModal({p,onClose,onSuccess}) {
         <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{tr.payMethod}</div>
         {[["bKash","💳","#E31E50"],["Nagad","📱","#F97316"],["Rocket","🚀","#7C3AED"],["Cash","💵","#00C170"]].map(([nm,ic,cl])=>(
           <div key={nm} onClick={()=>setPay(nm)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:11,border:`2px solid ${pay===nm?C.p:C.bdr}`,background:pay===nm?`${C.p}08`:"#fff",marginBottom:7,cursor:"pointer",transition:"all .15s"}}>
-            <div className="jc" style={{width:38,height:38,borderRadius:9,background:cl+"22",fontSize:17,flexShrink:0}}>{ic}</div>
+            <div className="jc" style={{width:38,height:38,borderRadius:9,background:cl+"22",fontSize:17,flexShrink:0}}><Icon name={ic} size={17} /></div>
             <div style={{flex:1,fontSize:14,fontWeight:600}}>{nm}</div>
             <div className="jc" style={{width:19,height:19,borderRadius:"50%",border:`2px solid ${pay===nm?C.p:C.bdr}`}}>{pay===nm&&<div style={{width:9,height:9,borderRadius:"50%",background:C.p}}/>}</div>
           </div>

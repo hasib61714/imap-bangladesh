@@ -1,4 +1,5 @@
 import { useC, useTr, useLiveData } from "../contexts";
+import Icon from "../components/Icon";
 import { PROVIDERS } from "../constants/data";
 import { toUiProv } from "../utils/helpers";
 
@@ -28,7 +29,7 @@ export default function ElderlyMode({onExit,onBook,onEmergency}) {
             boxShadow:`0 4px 16px rgba(21,163,96,.1),inset 0 1px 0 rgba(255,255,255,.5)`,
             width:"100%",transition:"all .2s"
           }}>
-            <div style={{fontSize:46,marginBottom:10}}>{s.icon}</div>
+            <div style={{fontSize:46,marginBottom:10}}><Icon name={s.icon} size={46} /></div>
             <div style={{fontSize:18,fontWeight:700,color:C.text,lineHeight:1.3}}>{s.name}</div>
           </button>
         ))}

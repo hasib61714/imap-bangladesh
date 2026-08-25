@@ -1,4 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi } from "../api";
@@ -52,18 +53,18 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
   },[]);
 
   const stats=[
-    {v:totalBookings||"—",label:lang==="bn"?"মোট বুকিং":"Total Bookings",icon:"📋"},
-    {v:u.points||0,label:lang==="bn"?"লয়্যালটি পয়েন্ট":"Loyalty Points",icon:"🏅"},
-    {v:referralCount,label:lang==="bn"?"রেফারেল":"Referrals",icon:"👥"},
-    {v:`৳${ctxBalance.toLocaleString()}`,label:lang==="bn"?"ওয়ালেট":"Wallet",icon:"💰"},
+    {v:totalBookings||"—",label:lang==="bn"?"মোট বুকিং":"Total Bookings",icon:"document"},
+    {v:u.points||0,label:lang==="bn"?"লয়্যালটি পয়েন্ট":"Loyalty Points",icon:"loyalty"},
+    {v:referralCount,label:lang==="bn"?"রেফারেল":"Referrals",icon:"team"},
+    {v:`৳${ctxBalance.toLocaleString()}`,label:lang==="bn"?"ওয়ালেট":"Wallet",icon:"cash"},
   ];
   const quickActions=[
-    {icon:"📋",label:lang==="bn"?"বুকিং":"Bookings",page:"bookings"},
-    {icon:"💰",label:lang==="bn"?"ওয়ালেট":"Wallet",page:"wallet"},
-    {icon:"🎁",label:lang==="bn"?"প্রোমো":"Promos",page:"promos"},
-    {icon:"🏅",label:lang==="bn"?"পয়েন্ট":"Points",page:"loyalty"},
-    {icon:"👥",label:lang==="bn"?"রেফারেল":"Referral",page:"referral"},
-    {icon:"⚙️",label:lang==="bn"?"সেটিংস":"Settings",page:"settings"},
+    {icon:"document",label:lang==="bn"?"বুকিং":"Bookings",page:"bookings"},
+    {icon:"cash",label:lang==="bn"?"ওয়ালেট":"Wallet",page:"wallet"},
+    {icon:"gift",label:lang==="bn"?"প্রোমো":"Promos",page:"promos"},
+    {icon:"loyalty",label:lang==="bn"?"পয়েন্ট":"Points",page:"loyalty"},
+    {icon:"team",label:lang==="bn"?"রেফারেল":"Referral",page:"referral"},
+    {icon:"settings",label:lang==="bn"?"সেটিংস":"Settings",page:"settings"},
   ];
   return (
     <div style={{paddingBottom:80}}>
@@ -119,7 +120,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8,margin:"18px 0"}}>
           {stats.map((s,i)=>(
             <div key={i} style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:14,padding:"12px 6px",textAlign:"center"}}>
-              <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
+              <div style={{fontSize:20,marginBottom:4}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={20} /></div>
               <div style={{fontWeight:800,fontSize:15,color:C.p}}>{s.v}</div>
               <div style={{fontSize:10,color:C.muted,fontWeight:600,lineHeight:1.3}}>{s.label}</div>
             </div>
@@ -132,7 +133,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(82px,1fr))",gap:8}}>
             {quickActions.map((a,i)=>(
               <button key={i} onClick={()=>onNavigate&&onNavigate(a.page)} style={{background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:12,padding:"12px 6px",cursor:"pointer",textAlign:"center",fontFamily:"inherit",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
-                <div style={{fontSize:22,marginBottom:4}}>{a.icon}</div>
+                <div style={{fontSize:22,marginBottom:4}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={22} /></div>
                 <div style={{fontSize:11,fontWeight:700,color:C.sub}}>{a.label}</div>
               </button>
             ))}

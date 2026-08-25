@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback, useContext, lazy, Suspense } from "react";
 import L from "leaflet";
+import Icon from "./components/Icon";
 import { C_LIGHT, C_DARK, CSS, CSS_DARK } from "./constants/theme";
 import { T } from "./constants/translations";
 import { SVCS, PROVIDERS, MY_BOOKINGS, NOTIFS_DATA,
@@ -438,7 +439,9 @@ export default function IMAP() {
   const EmgModal = ()=>(
     <div className="ov" onClick={()=>{setEmg(false);setEmgSvc(null);}}>
       <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,padding:28,textAlign:"center"}}>
-        <div style={{fontSize:60,marginBottom:14,animation:"pulse 1s infinite"}}>🚨</div>
+        <div style={{marginBottom:14,color:"#DC2626",animation:"pulse 1s infinite"}}>
+              <Icon name="emergency" size={54} />
+            </div>
         <div style={{fontSize:20,fontWeight:700,color:C.red}}>{tr.emgTitle}</div>
         <div style={{fontSize:13,color:C.muted,marginTop:6}}>{tr.emgSub}</div>
         {emgCnt>0?(
@@ -484,9 +487,10 @@ export default function IMAP() {
           <div className="jc" style={{
             width:38,height:38,borderRadius:12,
             background:`linear-gradient(135deg,${C.p},${C.pdk})`,
-            fontSize:18,
+            fontFamily:"'Plus Jakarta Sans',sans-serif",
+            fontSize:17,fontWeight:800,color:"#fff",letterSpacing:-.5,
             boxShadow:`0 4px 14px ${C.p}55,inset 0 1px 0 rgba(255,255,255,.25)`
-          }}>🌿</div>
+          }} aria-hidden="true">iM</div>
           <div>
             <div style={{
               fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:19,fontWeight:800,lineHeight:1,
@@ -498,7 +502,9 @@ export default function IMAP() {
         </div>
         {/* Search bar (desktop) */}
         <div className="nsearch" style={{flex:1,maxWidth:440,position:"relative"}}>
-          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:C.muted}}>🔍</div>
+          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.muted,display:"flex"}}>
+            <Icon name="search" size={15} />
+          </div>
           <input placeholder={tr.search} readOnly onClick={()=>setModal("search")} style={{
             width:"100%",padding:"10px 14px 10px 38px",
             border:`1.5px solid ${C.bdr}`,borderRadius:12,fontSize:13,
@@ -518,16 +524,18 @@ export default function IMAP() {
           {/* Language selector — desktop only */}
           {!isMobile&&<button onClick={()=>setLang(lang==="bn"?"en":"bn")} title={lang==="bn"?"Switch to English":"বাংলায় পরিবর্তন করুন"} style={{height:36,padding:"0 11px",border:`1px solid ${C.bdr}`,borderRadius:9,background:C.bg,cursor:"pointer",fontSize:12,fontWeight:700,color:C.text,transition:"all .2s"}}>{lang==="bn"?"EN":"বাং"}</button>}
           {/* Dark mode toggle — desktop only */}
-          {!isMobile&&<button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,transition:"all .2s"}}>{dark?"☀️":"🌙"}</button>}
+          {!isMobile&&<button onClick={()=>setDark(d=>!d)} title={dark?tr.lightMode:tr.darkMode} style={{width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,background:dark?"#1A3D2E":C.bg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}><Icon name={dark?"light":"dark"} size={16} color={C.text} /></button>}
           {/* Icon buttons (desktop only) */}
-          {!isMobile&&[["👴",tr.elderlyMode,()=>setElderly(true)],["🗺️",tr.map,()=>setModal("map")],["🔍",tr.find,()=>setModal("search")]].map(([ic,title,fn])=>(
+          {!isMobile&&[["large-text",tr.elderlyMode,()=>setElderly(true)],["location",tr.map,()=>setModal("map")],["search",tr.find,()=>setModal("search")]].map(([ic,title,fn])=>(
             <button key={title} title={title} className="htab" onClick={fn} style={{
               width:36,height:36,border:`1px solid ${C.bdr}`,borderRadius:9,
               background:dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)",
               backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:15,transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"
-            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>{ic}</button>
+            }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+              <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={16} color={C.sub} />
+            </button>
           ))}
           {/* Notification bell */}
           <div style={{position:"relative"}}>
@@ -540,7 +548,7 @@ export default function IMAP() {
               fontSize:15,position:"relative",transition:"all .2s",
               boxShadow:"0 2px 8px rgba(0,0,0,.06)"
             }} onMouseEnter={e=>{e.currentTarget.style.background=C.plt;e.currentTarget.style.boxShadow=`0 4px 14px ${C.p}25`;}} onMouseLeave={e=>{e.currentTarget.style.background=dark?"rgba(15,30,22,.7)":"rgba(255,255,255,.8)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
-              🔔
+              <Icon name="notification" size={16} />
               {unreadCount>0&&<div className="jc" style={{position:"absolute",top:5,right:5,width:12,height:12,background:C.red,borderRadius:"50%",fontSize:8,color:"#fff",fontWeight:700}}>{unreadCount>9?"9+":unreadCount}</div>}
             </button>
             {notifDrop&&(
@@ -555,13 +563,13 @@ export default function IMAP() {
               }}
 >
                 <div className="row" style={{padding:"12px 15px",borderBottom:`1px solid ${C.bdr}`,justifyContent:"space-between"}}>
-                  <div style={{fontSize:14,fontWeight:700}}>🔔 {tr.notifications}</div>
+                  <div style={{fontSize:14,fontWeight:700,display:"flex",alignItems:"center",gap:8}}><Icon name="notification" size={15} />{tr.notifications}</div>
                   <button className="btn btn-gh" style={{fontSize:12,color:C.p}} onClick={()=>{setPage("notifs");setNotifDrop(false);}}>{tr.seeAll}</button>
                 </div>
                 {liveNotifs.slice(0,4).map((n,i)=>(
                   <div key={i} style={{padding:"10px 15px",borderBottom:i<3?`1px solid ${C.bdr}`:"none",background:n.unread?`${C.p}06`:"#fff",cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background=n.unread?`${C.p}06`:"#fff"}>
                     <div className="row" style={{gap:9}}>
-                      <div className="jc" style={{width:34,height:34,borderRadius:9,background:C.plt,fontSize:14,flexShrink:0}}>{n.icon}</div>
+                      <div className="jc" style={{width:34,height:34,borderRadius:9,background:C.plt,fontSize:14,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={14} /></div>
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:700}}>{lang==="en"?n.tEn:n.t}</div>
                         <div style={{fontSize:11,color:C.muted,marginTop:1}}>{lang==="en"?n.mEn:n.m}</div>
@@ -600,41 +608,47 @@ export default function IMAP() {
                 </div>
                 {/* গ্রুপ ১: আমার অ্যাকাউন্ট */}
                 {[
-                  [`👤 ${lang==="bn"?"আমার প্রোফাইল":"My Profile"}`,"cprofile"],
-                  [`📋 ${tr.myBookings}`,"bookings"],
-                  [`🔔 ${tr.notifications}`,"notifs"],
-                  [`🔖 ${lang==="bn"?"সেভ করা":"Saved"}`,"saved"],
-                  [`📅 ${tr.calNav||"Calendar"}`,"calendar"],
-                ].map(([item,pg],i)=>(
-                  <div key={`acc-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{item}</div>
+                  ["user",lang==="bn"?"আমার প্রোফাইল":"My Profile","cprofile"],
+                  ["calendar",tr.myBookings,"bookings"],
+                  ["notification",tr.notifications,"notifs"],
+                  ["star",lang==="bn"?"সেভ করা":"Saved","saved"],
+                  ["calendar",tr.calNav||"Calendar","calendar"],
+                ].map(([ic,item,pg],i)=>(
+                  <div key={`acc-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                  </div>
                 ))}
                 {/* গ্রুপ ২: আর্থিক ও বিশেষ সেবা */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
                 {[
-                  [`💸 ${tr.wlNav||"Wallet"}`,"wallet"],
-                  [`🎁 ${tr.prNav||"Offers"}`,"promos"],
-                  [`🏅 ${lang==="bn"?"পয়েন্ট":"Loyalty Points"}`,"loyalty"],
-                  [`🩸 ${tr.bdNav||"Blood Donate"}`,"blood"],
-                  [`🌪️ ${tr.dsNav||"Disaster Alerts"}`,"disaster"],
-                ].map(([item,pg],i)=>(
-                  <div key={`fin-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{item}</div>
+                  ["wallet",tr.wlNav||"Wallet","wallet"],
+                  ["gift",tr.prNav||"Offers","promos"],
+                  ["loyalty",lang==="bn"?"পয়েন্ট":"Loyalty Points","loyalty"],
+                  ["blood",tr.bdNav||"Blood Donate","blood"],
+                  ["disaster",tr.dsNav||"Disaster Alerts","disaster"],
+                ].map(([ic,item,pg],i)=>(
+                  <div key={`fin-${i}`} onClick={()=>{setPage(pg);setProfDrop(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                  </div>
                 ))}
                 {/* গ্রুপ ৩: যাচাই ও প্রদানকারী */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
                 {[
-                  [`🛡️ ${lang==="bn"?"KYC যাচাই":"KYC Verify"}`,"_kyc"],
-                  [`🪪 ${tr.nidVerify}`,"_nid"],
-                  [`💹 ${tr.loanScore}`,"_loan"],
-                  [`👷 ${tr.dashboard}`,"dashboard"],
-                  [`📋 ${lang==="bn"?"প্রদানকারী রেজি.":"Provider Reg."}`,"providerreg"],
-                ].map(([item,pg],i)=>(
+                  ["identity",lang==="bn"?"KYC যাচাই":"KYC Verify","_kyc"],
+                  ["document",tr.nidVerify,"_nid"],
+                  ["earnings",tr.loanScore,"_loan"],
+                  ["dashboard",tr.dashboard,"dashboard"],
+                  ["shop",lang==="bn"?"প্রদানকারী রেজি.":"Provider Reg.","providerreg"],
+                ].map(([ic,item,pg],i)=>(
                   <div key={`vfy-${i}`} onClick={()=>{
                     if(["dashboard","providerreg"].includes(pg))setPage(pg);
                     else if(pg==="_kyc")setShowKyc(true);
                     else if(pg==="_nid")setModal("nid");
                     else if(pg==="_loan")setModal("loan");
                     setProfDrop(false);
-                  }} style={{padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>{item}</div>
+                  }} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 15px",fontSize:13,cursor:"pointer",transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} />{item}
+                  </div>
                 ))}
                 {/* ভাষা ও থিম */}
                 <div style={{height:1,background:C.bdr,margin:"2px 0"}}/>
@@ -643,7 +657,7 @@ export default function IMAP() {
                   <button onClick={()=>{setLang(l=>l==="bn"?"en":"bn");setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{lang==="bn"?"EN 🌐":"বাং 🌐"}</button>
                 </div>
                 <div style={{padding:"9px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:13,color:C.sub}}>{dark?"☀️":"🌙"} {lang==="bn"?"থিম":"Theme"}</span>
+                  <span style={{fontSize:13,color:C.sub,display:"inline-flex",alignItems:"center",gap:6}}><Icon name={dark?"light":"dark"} size={14} />{lang==="bn"?"থিম":"Theme"}</span>
                   <button onClick={()=>{setDark(d=>!d);setProfDrop(false);}} style={{background:C.plt,color:C.p,border:`1px solid ${C.bdr}`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{dark?(lang==="bn"?"লাইট":"Light"):(lang==="bn"?"ডার্ক":"Dark")}</button>
                 </div>
                 {/* গ্রুপ ৪: সিস্টেম */}
@@ -681,10 +695,10 @@ export default function IMAP() {
                 </div>
                 {/* Quick actions */}
                 {[
-                  ["🛠️",tr.services||"সেবা","services"],
-                  ["👴",tr.elderlyMode||"বয়স্ক মোড","_elderly"],
-                  ["🗺️",tr.map||"ম্যাপ","_map"],
-                  ["🔍",tr.find||"খুঁজুন","_search"],
+                  ["repair",tr.services||"সেবা","services"],
+                  ["large-text",tr.elderlyMode||"বয়স্ক মোড","_elderly"],
+                  ["location",tr.map||"ম্যাপ","_map"],
+                  ["search",tr.find||"খুঁজুন","_search"],
                 ].map(([ic,lbl,act])=>(
                   <div key={act} onClick={()=>{
                     setNavDotMenu(false);
@@ -693,7 +707,7 @@ export default function IMAP() {
                     else if(act==="_map")setModal("map");
                     else if(act==="_search")setModal("search");
                   }} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{fontSize:15}}>{ic}</span><span>{lbl}</span>
+                    <Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={15} color={C.sub} /><span>{lbl}</span>
                   </div>
                 ))}
                 <div style={{height:1,background:C.bdr}}/>
@@ -731,7 +745,7 @@ export default function IMAP() {
         }} style={{position:"relative",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"8px 0",fontFamily:"'Hind Siliguri',sans-serif",WebkitTapHighlightColor:"transparent"}}>
           {/* animated active indicator */}
           <div style={{position:"absolute",top:0,width:active?24:0,height:3,borderRadius:"0 0 4px 4px",background:`linear-gradient(90deg,${C.p},${C.pdk})`,transition:"width .22s cubic-bezier(.4,0,.2,1)"}}/>
-          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px ${C.p}55`:"none"}}>{icon}</div>
+          <div className="jc" style={{width:36,height:30,borderRadius:11,background:active?`linear-gradient(135deg,${C.p},${C.pdk})`:"transparent",fontSize:16,transition:"all .2s cubic-bezier(.4,0,.2,1)",transform:active?"translateY(-1px)":"none",boxShadow:active?`0 4px 12px ${C.p}55`:"none"}}><Icon name=<Icon name={icon} size={14} style={{marginRight:6}} />size={16} /></div>
           <div style={{fontSize:10.5,fontWeight:active?800:600,color:active?C.p:C.muted,transition:"color .18s"}}>{l}</div>
         </button>
       )})}
@@ -784,7 +798,7 @@ export default function IMAP() {
             <div className="sb" style={{opacity:anim?1:0,transition:"opacity .8s ease .2s"}}>
               {[{ic:"✅",vBn:"৪৮,২৩৫+",vEn:"48,235+",l:tr.statDone,g:"+12%",d:.3},{ic:"🛡️",vBn:"৮,৪৯২",vEn:"8,492",l:tr.statVerified,g:"+8%",d:.4},{ic:"⭐",vBn:"২,১৫,৮৬৩",vEn:"215,863",l:tr.statHappy,g:"+23%",d:.5},{ic:"🗺️",vBn:"৬৪ জেলা",vEn:"64 Districts",l:tr.statNation,g:"100%",d:.6}].map((s,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,.07)",backdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:20,animation:`fadeUp .5s ease ${s.d}s both`}}>
-                  <div style={{fontSize:27,marginBottom:8}}>{s.ic}</div>
+                  <div style={{fontSize:27,marginBottom:8}}><Icon name=<Icon name={s.ic} size={14} style={{marginRight:6}} />size={27} /></div>
                   <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:24,fontWeight:800,color:"#fff"}}>{lang==="en"?s.vEn:s.vBn}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:3}}>{s.l}</div>
                   <div style={{fontSize:11,color:C.p,marginTop:7,fontWeight:600}}>{s.g} ↑</div>
@@ -830,7 +844,7 @@ export default function IMAP() {
           <div className="g3">
             {[{n:"01",ic:"🔍",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"02",ic:"📋",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"03",ic:"✅",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
               <div key={i} className="card" style={{padding:26,animation:`fadeUp .5s ease ${.2+i*.14}s both`}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:h.bg,fontSize:22,marginBottom:14}}>{h.ic}</div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:h.bg,fontSize:22,marginBottom:14}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={22} /></div>
                 <div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:2,marginBottom:5}}>{tr.step} {h.n}</div>
                 <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:8}}>{h.t}</div>
                 <div style={{fontSize:13,color:C.muted,lineHeight:1.75}}>{h.d}</div>
@@ -861,7 +875,7 @@ export default function IMAP() {
           <div className="g6">
             {SVCS.map((s,i)=>(
               <div key={s.id} className="card" onClick={()=>setModal("search")} style={{padding:"18px 8px",textAlign:"center",cursor:"pointer",animation:`fadeUp .4s ease ${.04+i*.03}s both`}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,margin:"0 auto 10px"}}>{s.icon}</div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,margin:"0 auto 10px"}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
                 <div style={{fontSize:12,fontWeight:600,color:C.text,lineHeight:1.3}}>{lang==="en"?s.nameEn:s.name}</div>
                 <div style={{fontSize:10,color:C.muted,marginTop:3}}>{s.count} {tr.available}</div>
                 <div style={{fontSize:11,color:C.p,marginTop:3,fontWeight:600}}>{s.avg} {tr.startFrom}</div>
@@ -895,9 +909,9 @@ export default function IMAP() {
         <div className="wp">
           <div style={{textAlign:"center",marginBottom:44}}><div className="sec-h" style={{color:"#fff"}}>{tr.whyTitle}</div></div>
           <div className="g4 wg">
-            {[{ic:"🛡️",t:tr.w1t,d:tr.w1d},{ic:"🤖",t:tr.w2t,d:tr.w2d},{ic:"💰",t:tr.w3t,d:tr.w3d},{ic:"🔒",t:tr.w4t,d:tr.w4d}].map((f,i)=>(
+            {[{ic:"security",t:tr.w1t,d:tr.w1d},{ic:"digital",t:tr.w2t,d:tr.w2d},{ic:"cash",t:tr.w3t,d:tr.w3d},{ic:"locked",t:tr.w4t,d:tr.w4d}].map((f,i)=>(
               <div key={i} style={{textAlign:"center",padding:18,animation:`fadeUp .5s ease ${i*.1}s both`}}>
-                <div className="jc" style={{width:58,height:58,borderRadius:16,background:"rgba(255,255,255,.08)",fontSize:26,margin:"0 auto 14px"}}>{f.ic}</div>
+                <div className="jc" style={{width:58,height:58,borderRadius:16,background:"rgba(255,255,255,.08)",fontSize:26,margin:"0 auto 14px"}}><Icon name=<Icon name={f.ic} size={14} style={{marginRight:6}} />size={26} /></div>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:6}}>{f.t}</div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,.55)",lineHeight:1.7}}>{f.d}</div>
               </div>
@@ -945,7 +959,7 @@ export default function IMAP() {
               <div className="sec-s" style={{marginBottom:20}}>{tr.impactSub}</div>
               {[[tr.si1,tr.si1v,"🩸"],[tr.si2,tr.si2v,"🤝"],[tr.si3,tr.si3v,"🌪️"],[tr.si4,tr.si4v,"💙"]].map(([l,v,ic],i)=>(
                 <div key={i} className="row" style={{justifyContent:"space-between",padding:"12px 0",borderBottom:i<3?`1px solid ${C.bdr}`:"none"}}>
-                  <div className="row" style={{gap:12}}><div className="jc" style={{width:42,height:42,borderRadius:11,background:C.plt,fontSize:20,flexShrink:0}}>{ic}</div><div style={{fontSize:14,fontWeight:600}}>{l}</div></div>
+                  <div className="row" style={{gap:12}}><div className="jc" style={{width:42,height:42,borderRadius:11,background:C.plt,fontSize:20,flexShrink:0}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div><div style={{fontSize:14,fontWeight:600}}>{l}</div></div>
                   <div style={{fontSize:14,fontWeight:700,color:C.p}}>{v}</div>
                 </div>
               ))}
@@ -981,7 +995,7 @@ export default function IMAP() {
           <div className="fg" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:36,marginBottom:36}}>
             <div>
               <div className="row" style={{gap:9,marginBottom:14}}>
-                <div className="jc" style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${C.p},${C.pdk})`,fontSize:17}}>🌿</div>
+                <div className="jc" style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${C.p},${C.pdk})`,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:800,color:"#fff",letterSpacing:-.5}} aria-hidden="true">iM</div>
                 <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:18,fontWeight:800,color:"#fff"}}>IMAP</div>
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,.44)",lineHeight:1.8,maxWidth:260}}>{tr.footerDesc}</div>
@@ -1062,7 +1076,7 @@ export default function IMAP() {
           </button>
           {SVCS.map(s=>(
             <button key={s.id} onClick={()=>{setSvcCat(svcCat===s.id?null:s.id);setSvcSearch("");}} style={{flexShrink:0,padding:"7px 14px",borderRadius:99,border:`1.5px solid ${svcCat===s.id?s.col:C.bdr}`,background:svcCat===s.id?s.col:C.card,color:svcCat===s.id?"#fff":C.sub,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'Hind Siliguri',sans-serif",display:"flex",alignItems:"center",gap:5,transition:"all .15s"}}>
-              <span>{s.icon}</span>{lang==="en"?s.nameEn:s.name}
+              <Icon name={s.icon} size={15} style={{marginRight:6}} />{lang==="en"?s.nameEn:s.name}
             </button>
           ))}
         </div>
@@ -1092,7 +1106,7 @@ export default function IMAP() {
             <div key={s.id} className="card" style={{padding:22,cursor:"pointer",animation:`fadeUp .4s ease ${i*.04}s both`,border:`1.5px solid ${svcCat===s.id?s.col:C.bdr}`,transition:"box-shadow .15s"}}>
               {/* Card header */}
               <div className="row" style={{gap:13,marginBottom:10}}>
-                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}18`,fontSize:24,flexShrink:0,border:`1.5px solid ${s.col}30`}}>{s.icon}</div>
+                <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}18`,fontSize:24,flexShrink:0,border:`1.5px solid ${s.col}30`}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:15,fontWeight:700,color:C.text}}>{lang==="en"?s.nameEn:s.name}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>
@@ -1122,7 +1136,7 @@ export default function IMAP() {
                   <div style={{fontSize:18,fontWeight:800,color:s.col}}>{s.avg}</div>
                 </div>
                 <button onClick={e=>{e.stopPropagation();setSvcCat(s.id);}} style={{fontSize:11,color:s.col,background:`${s.col}12`,border:`1px solid ${s.col}30`,borderRadius:20,padding:"4px 10px",cursor:"pointer",fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif"}}>
-                  {lang==="en"?"Filter":"ফিল্টার"} {s.icon}
+                  {lang==="en"?"Filter":"ফিল্টার"} <Icon name={s.icon} size={13} />
                 </button>
               </div>
 
@@ -1175,7 +1189,7 @@ export default function IMAP() {
       </div>
       {[{n:"1",ic:"🔍",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"2",ic:"📋",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"3",ic:"✅",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
         <div key={i} className="card" style={{padding:28,marginBottom:16,display:"flex",gap:20,alignItems:"flex-start"}}>
-          <div className="jc" style={{width:56,height:56,borderRadius:16,background:h.bg,fontSize:24,flexShrink:0}}>{h.ic}</div>
+          <div className="jc" style={{width:56,height:56,borderRadius:16,background:h.bg,fontSize:24,flexShrink:0}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={24} /></div>
           <div>
             <div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:2,marginBottom:5}}>{tr.step} {h.n}</div>
             <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{h.t}</div>
@@ -1321,7 +1335,7 @@ export default function IMAP() {
                 <div style={{fontSize:12,color:C.muted,marginBottom:20}}>{lang==="bn"?"SSLCommerz — bKash, Nagad, Rocket, Card সহ সকল পদ্ধতি":"SSLCommerz — bKash, Nagad, Rocket, uPay, Cards & more"}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",marginBottom:20}}>
                   {[["🟢","bKash"],["🔵","Nagad"],["🟠","Rocket"],["🟣","uPay"],["🔴","CelFin"],["💳","Card"]].map(([ic,lbl])=>(
-                    <div key={lbl} style={{padding:"6px 14px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:20,fontSize:12,fontWeight:600,color:C.text}}>{ic} {lbl}</div>
+                    <div key={lbl} style={{padding:"6px 14px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:20,fontSize:12,fontWeight:600,color:C.text}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
                   ))}
                 </div>
                 <div style={{display:"flex",gap:10}}>

@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
@@ -73,7 +74,7 @@ export default function BloodDonationPage() {
           {[["🩸",donors.length,lang==="en"?"Donors":"ডোনার"],["✅",donors.filter(d=>d.avail).length,lang==="en"?"Available":"উপলব্ধ"],["💉",donors.reduce((s,d)=>s+d.dons,0),lang==="en"?"Total Donated":"মোট দান"]].map(([ic,n,lbl])=>(
             <div key={lbl} style={{textAlign:"center"}}>
               <div style={{fontSize:20,fontWeight:800}}>{n}</div>
-              <div style={{fontSize:10,opacity:.8}}>{ic} {lbl}</div>
+              <div style={{fontSize:10,opacity:.8}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
             </div>
           ))}
         </div>
@@ -84,7 +85,7 @@ export default function BloodDonationPage() {
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
         {[["donors",tr.bdDonors,"🩸"],["request",tr.bdReq,"📋"],["become",tr.bdBecome,"❤️"],["map",lang==="en"?"Map":"মানচিত্র","🗺️"]].map(([id,lbl,ic])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px 6px",borderRadius:10,border:"none",background:tab===id?"#DC2626":"transparent",color:tab===id?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{ic} {lbl}</button>
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px 6px",borderRadius:10,border:"none",background:tab===id?"#DC2626":"transparent",color:tab===id?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}
       </div>
 
@@ -200,7 +201,7 @@ export default function BloodDonationPage() {
           {/* Steps */}
           {[["1","💉",lang==="en"?"Check Eligibility":"যোগ্যতা যাচাই",lang==="en"?"18–60 years, weight 50kg+, healthy":"১৮–৬০ বছর, ওজন ৫০কেজি+, সুস্বাস্থ্য"],["2","🏥",lang==="en"?"Visit a Blood Bank":"ব্লাড ব্যাংক যান",lang==="en"?"Nearest government hospital or SANBS center":"নিকটস্থ সরকারি হাসপাতাল বা SANBS কেন্দ্র"],["3","✅",lang==="en"?"Register & Donate":"নিবন্ধন ও দান",lang==="en"?"Process takes ~30 min. Free certificate issued.":"প্রক্রিয়া ~৩০ মিনিট। বিনামূল্যে সার্টিফিকেট দেওয়া হয়।"]].map(([n,ic,t,d])=>(
             <div key={n} style={{display:"flex",gap:14,alignItems:"flex-start",background:C.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${C.bdr}`}}>
-              <div style={{width:38,height:38,borderRadius:"50%",background:"#DC2626",color:"#fff",fontWeight:800,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ic}</div>
+              <div style={{width:38,height:38,borderRadius:"50%",background:"#DC2626",color:"#fff",fontWeight:800,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={16} /></div>
               <div>
                 <div style={{fontWeight:700,fontSize:14,color:C.text}}>{t}</div>
                 <div style={{fontSize:12,color:C.muted,marginTop:3,lineHeight:1.6}}>{d}</div>

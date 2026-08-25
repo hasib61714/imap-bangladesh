@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import {
   Card, Button, Input, Divider, Tabs, Steps,
   message, ConfigProvider, theme as antTheme, Avatar
@@ -419,8 +420,8 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   {[
-                    { v: "customer", icon: "🛍️", bn: "সেবাগ্রহণকারী",  en: "Customer",        desc: lang === "bn" ? "সেবা নিন" : "Get services" },
-                    { v: "provider", icon: "👷", bn: "সেবাদানকারী",    en: "Service Provider", desc: lang === "bn" ? "সেবা দিন" : "Give services" },
+                    { v: "customer", icon: "errands", bn: "সেবাগ্রহণকারী",  en: "Customer",        desc: lang === "bn" ? "সেবা নিন" : "Get services" },
+                    { v: "provider", icon: "shop", bn: "সেবাদানকারী",    en: "Service Provider", desc: lang === "bn" ? "সেবা দিন" : "Give services" },
                   ].map(r => (
                     <div key={r.v} className="role-card" onClick={() => setRole(r.v)}
                       style={{
@@ -429,7 +430,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                         background: role === r.v ? "#f0fdf4" : (dark ? "#1e293b" : "#fff"),
                         boxShadow: role === r.v ? "0 0 0 3px #bbf7d044" : "none", transition: "all .2s",
                       }}>
-                      <div style={{ fontSize: 28, marginBottom: 4 }}>{r.icon}</div>
+                      <div style={{ fontSize: 28, marginBottom: 4 }}><Icon name={r.icon} size={28} /></div>
                       <div style={{ fontSize: 12, fontWeight: 800, color: role === r.v ? "#006A4E" : "#374151" }}>
                         {lang === "bn" ? r.bn : r.en}
                       </div>

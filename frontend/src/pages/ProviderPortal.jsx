@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
@@ -252,23 +253,23 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
   };
 
   const tabs=[
-    {v:"dash",icon:"📊",lbn:"ড্যাশবোর্ড",len:"Dashboard"},
-    {v:"jobs",icon:"💼",lbn:"কাজ",len:"Jobs"},
-    {v:"schedule",icon:"📅",lbn:"সময়সূচি",len:"Schedule"},
-    {v:"earnings",icon:"💰",lbn:"আয়",len:"Earnings"},
-    {v:"profile",icon:"👤",lbn:"প্রোফাইল",len:"Profile"},
-    {v:"reviews",icon:"⭐",lbn:"রিভিউ",len:"Reviews"},
-    {v:"chat",icon:"💬",lbn:"চ্যাট",len:"Chat"},
-    {v:"notifs",icon:"🔔",lbn:`বিজ্ঞপ্তি${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`,len:`Notifs${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`},
+    {v:"dash",icon:"dashboard",lbn:"ড্যাশবোর্ড",len:"Dashboard"},
+    {v:"jobs",icon:"professional",lbn:"কাজ",len:"Jobs"},
+    {v:"schedule",icon:"calendar",lbn:"সময়সূচি",len:"Schedule"},
+    {v:"earnings",icon:"cash",lbn:"আয়",len:"Earnings"},
+    {v:"profile",icon:"user",lbn:"প্রোফাইল",len:"Profile"},
+    {v:"reviews",icon:"star",lbn:"রিভিউ",len:"Reviews"},
+    {v:"chat",icon:"chat",lbn:"চ্যাট",len:"Chat"},
+    {v:"notifs",icon:"notification",lbn:`বিজ্ঞপ্তি${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`,len:`Notifs${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`},
   ];
 
   const statCards=[
-    {icon:"💼",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
-    {icon:"🔄",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
-    {icon:"✅",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
-    {icon:"💰",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
-    {icon:"⭐",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
-    {icon:"📋",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
+    {icon:"professional",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
+    {icon:"loading",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
+    {icon:"success",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
+    {icon:"cash",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
+    {icon:"star",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
+    {icon:"document",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
   ];
 
   return(
@@ -386,7 +387,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:22}}>
               {statCards.map((s,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,borderTop:`3px solid ${s.col}`,textAlign:"center",animation:`pp-fadeUp .4s ease ${i*.08}s both`}}>
-                  <div style={{fontSize:24,marginBottom:6}}>{s.icon}</div>
+                  <div style={{fontSize:24,marginBottom:6}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
                   <div style={{fontSize:20,fontWeight:800,color:s.col}}>{s.val}</div>
                   <div style={{fontSize:11,color:C.muted}}>{lang==="bn"?s.lbn:s.len}</div>
                 </div>
@@ -519,13 +520,13 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
               {[
-                {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"💳",col:C.p},
-                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"📈",col:"#00C170"},
-                {lbn:"মাসিক",len:"Monthly",val:earnings.thisMonth,icon:"📊",col:"#F59E0B"},
-                {lbn:"সর্বমোট",len:"All Time",val:earnings.total,icon:"🏆",col:"#8B5CF6"},
+                {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"card",col:C.p},
+                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"earnings",col:"#00C170"},
+                {lbn:"মাসিক",len:"Monthly",val:earnings.thisMonth,icon:"dashboard",col:"#F59E0B"},
+                {lbn:"সর্বমোট",len:"All Time",val:earnings.total,icon:"trophy",col:"#8B5CF6"},
               ].map((e,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:12}}>
-                  <span style={{fontSize:28}}>{e.icon}</span>
+                  <span style={{fontSize:28}}><Icon name=<Icon name={e.icon} size={14} style={{marginRight:6}} />size={28} /></span>
                   <div>
                     <div style={{fontSize:20,fontWeight:800,color:e.col}}>৳{e.val.toLocaleString()}</div>
                     <div style={{fontSize:12,color:C.muted}}>{lang==="bn"?e.lbn:e.len}</div>
@@ -610,14 +611,14 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             </div>
             <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`,marginBottom:16}}>
               {[
-                {key:"name",lbn:"নাম",len:"Full Name",icon:"👤"},
-                {key:"service",lbn:"সেবার ধরন",len:"Service Type",icon:"🔧"},
-                {key:"area",lbn:"কাজের এলাকা",len:"Work Area",icon:"📍"},
-                {key:"phone",lbn:"ফোন",len:"Phone",icon:"📱"},
-                {key:"rate",lbn:"প্রতি ঘণ্টার রেট (৳)",len:"Hourly Rate (৳)",icon:"💰"},
+                {key:"name",lbn:"নাম",len:"Full Name",icon:"user"},
+                {key:"service",lbn:"সেবার ধরন",len:"Service Type",icon:"repair"},
+                {key:"area",lbn:"কাজের এলাকা",len:"Work Area",icon:"location"},
+                {key:"phone",lbn:"ফোন",len:"Phone",icon:"phone"},
+                {key:"rate",lbn:"প্রতি ঘণ্টার রেট (৳)",len:"Hourly Rate (৳)",icon:"cash"},
               ].map(f=>(
                 <div key={f.key} style={{marginBottom:14}}>
-                  <div style={{fontSize:12,color:C.muted,marginBottom:5,fontWeight:600}}>{f.icon} {lang==="bn"?f.lbn:f.len}</div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:5,fontWeight:600}}><Icon name={f.icon} size={14} style={{marginRight:6}} />{lang==="bn"?f.lbn:f.len}</div>
                   {editMode?(
                     <input value={profile[f.key]} onChange={e=>setProfile(p=>({...p,[f.key]:e.target.value}))}
                       style={{width:"100%",padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:10,fontSize:14,background:C.bg,color:C.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
@@ -775,7 +776,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>🔔 {lang==="bn"?"বিজ্ঞপ্তি":"Notifications"}</div>
             {pNotifs.map(n=>(
               <div key={n.id} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${n.read?C.bdr:C.p}`,marginBottom:10,display:"flex",gap:14,alignItems:"flex-start",opacity:n.read?.75:1}}>
-                <div style={{fontSize:28,flexShrink:0}}>{n.icon}</div>
+                <div style={{fontSize:28,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={28} /></div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{n.title}</div>
                   <div style={{fontSize:13,color:C.sub,marginBottom:5}}>{n.msg}</div>

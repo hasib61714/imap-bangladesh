@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useUser } from "../contexts";
 import { T } from "../constants/translations";
@@ -60,7 +61,7 @@ export default function ReferralPage(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:12,marginBottom:20}}>
         {[[friends.length,tr.rfFriends,"👥"],[totalEarned,"৳ "+tr.rfEarned,"💰"],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
           <div key={lbl} style={{background:C.card,borderRadius:14,padding:"14px 10px",border:`1px solid ${C.bdr}`,textAlign:"center"}}>
-            <div style={{fontSize:20}}>{ic}</div>
+            <div style={{fontSize:20}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div>
             <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:-1}}>{val}{lbl==="৳ "+tr.rfEarned?"":""}</div>
             <div style={{fontSize:11,color:C.sub}}>{lbl}</div>
           </div>
@@ -71,7 +72,7 @@ export default function ReferralPage(){
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>{tr.rfHow}</div>
         {RF_STEPS.map((s,i)=>(
           <div key={i} style={{display:"flex",gap:12,marginBottom:i<RF_STEPS.length-1?16:0}}>
-            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={18} /></div>
             <div>
               <div style={{fontSize:13,color:C.text,fontWeight:600}}>{lang==="en"?s.en:s.bn}</div>
               {i===2&&<div style={{fontSize:12,color:C.p,fontWeight:800,marginTop:3}}>+৳150 {tr.rfBonus}</div>}

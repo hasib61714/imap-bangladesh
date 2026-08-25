@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { SC_COURSES } from "../constants/data";
@@ -37,7 +38,7 @@ export default function SkillCertPage(){
             return(
               <div key={c.id} className="fu" style={{animationDelay:`${i*.05}s`,background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`}}>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-                  <div style={{width:44,height:44,borderRadius:12,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{c.icon}</div>
+                  <div style={{width:44,height:44,borderRadius:12,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={22} /></div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?c.titleEn:c.titleBn}</div>
                     <div style={{display:"flex",gap:8,marginTop:5,flexWrap:"wrap"}}>
@@ -60,9 +61,9 @@ export default function SkillCertPage(){
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {myCerts.map((c,i)=>(
             <div key={c.id} style={{background:`linear-gradient(135deg,${C.plt},${C.card})`,borderRadius:16,padding:"18px",border:`2px solid ${C.p}44`,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",right:-10,top:-10,fontSize:60,opacity:.08}}>{c.icon}</div>
+              <div style={{position:"absolute",right:-10,top:-10,fontSize:60,opacity:.08}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={60} /></div>
               <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                <div style={{width:48,height:48,borderRadius:12,background:C.p+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{c.icon}</div>
+                <div style={{width:48,height:48,borderRadius:12,background:C.p+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={24} /></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:800,color:C.text}}>{lang==="en"?c.titleEn:c.titleBn}</div>
                   <div style={{fontSize:11,color:C.sub,marginTop:3}}>{tr.scIssued}: {c.issued}</div>

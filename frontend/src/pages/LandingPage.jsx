@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "../components/Icon";
+import { SVCS } from "../constants/data";
 
 /* ═══════════════════════════════════════════════════════════════════
    IMAP Bangladesh — LandingPage
@@ -119,7 +120,23 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
   /* ─────────── ANIMATED COUNTER ─────────── */
   const [statsVisible, setStatsVisible] = useState(false);
-  const [counters, setCounters] = useState({ svc: 0, cust: 0, prov: 0, rat: 0 });
+  /**
+   * The hero counted up to 500 services, 10,000 customers, 1,200 providers
+   * and a 4.8 rating. None of those had been counted — they were four
+   * constants animated to look like measurements, which is a stronger claim
+   * than printing them, not a weaker one: a number that ticks up reads as
+   * live.
+   *
+   * `providers` is now genuinely live. It is the count the public directory
+   * returns, which is the same number a visitor gets by scrolling down, and
+   * it moves on its own as providers are verified. `services` and
+   * `categories` are counted from the catalogue.
+   *
+   * There is no customer count and no rating, because neither has been
+   * measured. When they have been, they belong here.
+   */
+  const [counters, setCounters] = useState({ svc: 0, cat: 0, prov: 0 });
+  const [liveProviders, setLiveProviders] = useState(null);
   const statsRef = useCallback(node => {
     if (!node) return;
     const obs = new IntersectionObserver(entries => {
@@ -132,8 +149,26 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
   }, []);
 
   useEffect(() => {
+    let alive = true;
+    // The public directory's own total. A failure leaves it null and the
+    // counter simply reads 0, which is what an unreachable directory shows
+    // a visitor anyway.
+    fetch(`${import.meta.env.VITE_API_URL || "/api"}/providers?limit=1`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d && typeof d.total === "number") setLiveProviders(d.total); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
     if (!statsVisible) return;
-    const targets = { svc: 500, cust: 10000, prov: 1200, rat: 4.8 };
+    // SVCS is the catalogue this page renders from, so these cannot drift
+    // out of step with what the visitor is about to scroll past.
+    const targets = {
+      svc: SVCS.reduce((n, c) => n + (c.subsEn?.length || 0), 0),
+      cat: SVCS.length,
+      prov: liveProviders ?? 0,
+    };
     const dur = 1800, steps = 60, interval = dur / steps;
     let step = 0;
     const t = setInterval(() => {
@@ -142,14 +177,13 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       const ease = 1 - Math.pow(1 - p, 3);
       setCounters({
         svc:  Math.round(targets.svc  * ease),
-        cust: Math.round(targets.cust * ease),
+        cat:  Math.round(targets.cat  * ease),
         prov: Math.round(targets.prov * ease),
-        rat:  Math.round(targets.rat  * ease * 10) / 10,
       });
       if (step >= steps) clearInterval(t);
     }, interval);
     return () => clearInterval(t);
-  }, [statsVisible]);
+  }, [statsVisible, liveProviders]);
 
   /* ─────────── COLOUR TOKENS ─────────── */
   /*  Light: BD flag green + red on white; Dark: brighter shades on near-black */
@@ -182,14 +216,14 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
   /* ─────────── I18N ─────────── */
   const T = (lang === "en" ? {
-    annText:    "🎉 March Offer: 20% off your first service! Use code: IMAP20",
+    annText:    "Every provider is identity-verified by a human reviewer before being listed.",
     heroTag:    "Bangladesh's Trusted Service Platform",
     heroH1:     "Every Provider Verified Before You See Them",
     heroSub:    "Get trusted home services at your doorstep  •  Earn as a Provider  •  100% Safe & Verified",
     heroBtn1:"Get Service", heroBtn2:"Become a Provider", heroBtn3:"Ask AI",
     heroSearchPh:"What service do you need? e.g. electrician, cleaner",
     heroSearchBtn:"Search",
-    heroCats:[{k:"elec",i:"⚡",l:"Electrician"},{k:"plumb",i:"🔧",l:"Plumber"},{k:"clean",i:"🧹",l:"Cleaner"},{k:"ac",i:"❄️",l:"AC Repair"},{k:"emg",i:"🚨",l:"Emergency"}],
+    heroCats:[{k:"elec",i:"electrician",l:"Electrician"},{k:"plumb",i:"plumber",l:"Plumber"},{k:"clean",i:"cleaning",l:"Cleaner"},{k:"ac",i:"ac-repair",l:"AC Repair"},{k:"emg",i:"emergency",l:"Emergency"}],
     svcLabel:"WHAT WE OFFER",   svcTitle:"Any Service, Any Time",    svcSub:"Browse 110 services across 19 categories without login. Book in minutes.",
     viewAll:"View All Services →",
     howLabel:"HOW IT WORKS",    howTitle:"Get Service in 4 Simple Steps",
@@ -209,14 +243,14 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
     legal_title:"Legal Protection & Anti-Fraud", legal_desc:"All providers sign our Code of Conduct. Fraud, harassment or misconduct leads to immediate account suspension and legal action under Bangladesh law.",
     privacy_title:"Data Privacy & Security", privacy_desc:"Your data is encrypted end-to-end. We never share personal information with third parties. SSL secured and BDPA compliant.",
   } : {
-    annText:    "🎉 মার্চ অফার: প্রথম সেবায় ২০% ছাড়! কোড ব্যবহার করুন: IMAP20",
+    annText:    "প্রত্যেক Provider-এর পরিচয় একজন পর্যালোচক যাচাই করার পরই তালিকায় আসে।",
     heroTag:    "বাংলাদেশের বিশ্বস্ত সার্ভিস প্ল্যাটফর্ম",
     heroH1:     "প্রত্যেক Provider যাচাই হয়ে তবেই আপনার সামনে",
     heroSub:    "ঘরে বসে বিশ্বস্ত সেবা নিন  •  Provider হয়ে আয় করুন  •  সম্পূর্ণ নিরাপদ",
     heroBtn1:"সেবা নিন", heroBtn2:"সেবাদাতা হোন", heroBtn3:"AI-কে জিজ্ঞেস করুন",
     heroSearchPh:"কী সেবা দরকার? যেমন ইলেকট্রিশিয়ান, ক্লিনার",
     heroSearchBtn:"খুঁজুন",
-    heroCats:[{k:"elec",i:"⚡",l:"ইলেকট্রিশিয়ান"},{k:"plumb",i:"🔧",l:"প্লাম্বার"},{k:"clean",i:"🧹",l:"ক্লিনার"},{k:"ac",i:"❄️",l:"এসি সার্ভিস"},{k:"emg",i:"🚨",l:"জরুরি সেবা"}],
+    heroCats:[{k:"elec",i:"electrician",l:"ইলেকট্রিশিয়ান"},{k:"plumb",i:"plumber",l:"প্লাম্বার"},{k:"clean",i:"cleaning",l:"ক্লিনার"},{k:"ac",i:"ac-repair",l:"এসি সার্ভিস"},{k:"emg",i:"emergency",l:"জরুরি সেবা"}],
     svcLabel:"আমাদের সেবাসমূহ", svcTitle:"যেকোনো সেবা, যেকোনো সময়", svcSub:"লগইন ছাড়াই ১৯টি বিভাগে ১১০টি সেবা দেখুন। মিনিটেই বুক করুন।",
     viewAll:"সব সেবা দেখুন →",
     howLabel:"কিভাবে কাজ করে", howTitle:"৪টি সহজ ধাপে সেবা নিন",
@@ -254,14 +288,14 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
     { icon:"locked", t:"Secure Encrypted Payments",  d:"bKash, Nagad, Card & Cash — all transactions encrypted. Money-back guarantee." },
     { icon:"emergency", t:"Live SOS Emergency Button",  d:"One tap instantly alerts Admin & Call Center during any service. 24/7 active." },
     { icon:"support", t:"24/7 Customer Support",       d:"Our support center is always ready. All complaints resolved within 24 hours." },
-    { icon:"⚖️", t:"Full Legal Protection",      d:"Complete legal framework. Fraud & misconduct lead to immediate legal action." },
+    { icon:"legal", t:"Full Legal Protection",      d:"Complete legal framework. Fraud & misconduct lead to immediate legal action." },
     { icon:"verified", t:"Verified Before Listed",    d:"A provider is not listed until a reviewer has approved their identity documents. No exceptions, enforced in the database." },
   ] : [
     { icon:"identity", t:"NID / KYC যাচাই বাধ্যতামূলক", d:"প্রতিটি Provider NID, মুখের ছবি ও সনদ যাচাই করা বাধ্যতামূলক। পরিচয়হীন কেউ নেই।" },
     { icon:"locked", t:"এনক্রিপ্টেড নিরাপদ পেমেন্ট",   d:"bKash, Nagad, Card ও Cash — সব লেনদেন এনক্রিপ্টেড। মানি-ব্যাক গ্যারান্টি।" },
     { icon:"emergency", t:"লাইভ SOS জরুরি বাটন",          d:"একটি বাটনে তাৎক্ষণিক Admin ও Call Center সতর্ক। ২৪/৭ সক্রিয়।" },
     { icon:"support", t:"২৪/৭ গ্রাহক সেবা",              d:"আমাদের সাপোর্ট সেন্টার সর্বদা প্রস্তুত। সব অভিযোগ ২৪ ঘণ্টায় সমাধান।" },
-    { icon:"⚖️", t:"সম্পূর্ণ আইনি সুরক্ষা",        d:"সম্পূর্ণ আইনি কাঠামো। প্রতারণা ও অসদাচরণে তাৎক্ষণিক আইনি ব্যবস্থা।" },
+    { icon:"legal", t:"সম্পূর্ণ আইনি সুরক্ষা",        d:"সম্পূর্ণ আইনি কাঠামো। প্রতারণা ও অসদাচরণে তাৎক্ষণিক আইনি ব্যবস্থা।" },
     { icon:"verified", t:"তালিকাভুক্তির আগে যাচাই",  d:"পরিচয়পত্র পর্যালোচক অনুমোদন না করা পর্যন্ত কোনো Provider তালিকায় আসেন না। ব্যতিক্রম নেই।" },
   ]);
 
@@ -427,7 +461,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px", height:64, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={onGetStarted}>
-            <div style={{ width:38, height:38, borderRadius:10, background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:21, flexShrink:0 }}>🌿</div>
+            <div style={{ width:38, height:38, borderRadius:10, background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:17, fontWeight:800, color:"#fff", letterSpacing:-.5, flexShrink:0 }} aria-hidden="true">iM</div>
             <div>
               <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:21, fontWeight:800, color:G, letterSpacing:-.5, lineHeight:1 }}>IMAP</div>
               <div style={{ fontSize:9, color:muted, letterSpacing:1.5, textTransform:"uppercase" }}>AI Service Platform BD</div>
@@ -441,7 +475,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             </button>
             <button onClick={() => setDark && setDark(d => !d)}
               style={{ background:"none", border:`1px solid ${cardBdr}`, borderRadius:7, padding:"5px 10px", cursor:"pointer", fontSize:16 }}>
-              {dark ? "☀️" : "🌙"}
+              <Icon name={dark ? "light" : "dark"} size={16} />
             </button>
             <button className="lp-btn lp-btn-o" style={{ fontSize:13, padding:"7px 16px" }} onClick={onGetStarted}>{T.navLogin}</button>
             <button className="lp-btn lp-btn-g" style={{ fontSize:13, padding:"8px 16px" }} onClick={onGetStarted}>{T.navReg}</button>
@@ -518,7 +552,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               style={{ flex:1, minWidth:0, border:"none", outline:"none", fontSize:15, padding:"12px 14px",
                        background:"transparent", fontFamily:"'Hind Siliguri',sans-serif", color:"#0F1A16" }} />
             <button type="submit" className="lp-btn lp-btn-g"
-              style={{ padding:"12px 22px", borderRadius:11, whiteSpace:"nowrap", flexShrink:0 }}>🔍 {T.heroSearchBtn}</button>
+              style={{ padding:"12px 22px", borderRadius:11, whiteSpace:"nowrap", flexShrink:0 }}><Icon name="search" size={15} style={{marginRight:7}} />{T.heroSearchBtn}</button>
           </form>
 
           {/* Category quick chips */}
@@ -530,21 +564,28 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                          borderRadius:22, padding:"7px 15px", cursor:"pointer", fontWeight:600,
                          fontFamily:"'Hind Siliguri',sans-serif", transition:"background .15s" }}
                 onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.24)"}
-                onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.12)"}>{c.i} {c.l}</button>
+                onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.12)"}><Icon name={c.i} size={14} />{c.l}</button>
             ))}
           </div>
 
           {/* CTA buttons */}
           <div className="lp-hero-btns" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", marginBottom:46 }}>
-            <button className="lp-btn lp-btn-white" onClick={onGetStarted}>🛍️ {T.heroBtn1}</button>
-            <button className="lp-btn lp-btn-ghost" onClick={onRegisterProvider}>👷 {T.heroBtn2}</button>
-            <button className="lp-btn" style={{ background:"transparent", color:"rgba(255,255,255,.78)", border:"1px solid rgba(255,255,255,.22)", padding:"12px 24px", fontSize:14, borderRadius:10 }} onClick={() => setAiOpen(true)}>🤖 {T.heroBtn3}</button>
+            <button className="lp-btn lp-btn-white" onClick={onGetStarted}><Icon name="errands" size={16} style={{marginRight:8}} />{T.heroBtn1}</button>
+            <button className="lp-btn lp-btn-ghost" onClick={onRegisterProvider}><Icon name="shop" size={16} style={{marginRight:8}} />{T.heroBtn2}</button>
+            <button className="lp-btn" style={{ background:"transparent", color:"rgba(255,255,255,.78)", border:"1px solid rgba(255,255,255,.22)", padding:"12px 24px", fontSize:14, borderRadius:10 }} onClick={() => setAiOpen(true)}><Icon name="digital" size={16} style={{marginRight:8}} />{T.heroBtn3}</button>
           </div>
 
           {/* Trust pill badges */}
           <div style={{ display:"flex", justifyContent:"center", gap:10, flexWrap:"wrap" }}>
-            {["✅ KYC Verified", "🔒 Secure Payment", "🆘 SOS Protected", "⚖️ Legal Shield"].map(b => (
-              <span key={b} style={{ fontSize:12, color:"rgba(255,255,255,.78)", background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.15)", borderRadius:20, padding:"5px 14px", fontWeight:600 }}>{b}</span>
+            {[
+              ["verified", lang==="en" ? "Identity Verified" : "পরিচয় যাচাইকৃত"],
+              ["locked",   lang==="en" ? "Secure Payment"    : "নিরাপদ পেমেন্ট"],
+              ["emergency",lang==="en" ? "SOS Protected"     : "SOS সুরক্ষা"],
+              ["legal",    lang==="en" ? "Legal Shield"      : "আইনি সুরক্ষা"],
+            ].map(([ic, label]) => (
+              <span key={label} style={{ display:"inline-flex", alignItems:"center", gap:6, fontSize:12, color:"rgba(255,255,255,.78)", background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.15)", borderRadius:20, padding:"5px 14px", fontWeight:600 }}>
+                <Icon name={ic} size={13} />{label}
+              </span>
             ))}
           </div>
         </div>
@@ -563,10 +604,9 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
         <div style={{ maxWidth:1000, margin:"0 auto" }}>
           <div className="lp-stats-flex" style={{ display:"flex" }}>
             {[
-              { val: counters.svc,  suffix:"+",  bn:"সেবা",        en:"Services"  },
-              { val: counters.cust, suffix:"+",  bn:"গ্রাহক",      en:"Customers" },
-              { val: counters.prov, suffix:"+",  bn:"প্রোভাইডার", en:"Providers" },
-              { val: counters.rat,  suffix:"★",  bn:"রেটিং",      en:"Rating"    },
+              { val: counters.svc,  suffix:"",   bn:"সেবা",           en:"Services"   },
+              { val: counters.cat,  suffix:"",   bn:"বিভাগ",          en:"Categories" },
+              { val: counters.prov, suffix:"",   bn:"যাচাইকৃত Provider", en:"Verified Providers" },
             ].map(({ val, suffix, bn, en }, i) => (
               <div key={i} className="lp-stat">
                 <div style={{
@@ -638,7 +678,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 <div className="lp-step">
                   {/* Step number circle */}
                   <div style={{ position:"absolute", top:-16, left:"50%", transform:"translateX(-50%)", width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${G},${GD})`, color:"#FFFFFF", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${G}55` }}>{i + 1}</div>
-                  <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}>{h.icon}</div>
+                  <div style={{ fontSize:44, marginBottom:14, marginTop:8 }}><Icon name={h.icon} size={44} /></div>
                   <div style={{ fontWeight:800, fontSize:15, marginBottom:8, color:txt }}>{h.t}</div>
                   <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{h.d}</div>
                 </div>
@@ -663,7 +703,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 className={`trust-card-wrap lp-reveal-scale${revealed[`trust-${i}`]?" vis":""}`}
                 style={{ transitionDelay:`${i * .1}s` }}>
                 <div className="lp-card" style={{ padding:"26px 24px" }}>
-                  <div style={{ fontSize:36, marginBottom:14 }}>{t.icon}</div>
+                  <div style={{ fontSize:36, marginBottom:14 }}><Icon name={t.icon} size={36} /></div>
                   <div style={{ fontWeight:800, fontSize:16, marginBottom:8, color:txt }}>{t.t}</div>
                   <div style={{ fontSize:13, color:sub, lineHeight:1.7 }}>{t.d}</div>
                 </div>
@@ -861,7 +901,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               <div><div style={{ fontWeight:700, fontSize:14, color:txt }}>{lang === "en" ? "Call Center" : "কল সেন্টার"}</div><div style={{ fontSize:12, color:sub }}>+880 1XXX-XXXXXX</div></div>
             </a>
             <div className="lp-contact-link" onClick={() => setAiOpen(true)}>
-              <div style={{ width:44, height:44, borderRadius:12, background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>🤖</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:`linear-gradient(135deg,${G},${GD})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", flexShrink:0 }}><Icon name="support" size={21} /></div>
               <div><div style={{ fontWeight:700, fontSize:14, color:txt }}>AI Assistant</div><div style={{ fontSize:12, color:sub }}>{lang === "en" ? "Instant answers" : "তাৎক্ষণিক উত্তর"}</div></div>
             </div>
           </div>
@@ -907,7 +947,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* Brand */}
             <div>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-                <div style={{ width:38, height:38, borderRadius:10, background:G, display:"flex", alignItems:"center", justifyContent:"center", fontSize:21, flexShrink:0 }}>🌿</div>
+                <div style={{ width:38, height:38, borderRadius:10, background:G, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:17, fontWeight:800, color:"#fff", letterSpacing:-.5, flexShrink:0 }} aria-hidden="true">iM</div>
                 <div itemProp="name" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:21, fontWeight:800, color:"#FFFFFF" }}>IMAP</div>
               </div>
               <p itemProp="description" style={{ fontSize:13, color:"#7FA896", lineHeight:1.8, maxWidth:240, marginBottom:20 }}>{T.footerDesc}</p>
@@ -952,7 +992,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 {lang === "bn" ? "English" : "বাংলা"}
               </button>
               <button onClick={() => setDark && setDark(d => !d)} style={{ background:"rgba(255,255,255,.08)", border:"none", borderRadius:6, padding:"5px 12px", cursor:"pointer", fontSize:12, color:"#FFFFFF" }}>
-                {dark ? "☀️ Light" : "🌙 Dark"}
+                <><Icon name={dark ? "light" : "dark"} size={14} style={{marginRight:6}} />{dark ? "Light" : "Dark"}</>
               </button>
             </div>
           </div>
@@ -965,7 +1005,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           style={{ position:"fixed", bottom:28, right:20, width:56, height:56, borderRadius:16, background:`linear-gradient(135deg,${G},${GD})`, border:"none", cursor:"pointer", fontSize:24, boxShadow:`0 6px 24px ${G}55`, zIndex:800, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}
           onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1) translateY(-2px)"; }}
           onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
-          🤖
+          <Icon name="support" size={24} color="#fff" />
         </button>
       )}
 
@@ -983,7 +1023,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           {/* Header */}
           <div style={{ background:`linear-gradient(135deg,${GD},${G})`, padding:"13px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:34, height:34, borderRadius:10, background:"rgba(255,255,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🤖</div>
+              <div style={{ width:34, height:34, borderRadius:10, background:"rgba(255,255,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}><Icon name="support" size={17} /></div>
               <div>
                 <div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>{T.aiTitle}</div>
                 <div style={{ color:"rgba(255,255,255,.7)", fontSize:11 }}>{lang === "en" ? "Powered by IMAP AI" : "IMAP AI দ্বারা চালিত"}</div>

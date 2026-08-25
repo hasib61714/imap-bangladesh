@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr } from "../contexts";
 import { T } from "../constants/translations";
@@ -102,7 +103,7 @@ export default function NotifPage() {
           setNotifs(ns=>ns.map((x,j)=>j===i?{...x,unread:false}:x));
           if(n.id) usersApi.markNotifReadById(n.id).catch(()=>{});
         }} style={{display:"flex",gap:12,padding:13,background:n.unread?`${C.p}06`:"#fff",borderRadius:13,border:`1px solid ${n.unread?C.p+"30":C.bdr}`,cursor:"pointer",marginBottom:8,transition:"all .18s"}}>
-          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}>{n.icon}</div>
+          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={18} /></div>
           <div style={{flex:1}}>
             <div className="row" style={{justifyContent:"space-between"}}>
               <div style={{fontSize:13,fontWeight:700}}>{lang==="en"?n.tEn:n.t}</div>

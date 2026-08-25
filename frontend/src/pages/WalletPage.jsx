@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
@@ -133,7 +134,7 @@ export default function WalletPage() {
         <div style={{display:"flex",gap:24,marginBottom:18}}>
           {[[tr.wlIncome,"⬆️",income],[tr.wlSpent,"⬇️",spent]].map(([lbl,ic,amt])=>(
             <div key={lbl}>
-              <div style={{fontSize:11,opacity:.8}}>{ic} {lbl}</div>
+              <div style={{fontSize:11,opacity:.8}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
               <div style={{fontSize:16,fontWeight:700}}>৳{amt.toLocaleString()}</div>
             </div>
           ))}
@@ -153,7 +154,7 @@ export default function WalletPage() {
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
         {[["history",tr.wlHistory,"📋"],["topup",tr.wlTopUp,"➕"]].map(([id,lbl,ic])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{ic} {lbl}</button>
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}
       </div>
 
@@ -190,7 +191,7 @@ export default function WalletPage() {
             )}
             {filtered.map((t,i)=>(
               <div key={t.id} className="fu" style={{animationDelay:`${i*.04}s`,display:"flex",alignItems:"center",gap:14,padding:"13px 16px",background:C.card,borderRadius:i===0?"14px 14px 6px 6px":i===filtered.length-1?"6px 6px 14px 14px":"6px",marginBottom:2,border:`1px solid ${C.bdr}`}}>
-                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{t.icon}</div>
+                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name=<Icon name={t.icon} size={14} style={{marginRight:6}} />size={18} /></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lang==="en"?t.titleEn:t.titleBn}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>{t.id} · {t.method} · {lang==="en"?t.dateEn:t.date}</div>
@@ -236,7 +237,7 @@ export default function WalletPage() {
             {TOPUP_METHODS.map(m=>(
               <button key={m.id} onClick={()=>setSelMethod(m.id)}
                 style={{padding:"10px 6px",borderRadius:12,border:`2px solid ${selMethod===m.id?C.p:C.bdr}`,background:selMethod===m.id?C.plt:C.card,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>
-                <span style={{fontSize:20}}>{m.icon}</span>
+                <span style={{fontSize:20}}><Icon name=<Icon name={m.icon} size={14} style={{marginRight:6}} />size={20} /></span>
                 <span style={{fontSize:11,fontWeight:700,color:selMethod===m.id?C.p:C.sub}}>{m.label}</span>
               </button>
             ))}

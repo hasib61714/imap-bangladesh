@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import {
   Layout, Menu, Table, Card, Button, Input, Tag, Badge,
   Switch, Select, Modal, Form, Typography, Space, Statistic,
@@ -844,12 +845,12 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     .map(p => ({ name:p.name, jobs:p.jobs||0, earned:p.earned||0, service:p.service||"—" }));
 
   const sysSettingsList = [
-    {icon:"🌐",lbn:"সিস্টেম অনলাইন",      len:"System Online"},
-    {icon:"🔧",lbn:"রক্ষণাবেক্ষণ মোড",    len:"Maintenance Mode"},
-    {icon:"📲",lbn:"SMS নোটিফিকেশন",      len:"SMS Notifications"},
-    {icon:"🤖",lbn:"AI ম্যাচিং",           len:"AI Matching"},
-    {icon:"💳",lbn:"পেমেন্ট গেটওয়ে",      len:"Payment Gateway"},
-    {icon:"🛡️",lbn:"NID যাচাই প্রয়োজনীয়", len:"NID Verification Required"},
+    {icon:"language",lbn:"সিস্টেম অনলাইন",      len:"System Online"},
+    {icon:"repair",lbn:"রক্ষণাবেক্ষণ মোড",    len:"Maintenance Mode"},
+    {icon:"share",lbn:"SMS নোটিফিকেশন",      len:"SMS Notifications"},
+    {icon:"digital",lbn:"AI ম্যাচিং",           len:"AI Matching"},
+    {icon:"card",lbn:"পেমেন্ট গেটওয়ে",      len:"Payment Gateway"},
+    {icon:"security",lbn:"NID যাচাই প্রয়োজনীয়", len:"NID Verification Required"},
   ];
 
   /* ── RENDER ──────────────────────────────────────── */
@@ -931,7 +932,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   fontWeight:tab===item.key?700:500, fontSize:12, cursor:"pointer",
                   fontFamily:"inherit", whiteSpace:"nowrap",
                 }}>
-                  {item.icon}
+                  <Icon name={item.icon} size={20} />
                 </button>
               ))}
             </div>
@@ -1635,7 +1636,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Title level={4}>🗂️ {lang==="bn"?"সেবা বিভাগ":"Service Categories"}</Title>
                 <Card title={`➕ ${lang==="bn"?"নতুন বিভাগ":"New Category"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Space wrap>
-                    <Input value={newCat.icon} onChange={e=>setNewCat(c=>({...c,icon:e.target.value}))}
+                    <Input value=<Icon name={newCat.icon} size={14} style={{marginRight:6}} />onChange={e=>setNewCat(c=>({...c,icon:e.target.value}))}
                       placeholder="🔧" style={{width:60,textAlign:"center",fontSize:20}} />
                     <Input value={newCat.name} onChange={e=>setNewCat(c=>({...c,name:e.target.value}))}
                       placeholder={lang==="bn"?"বিভাগের নাম":"Category name"} style={{width:200}} />
@@ -1833,7 +1834,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   ].map((f,i)=>(
                     <Col key={i} xs={24} sm={12} md={6}>
                       <Card bordered style={{borderTop:`3px solid ${f.color}`,textAlign:"center"}}>
-                        <div style={{fontSize:28,marginBottom:6}}>{f.ic}</div>
+                        <div style={{fontSize:28,marginBottom:6}}><Icon name=<Icon name={f.ic} size={14} style={{marginRight:6}} />size={28} /></div>
                         <Text strong style={{fontSize:13,display:"block",marginBottom:4}}>{lang==="bn"?f.lbn:f.len}</Text>
                         <Text type="secondary" style={{fontSize:11}}>{lang==="bn"?f.d_bn:f.d_en}</Text>
                         <Tag color="success" style={{marginTop:8,display:"block"}}>✅ Active</Tag>
@@ -1957,7 +1958,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                         padding:"14px 0",borderBottom:i<sysSettingsList.length-1?"1px solid rgba(0,0,0,0.06)":"none"}}>
                         <Space>
-                          <span style={{fontSize:20}}>{item.icon}</span>
+                          <span style={{fontSize:20}}><Icon name=<Icon name={item.icon} size={14} style={{marginRight:6}} />size={20} /></span>
                           <Text style={{fontSize:14}}>{lang==="bn"?item.lbn:item.len}</Text>
                         </Space>
                         <Switch checked={sysToggles[i]} onChange={async()=>{

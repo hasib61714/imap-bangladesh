@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { AN_DATA, AN_MONTHS, AN_SERVICES, AN_ACTIVITY } from "../constants/data";
@@ -46,7 +47,7 @@ export default function AnalyticsPage(){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
         {stats.map(([lbl,ic,val,chg,col])=>(
           <div key={lbl} style={{background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`}}>
-            <div style={{fontSize:22,marginBottom:6}}>{ic}</div>
+            <div style={{fontSize:22,marginBottom:6}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={22} /></div>
             <div style={{fontSize:22,fontWeight:800,color:col}}>{val}</div>
             <div style={{fontSize:12,color:C.sub,marginTop:2}}>{lbl}</div>
             {chg&&<div style={{fontSize:11,color:"#006A4E",marginTop:4,fontWeight:700}}>{chg}</div>}
@@ -70,7 +71,7 @@ export default function AnalyticsPage(){
         {serviceData.map(s=>(
           <div key={s.name} style={{marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontSize:12,color:C.text}}>{s.icon} {lang==="en"?s.name:s.nameBn}</span>
+              <span style={{fontSize:12,color:C.text}}><Icon name={s.icon} size={14} style={{marginRight:6}} />{lang==="en"?s.name:s.nameBn}</span>
               <span style={{fontSize:12,fontWeight:700,color:s.color}}>{s.pct}%</span>
             </div>
             <div style={{height:6,borderRadius:4,background:C.bdr,overflow:"hidden"}}>
@@ -83,7 +84,7 @@ export default function AnalyticsPage(){
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>{tr.anRecent}</div>
         {activityData.map((a,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<activityData.length-1?`1px solid ${C.bdr}`:"none"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{a.icon}</div>
+            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={17} /></div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?a.title:a.titleBn}</div>
               <div style={{fontSize:11,color:C.muted}}>{a.date}</div>

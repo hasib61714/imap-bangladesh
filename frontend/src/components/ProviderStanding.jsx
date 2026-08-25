@@ -28,6 +28,7 @@
  * would otherwise never see any of this.
  */
 import { useEffect, useState } from "react";
+import Icon from "./Icon";
 import { verification as verificationApi, listing as listingApi } from "../api";
 
 /** Every clause, said in words a provider can act on rather than as a column name. */
@@ -67,34 +68,34 @@ const CLAUSE_COPY = {
  * has happened and what happens next — and do not invent a deadline.
  */
 const STATE_COPY = {
-  not_submitted: { icon: "🪪", tone: null,
+  not_submitted: { icon: "identity", tone: null,
     bn: "পরিচয় যাচাই শুরু করুন", en: "Start identity verification",
     subBn: "NID এবং একটি সেলফি লাগবে — দুই মিনিটের কাজ।",
     subEn: "You need your NID and a selfie. It takes about two minutes." },
-  submitted: { icon: "⏳", tone: "#F59E0B",
+  submitted: { icon: "pending", tone: "#F59E0B",
     bn: "যাচাইয়ের অপেক্ষায়", en: "Waiting for review",
     subBn: "আমরা আপনার নথি পেয়েছি। একজন মানুষ সেগুলো দেখবেন।",
     subEn: "We have your documents. A person will look at them." },
-  under_review: { icon: "🔎", tone: "#3B82F6",
+  under_review: { icon: "review-queue", tone: "#3B82F6",
     bn: "পর্যালোচনা চলছে", en: "Being reviewed",
     subBn: "একজন পর্যালোচক এখন আপনার নথি দেখছেন।",
     subEn: "A reviewer is looking at your documents now." },
-  more_info: { icon: "✏️", tone: "#3B82F6",
+  more_info: { icon: "edit", tone: "#3B82F6",
     bn: "আরও তথ্য দরকার", en: "More information needed",
     subBn: "নিচের মন্তব্যটি পড়ে আবার জমা দিন।",
     subEn: "Read the note below, then submit again." },
-  verified: { icon: "✅", tone: "#00C170",
+  verified: { icon: "success", tone: "#00C170",
     bn: "পরিচয় যাচাই সম্পন্ন", en: "Identity verified",
     subBn: "আপনার পরিচয় নিশ্চিত করা হয়েছে।",
     subEn: "Your identity has been confirmed." },
-  rejected: { icon: "⚠️", tone: "#EF4444",
+  rejected: { icon: "warning", tone: "#EF4444",
     bn: "যাচাই প্রত্যাখ্যাত", en: "Verification rejected",
     subBn: "কারণটি পড়ুন, সংশোধন করুন, আবার জমা দিন।",
     subEn: "Read the reason, fix it, and submit again." },
-  revoked: { icon: "⚠️", tone: "#EF4444",
+  revoked: { icon: "warning", tone: "#EF4444",
     bn: "যাচাই বাতিল করা হয়েছে", en: "Verification revoked",
     subBn: "কারণটি নিচে দেওয়া আছে।", subEn: "The reason is below." },
-  expired: { icon: "🕐", tone: null,
+  expired: { icon: "pending", tone: null,
     bn: "যাচাইয়ের মেয়াদ শেষ", en: "Verification expired",
     subBn: "আবার জমা দিন।", subEn: "Please submit again." },
 };
@@ -135,7 +136,7 @@ export default function ProviderStanding({ C, lang, providerId, onOpenKyc, compa
       borderRadius: 14, padding: compact ? 14 : 18, marginBottom: 22,
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ fontSize: 30, lineHeight: 1 }}>{sc.icon}</div>
+        <div style={{ fontSize: 30, lineHeight: 1 }}><Icon name={sc.icon} size={30} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: tone }}>
             {lang === "bn" ? sc.bn : sc.en}

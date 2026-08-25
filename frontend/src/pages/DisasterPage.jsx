@@ -1,12 +1,13 @@
 import { useState, useEffect, useContext } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { disaster as disasterApi } from "../api";
 
 const ALERTS=[
-  {id:1,type:"flood",icon:"🌊",level:"high",titleBn:"বন্যা সতর্কতা — সিলেট, সুনামগঞ্জ",titleEn:"Flood Warning — Sylhet, Sunamganj",descBn:"নদীর পানি বিপদসীমার ওপরে। নিচু এলাকার বাসিন্দারা নিরাপদ স্থানে যান।",descEn:"River water above danger level. Residents of low-lying areas should move to safety.",time:"2h ago",color:"#1D4ED8",bg:"#EFF6FF"},
-  {id:2,type:"cyclone",icon:"🌀",level:"extreme",titleBn:"ঘূর্ণিঝড় সতর্কতা — চাঁদপুর, বরগুনা",titleEn:"Cyclone Alert — Chandpur, Barguna",descBn:"ঘণ্টায় ১৫০–১৮০ কিমি বেগে বাতাস। সমুদ্র সননিকট এলাকা খালি করুন।",descEn:"Winds at 150–180 km/h. Evacuate coastal areas immediately.",time:"30m ago",color:"#7C3AED",bg:"#F5F3FF"},
-  {id:3,type:"earthquake",icon:"🌍",level:"moderate",titleBn:"ভূমিকম্প — মাতামাতা, চট্টগ্রাম",titleEn:"Earthquake — Matamuhuri, Chattogram",descBn:"4.2 মাত্রার ভূমিকম্প অনুভূত। ভবন ছেড়ে খোলা জায়গায় আশ্রয় নিন।",descEn:"4.2 magnitude felt. Move to open areas away from buildings.",time:"1h ago",color:"#D97706",bg:"#FFFBEB"},
+  {id:1,type:"flood",icon:"disaster",level:"high",titleBn:"বন্যা সতর্কতা — সিলেট, সুনামগঞ্জ",titleEn:"Flood Warning — Sylhet, Sunamganj",descBn:"নদীর পানি বিপদসীমার ওপরে। নিচু এলাকার বাসিন্দারা নিরাপদ স্থানে যান।",descEn:"River water above danger level. Residents of low-lying areas should move to safety.",time:"2h ago",color:"#1D4ED8",bg:"#EFF6FF"},
+  {id:2,type:"cyclone",icon:"disaster",level:"extreme",titleBn:"ঘূর্ণিঝড় সতর্কতা — চাঁদপুর, বরগুনা",titleEn:"Cyclone Alert — Chandpur, Barguna",descBn:"ঘণ্টায় ১৫০–১৮০ কিমি বেগে বাতাস। সমুদ্র সননিকট এলাকা খালি করুন।",descEn:"Winds at 150–180 km/h. Evacuate coastal areas immediately.",time:"30m ago",color:"#7C3AED",bg:"#F5F3FF"},
+  {id:3,type:"earthquake",icon:"location",level:"moderate",titleBn:"ভূমিকম্প — মাতামাতা, চট্টগ্রাম",titleEn:"Earthquake — Matamuhuri, Chattogram",descBn:"4.2 মাত্রার ভূমিকম্প অনুভূত। ভবন ছেড়ে খোলা জায়গায় আশ্রয় নিন।",descEn:"4.2 magnitude felt. Move to open areas away from buildings.",time:"1h ago",color:"#D97706",bg:"#FFFBEB"},
 ];
 const SHELTERS=[
   {name:"ঢাকা স্টেডিয়াম শেল্টার",nameEn:"Dhaka Stadium Shelter",cap:2000,dist:1.2},
@@ -14,10 +15,10 @@ const SHELTERS=[
   {name:"উত্তরা কমিউনিটি হল",nameEn:"Uttara Community Hall",cap:500,dist:3.8},
 ];
 const HOTLINES=[
-  {label:"999",desc:"Police / Fire / Ambulance",icon:"🚨"},
-  {label:"10941",desc:"Flood Helpline (BWDB)",icon:"🌊"},
-  {label:"01755-614420",desc:"DDM Emergency",icon:"🌀"},
-  {label:"16321",desc:"Red Crescent Helpline",icon:"❤️"},
+  {label:"999",desc:"Police / Fire / Ambulance",icon:"emergency"},
+  {label:"10941",desc:"Flood Helpline (BWDB)",icon:"disaster"},
+  {label:"01755-614420",desc:"DDM Emergency",icon:"disaster"},
+  {label:"16321",desc:"Red Crescent Helpline",icon:"blood"},
 ];
 export default function DisasterPage() {
   const C=useC(); const tr=useTr(); const lang=useContext(LangCtx)===T.en?"en":"bn";
@@ -119,7 +120,7 @@ export default function DisasterPage() {
       <div style={{display:"flex",gap:6,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
         {[["alerts","🚨",lang==="en"?"Alerts":"সতর্ক"],["shelters","🏕️",lang==="en"?"Shelters":"আশ্রয়"],["tips","💡",lang==="en"?"Tips":"টিপস"],["report","📋",lang==="en"?"Report":"রিপোর্ট"]].map(([id,ic,lbl])=>(
           <button key={id} onClick={()=>setTab(id)}
-            style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",background:tab===id?"#DC2626":"transparent",color:tab===id?"#fff":C.sub,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{ic} {lbl}</button>
+            style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",background:tab===id?"#DC2626":"transparent",color:tab===id?"#fff":C.sub,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}
       </div>
 
@@ -135,7 +136,7 @@ export default function DisasterPage() {
           {alerts.map((a,i)=>(
             <div key={a.id} className="card fu" style={{animationDelay:`${i*.07}s`,padding:"16px",borderLeft:`4px solid ${a.color}`,background:a.bg}}>
               <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                <div style={{fontSize:28,flexShrink:0,animation:a.level==="extreme"?"pulse 1.5s infinite":"none"}}>{a.icon}</div>
+                <div style={{fontSize:28,flexShrink:0,animation:a.level==="extreme"?"pulse 1.5s infinite":"none"}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={28} /></div>
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                     <span style={{fontSize:11,fontWeight:800,background:LEVEL_COL[a.level],color:"#fff",borderRadius:6,padding:"2px 8px"}}>{LEVEL_LBL[a.level]}</span>
@@ -152,7 +153,7 @@ export default function DisasterPage() {
             <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>📞 {tr.dsHotline}</div>
             {HOTLINES.map((h,i)=>(
               <a key={i} href={`tel:${h.label}`} style={{display:"flex",alignItems:"center",gap:12,padding:"9px 0",borderBottom:i<HOTLINES.length-1?`1px solid ${C.bdr}`:"none",textDecoration:"none"}}>
-                <span style={{fontSize:18}}>{h.icon}</span>
+                <span style={{fontSize:18}}><Icon name=<Icon name={h.icon} size={14} style={{marginRight:6}} />size={18} /></span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:800,color:"#DC2626"}}>{h.label}</div>
                   <div style={{fontSize:12,color:C.muted}}>{h.desc}</div>
