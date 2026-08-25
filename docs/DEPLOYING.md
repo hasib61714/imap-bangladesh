@@ -176,8 +176,22 @@ CI, on MySQL 8.0. Neither is TiDB. Specifically untested there:
 - `ALTER TABLE … DROP CONSTRAINT` in migration 012
 - the query plans for `idx_queue` and the eligibility `EXISTS`
 
-Running `--status` and then the migration against a TiDB **branch** or a
-restored copy first would settle all four cheaply.
+`scripts/migration-preflight.mjs` settles the first three in one command,
+without applying anything:
+
+```bash
+DB_HOST=<tidb-host> DB_PORT=4000 DB_USER=<user> DB_PASSWORD=<password> DB_NAME=imap_db DB_SSL=true   node scripts/migration-preflight.mjs
+```
+
+It creates one scratch table with a random name, tries to violate each
+constraint, drops the table, and reports what the engine actually did. It
+never reads, writes or references an application table. Run it against a TiDB
+branch first if you can.
+
+A failure there is not a blocker — it means the `CHECK` constraints are
+defence in depth on that engine rather than controls, which is the posture
+migration 009 already recorded for `chk_active_slot`. What matters is knowing
+which it is, rather than assuming.
 
 **The de-listing count.** §2 above.
 
