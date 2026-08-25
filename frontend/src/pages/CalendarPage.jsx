@@ -116,7 +116,7 @@ export default function CalendarPage({onBook}) {
           {Object.entries(CAL_SLOTS).map(([section,slots])=>(
             <div key={section} style={{marginBottom:18}}>
               <div style={{fontSize:12,fontWeight:700,color:C.sub,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-                <span>{section==="morning"?"":section==="afternoon"?"":""}</span>
+                <Icon name={section==="morning"?"light":section==="afternoon"?"pending":"dark"} size={14} />
                 {sectionLabel[section]}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>

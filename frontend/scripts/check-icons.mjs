@@ -74,6 +74,34 @@ for (const f of files) {
   for (const m of src.matchAll(/\bicon:\s*"([^"]*)"/g)) note(m[1], rel);
 }
 
+/**
+ * A control with nothing in it.
+ *
+ * Stripping the leading emoji from labels emptied BOTH branches of ternaries
+ * that had an emoji on each side — `{listening ? "🔴" : "🎤"}` became
+ * `{listening ? "" : ""}`. That compiles, lints clean, and renders a 48px
+ * button with no mark in it floating over every page. Eleven of them survived
+ * two rounds of review and were found by looking at the screen.
+ *
+ * A ternary whose branches are both empty strings is never intentional.
+ */
+const emptied = [];
+for (const f of files) {
+  if (f.endsWith(path.join("components", "Icon.jsx"))) continue;
+  const src = fs.readFileSync(f, "utf8");
+  const rel = path.relative(SRC, f);
+  for (const m of src.matchAll(/\?\s*""\s*:\s*""/g)) {
+    const before = src.slice(0, m.index);
+    emptied.push([rel, before.split(String.fromCharCode(10)).length]);
+  }
+}
+if (emptied.length) {
+  console.error(`  ${emptied.length} control(s) render nothing — both branches of a ternary are empty:`);
+  for (const [f, l] of emptied) console.error(`    ${f}:${l}`);
+  console.error("  Put an <Icon> in each branch.");
+  process.exit(1);
+}
+
 const missing = [];
 const notNames = [];
 for (const [name, where] of used) {

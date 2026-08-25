@@ -110,7 +110,7 @@ export default function NearbyPage({onBook,onView}) {
             <div key={p.id} className="fu" style={{position:"relative",animationDelay:`${i*.07}s`}}>
               <PCard p={p} onBook={onBook} onView={onView}/>
               <div style={{position:"absolute",top:12,left:12,background:C.p,color:C.onP,borderRadius:10,padding:"3px 10px",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4,pointerEvents:"none"}}>
-                {i===0?"":""} {fmtDist(p.dist)}
+                <Icon name="location" size={11} style={{marginRight:4}} />{fmtDist(p.dist)}
               </div>
             </div>
           ))}

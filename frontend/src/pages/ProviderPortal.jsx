@@ -311,12 +311,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
               {available&&<div style={{position:"absolute",inset:-4,borderRadius:"50%",background:C.p,opacity:.4,animation:"pp-pulse-ring 1.6s ease-out infinite"}}/>}
               <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
             </div>
-            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"":""):(available?tr.ppAvailable:tr.ppBusy)}</span>
+            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile ? <Icon name={available?"success":"pending"} size={13} /> : (available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>
           {/* Desktop-only: lang + dark + name */}
           {!isMobile&&<>
             <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
-            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"":""}</button>
+            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",cursor:"pointer"}}><Icon name={dark?"light":"dark"} size={14} /></button>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{background:C.p,color:C.onP,borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Icon name="shop" size={14} /></div>
               <div style={{display:"flex",flexDirection:"column"}}>
@@ -354,7 +354,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 </div>
                 {/* Dark toggle */}
                 <div onClick={()=>{setDark(!dark);setDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>{dark?"":""}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                  <Icon name={dark?"light":"dark"} size={14} /><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
                 </div>
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Logout */}
@@ -495,7 +495,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                       if(s.id) scheduleApi.toggle(s.id,newAvail).catch(()=>{});
                     }}
                     style={{padding:"9px 16px",borderRadius:10,background:s.avail?C.plt:"#F3F4F6",border:`1.5px solid ${s.avail?C.p:C.bdr}`,fontSize:13,fontWeight:600,color:s.avail?C.p:C.muted,cursor:"pointer",userSelect:"none"}}>
-                      {s.avail?"":""} {s.t}
+                      <Icon name={s.avail?"success":"pending"} size={12} style={{marginRight:5}} />{s.t}
                     </div>
                   ))}
                 </div>

@@ -336,7 +336,9 @@ export default function VoiceCommand({ onCommand, isMobile }) {
           ? (listening ? "Stop listening" : "Voice command")
           : (listening ? "বন্ধ করুন" : "ভয়েস কমান্ড")}
       >
-        {listening ? "" : ""}
+        {/* Both branches were emoji and both were stripped, which left this
+            button empty — a blank 48px tile floating over every page. */}
+        <Icon name={listening ? "close" : "mic"} size={18} color="#fff" />
       </button>
     </div>
   );

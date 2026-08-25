@@ -18,7 +18,7 @@ export default function PCard({p,delay=0,onBook,onView}) {
   return (
     <div className="card pcard" style={{position:"relative",overflow:"hidden",padding:20,animation:`fadeUp .4s ease ${delay}s both`,cursor:"pointer"}} onClick={()=>onView(p)}>
       {/* Bookmark btn */}
-      <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} style={{position:"absolute",top:12,right:12,background:isFav?"#FEF9C3":C.bg,border:`1px solid ${isFav?"#F59E0B":C.bdr}`,borderRadius:8,width:30,height:30,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s",zIndex:1}}>{isFav?"":""}</button>
+      <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} style={{position:"absolute",top:12,right:12,background:isFav?"#FEF9C3":C.bg,border:`1px solid ${isFav?"#F59E0B":C.bdr}`,borderRadius:8,width:30,height:30,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s",zIndex:1}}><Icon name={isFav?"star-filled":"star"} size={14} color={isFav?"#F59E0B":C.muted} /></button>
       <div className="row" style={{gap:12,marginBottom:12}}>
         <Av av={p.av} col={p.col} src={p.avatar} name={p.name} size={52}/>
         <div style={{flex:1,minWidth:0}}>

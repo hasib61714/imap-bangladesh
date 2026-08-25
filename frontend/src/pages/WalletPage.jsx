@@ -27,7 +27,7 @@ export default function WalletPage() {
       if(Array.isArray(data.transactions)){
         setApiTxns(data.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:("TXN-"+Math.random().toString(36).slice(2,8).toUpperCase()),
-          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
+          icon: t.type==="topup"?"add":t.type==="credit"||t.type==="refund"?"cash":"transaction",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
@@ -78,7 +78,7 @@ export default function WalletPage() {
       if(Array.isArray(walletData.transactions)){
         setApiTxns(walletData.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
-          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
+          icon: t.type==="topup"?"add":t.type==="credit"||t.type==="refund"?"cash":"transaction",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
