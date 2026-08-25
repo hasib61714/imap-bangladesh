@@ -18,6 +18,7 @@ const { writeAudit } = require("../src/modules/platform/audit/writeAudit");
 const { execute } = require("../src/application/execute");
 const paymentGateway = require("../utils/payment");
 const platform = require("../src/modules/platform");
+const env = require("../config/environment");
 const identity = require("../src/modules/identity");
 
 /**
@@ -94,16 +95,44 @@ router.get("/readiness", authMiddleware, requireAuthorization(ACTION.STATS_READ)
   if (sandboxCredsInLiveMode) {
     warnings.push("Payment mode is `live` but the gateway base is a sandbox host. Check SSL_IS_SANDBOX.");
   }
+  if (!process.env.APP_ENV || !process.env.DATABASE_ENV) {
+    warnings.push(
+      "APP_ENV and/or DATABASE_ENV are not set — the environment is being inferred rather than declared. " +
+      "It resolves to " + resolved.processEnv + "/" + resolved.databaseEnv + " and is correct, but declare both.");
+  }
   if (!sealed.available) {
     warnings.push("Sealed storage is unavailable — identity documents will be refused (503).");
   } else if (sealed.driver === "local" && !sealed.durable) {
     warnings.push("Sealed storage is a local directory with no SEALED_LOCAL_DIR set. On a container filesystem, submitted documents do not survive a restart.");
   }
 
+  /**
+   * The RESOLVED environment, and whether it was declared or inferred.
+   *
+   * This reported `process.env.APP_ENV` directly, which came back `null` from
+   * the first production deployment and said nothing useful: null does not
+   * mean "development", it means the variable is unset and the environment
+   * was worked out some other way. `config/environment.js` falls back to
+   * NODE_ENV and then fails closed to production, so the process was correct —
+   * but a report that cannot distinguish "declared production" from "inferred
+   * production" cannot tell you that.
+   *
+   * `render.yaml` declares both explicitly and says why: so that the
+   * production deployment "never depends on a hostname pattern". `declared`
+   * below is how you check that the declaration actually arrived.
+   */
+  const resolved = env.describe();
+
   res.json({
     environment: {
-      app: process.env.APP_ENV || null,
-      database: process.env.DATABASE_ENV || null,
+      app: resolved.processEnv,
+      database: resolved.databaseEnv,
+      declared: {
+        APP_ENV: process.env.APP_ENV || null,
+        DATABASE_ENV: process.env.DATABASE_ENV || null,
+        NODE_ENV: process.env.NODE_ENV || null,
+      },
+      productionBehaviour: resolved.productionBehaviour,
       backendUrl: process.env.BACKEND_URL || null,
     },
     payment,
