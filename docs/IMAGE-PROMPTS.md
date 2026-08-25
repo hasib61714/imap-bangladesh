@@ -17,14 +17,36 @@ the house style already inside it, so there is nothing to interpret.
 
 ## After each image
 
-1. Download it.
-2. Convert to **`.webp`** at <https://squoosh.app> — quality 80, and check the
-   file is under 180 KB. (Drag in, pick WebP on the right, adjust quality,
-   download.)
-3. Rename to the exact filename in the heading.
-4. Put it in the folder named in the heading.
+**Save it into one folder, named after its number in this file.** Prompt 3 is
+`3.png`, prompt 20 is `20.png`. That is the whole naming job — the file
+extension does not matter and neither does the format.
 
-Nothing else. No code change, no build step, no order to follow.
+Then, once — or after every few:
+
+```bash
+pip install Pillow                                   # first time only
+python scripts/prepare-images.py ~/imap-images --numbered
+python scripts/prepare-images.py ~/imap-images --numbered --apply
+```
+
+The first command reports what it would do and writes nothing. The second
+does it: centre-crop to the right aspect ratio, resize, convert to WebP,
+step the quality down until the file is under 180 KB, and put it in the
+correct one of six folders under the correct name.
+
+Naming them after the slot instead — `cleaning.png` — works too, without
+`--numbered`. Use whichever is less typing at the download dialog.
+
+**The script refuses rather than guesses.** A file matching nothing is listed
+and skipped; a slot matched by two files is reported and neither is written.
+Run against a Downloads folder during testing it found `food panda.jpg` and
+`Foodpanda_logo.jpeg` both claiming the `food` slot and wrote neither, which
+is the point — one of them would have put a delivery company's logo on the
+cooking category.
+
+It also never enlarges. A source smaller than its target is written at its own
+size with a note, because a slightly small photograph looks better than a
+blurry one.
 
 ## If a result comes back wrong
 
