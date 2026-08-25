@@ -1,7 +1,9 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
-import { TRANSACTIONS, TOPUP_AMOUNTS, TOPUP_METHODS } from "../constants/data";
+import { TOPUP_AMOUNTS, TOPUP_METHODS } from "../constants/data";
 import { escHtml } from "../utils/helpers";
 import { users as usersApi, payments as paymentsApi } from "../api";
 
@@ -25,7 +27,7 @@ export default function WalletPage() {
       if(Array.isArray(data.transactions)){
         setApiTxns(data.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:("TXN-"+Math.random().toString(36).slice(2,8).toUpperCase()),
-          icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
@@ -44,7 +46,15 @@ export default function WalletPage() {
   // Keep local balance in sync when context changes (API load)
   useEffect(()=>{ setBalance(ctxBalance); },[ctxBalance]);
 
-  const displayTxns=apiTxns!=null?apiTxns:TRANSACTIONS;
+  /**
+   * This was `apiTxns != null ? apiTxns : TRANSACTIONS` — a hardcoded list
+   * with a ৳1,000 top-up and three spends in it. So a customer who had never
+   * used the wallet opened it and saw money moving in their own account, and
+   * a failed request looked exactly like a healthy one.
+   *
+   * An empty wallet is empty. A failed load says so.
+   */
+  const displayTxns = apiTxns || [];
   const income=displayTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const spent=Math.abs(displayTxns.filter(t=>t.amount<0).reduce((s,t)=>s+t.amount,0));
 
@@ -68,7 +78,7 @@ export default function WalletPage() {
       if(Array.isArray(walletData.transactions)){
         setApiTxns(walletData.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
-          icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
@@ -122,9 +132,9 @@ export default function WalletPage() {
         <div style={{fontSize:13,opacity:.85,marginBottom:4}}>{tr.wlBalance}</div>
         <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,marginBottom:16}}>৳{balance.toLocaleString()}</div>
         <div style={{display:"flex",gap:24,marginBottom:18}}>
-          {[[tr.wlIncome,"⬆️",income],[tr.wlSpent,"⬇️",spent]].map(([lbl,ic,amt])=>(
+          {[[tr.wlIncome,"",income],[tr.wlSpent,"",spent]].map(([lbl,ic,amt])=>(
             <div key={lbl}>
-              <div style={{fontSize:11,opacity:.8}}>{ic} {lbl}</div>
+              <div style={{fontSize:11,opacity:.8}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
               <div style={{fontSize:16,fontWeight:700}}>৳{amt.toLocaleString()}</div>
             </div>
           ))}
@@ -143,8 +153,8 @@ export default function WalletPage() {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["history",tr.wlHistory,"📋"],["topup",tr.wlTopUp,"➕"]].map(([id,lbl,ic])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{ic} {lbl}</button>
+        {[["history",tr.wlHistory,""],["topup",tr.wlTopUp,""]].map(([id,lbl,ic])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}
       </div>
 
@@ -163,9 +173,25 @@ export default function WalletPage() {
 
           {/* Transaction list */}
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {filtered.length === 0 && (
+              <EmptyState C={C} compact
+                icon={apiTxns === null ? "warning" : "transaction"}
+                tone={apiTxns === null ? "error" : "neutral"}
+                title={apiTxns === null
+                  ? (lang==="bn" ? "লেনদেন লোড করা যায়নি" : "Could not load transactions")
+                  : filter !== "all"
+                    ? (lang==="bn" ? "এই ধরনের কোনো লেনদেন নেই" : "No transactions of this type")
+                    : (lang==="bn" ? "এখনো কোনো লেনদেন নেই" : "No transactions yet")}
+                description={apiTxns === null
+                  ? (lang==="bn" ? "সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।" : "Check your connection and try again.")
+                  : filter !== "all"
+                    ? (lang==="bn" ? "অন্য ফিল্টার বেছে নিন।" : "Try a different filter.")
+                    : (lang==="bn" ? "টপ-আপ করলে বা কোনো সেবার জন্য পেমেন্ট করলে এখানে দেখা যাবে।" : "Top up your wallet or pay for a service and it will appear here.")}
+              />
+            )}
             {filtered.map((t,i)=>(
               <div key={t.id} className="fu" style={{animationDelay:`${i*.04}s`,display:"flex",alignItems:"center",gap:14,padding:"13px 16px",background:C.card,borderRadius:i===0?"14px 14px 6px 6px":i===filtered.length-1?"6px 6px 14px 14px":"6px",marginBottom:2,border:`1px solid ${C.bdr}`}}>
-                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{t.icon}</div>
+                <div style={{width:40,height:40,borderRadius:11,background:t.type==="refund"?"#D1FAE5":t.type==="topup"?"#EFF6FF":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name=<Icon name={t.icon} size={14} style={{marginRight:6}} />size={18} /></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lang==="en"?t.titleEn:t.titleBn}</div>
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>{t.id} · {t.method} · {lang==="en"?t.dateEn:t.date}</div>
@@ -211,7 +237,7 @@ export default function WalletPage() {
             {TOPUP_METHODS.map(m=>(
               <button key={m.id} onClick={()=>setSelMethod(m.id)}
                 style={{padding:"10px 6px",borderRadius:12,border:`2px solid ${selMethod===m.id?C.p:C.bdr}`,background:selMethod===m.id?C.plt:C.card,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>
-                <span style={{fontSize:20}}>{m.icon}</span>
+                <span style={{fontSize:20}}><Icon name=<Icon name={m.icon} size={14} style={{marginRight:6}} />size={20} /></span>
                 <span style={{fontSize:11,fontWeight:700,color:selMethod===m.id?C.p:C.sub}}>{m.label}</span>
               </button>
             ))}

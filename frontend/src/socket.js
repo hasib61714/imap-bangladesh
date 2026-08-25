@@ -41,15 +41,15 @@ export const connectSocket = () => {
   });
 
   socket.on("connect", () => {
-    if (import.meta.env.DEV) console.log("🔌 Socket.io connected:", socket.id);
+    if (import.meta.env.DEV) console.log("Socket.io connected:", socket.id);
   });
 
   socket.on("disconnect", (reason) => {
-    if (import.meta.env.DEV) console.log("🔌 Socket.io disconnected:", reason);
+    if (import.meta.env.DEV) console.log("Socket.io disconnected:", reason);
   });
 
   socket.on("connect_error", (err) => {
-    if (import.meta.env.DEV) console.warn("⚠️ Socket.io error:", err.message);
+    if (import.meta.env.DEV) console.warn("Socket.io error:", err.message);
   });
 
   // Realtime is an enhancement, not a requirement: chat and live booking
@@ -57,7 +57,7 @@ export const connectSocket = () => {
   // attempts are exhausted, stop — an endless reconnect loop buries every
   // other console message and keeps a dead socket alive in memory.
   socket.io.on("reconnect_failed", () => {
-    if (import.meta.env.DEV) console.warn("⚠️ Socket.io gave up; realtime is off for this session.");
+    if (import.meta.env.DEV) console.warn("Socket.io gave up; realtime is off for this session.");
   });
 
   // Refresh JWT on every reconnect attempt so expiry never blocks reconnection

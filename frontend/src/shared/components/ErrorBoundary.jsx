@@ -51,7 +51,7 @@ export default class ErrorBoundary extends Component {
             disabled={this.state.cleared}
             onClick={this.handleClearAndReload}
             style={{background:"#006A4E",color:"#fff",border:"none",borderRadius:14,padding:"14px 32px",fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 18px rgba(0,106,78,.35)",marginBottom:16}}>
-            {this.state.cleared ? "⏳ লোড হচ্ছে..." : "🔄 Cache সাফ করে পুনরায় লোড করুন"}
+            {this.state.cleared ? "⏳ লোড হচ্ছে..." : "Cache সাফ করে পুনরায় লোড করুন"}
           </button>
           <div style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>এটি পুরানো ডেটা মুছে নতুনভাবে লোড করবে</div>
         </div>

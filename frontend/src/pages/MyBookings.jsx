@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { PROVIDERS } from "../constants/data";
@@ -33,7 +34,7 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
     date:       (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("bn-BD"):(b.date||""),
     dateEn:     (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("en-GB"):(b.dateEn||""),
     price:      (b.amount||b.total_amount)?`৳${b.amount||b.total_amount}`:(b.price||""),
-    icon:       b.icon||"📋",
+    icon:       b.icon||"",
     pid:        b.provider_id||b.pid,
   });
   const bookingsData = ctxBookings.map(toUiBk);
@@ -159,7 +160,7 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
           <div key={i} className="card" style={{padding:16,marginBottom:11,animation:`fadeUp .4s ease ${i*.06}s both`}}>
             <div className="row" style={{justifyContent:"space-between",marginBottom:st==="ongoing"?10:0}}>
               <div className="row" style={{gap:11}}>
-                <div className="jc" style={{width:44,height:44,borderRadius:12,background:C.bg,fontSize:22,flexShrink:0}}>{b.icon}</div>
+                <div className="jc" style={{width:44,height:44,borderRadius:12,background:C.bg,fontSize:22,flexShrink:0}}><Icon name=<Icon name={b.icon} size={14} style={{marginRight:6}} />size={22} /></div>
                 <div>
                   <div style={{fontSize:14,fontWeight:700}}>{svc}</div>
                   <div style={{fontSize:12,color:C.muted}}>{provider}</div>

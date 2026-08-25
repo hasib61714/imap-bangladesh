@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr } from "../contexts";
 import { T } from "../constants/translations";
-import { NOTIFS_DATA } from "../constants/data";
+
 import { users as usersApi } from "../api";
 
 export default function NotifPage() {
   const C=useC();
   const tr=useTr();
   const lang=tr===T.en?"en":"bn";
-  const [notifs,setNotifs]=useState(NOTIFS_DATA);
+  // Was seeded with a static notification list, so an account that had
+  // never been notified of anything showed a full inbox.
+  const [notifs,setNotifs]=useState([]);
   const [filter,setFilter]=useState("all");
   const [pushPerm,setPushPerm]=useState(()=>typeof Notification!=="undefined"?Notification.permission:"unsupported");
   const [pushLoading,setPushLoading]=useState(false);
@@ -38,7 +42,7 @@ export default function NotifPage() {
       if(d.notifications?.length){
         setNotifs(d.notifications.map(n=>({
           id:   n.id,
-          icon: n.icon||"🔔",
+          icon: n.icon||"",
           t:    n.title_bn||n.title||"",
           tEn:  n.title_en||n.title||"",
           m:    n.body_bn||n.body||"",
@@ -63,7 +67,7 @@ export default function NotifPage() {
           {pushPerm!=="granted"&&pushPerm!=="unsupported"&&(
             <button className="btn" disabled={pushLoading} onClick={subscribePush}
               style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
-              {pushLoading?"⏳":(lang==="en"?"🔔 Enable Push":"🔔 পুশ চালু করুন")}
+              {pushLoading?"⏳":(lang==="en"?"Enable Push":"পুশ চালু করুন")}
             </button>
           )}
           {pushPerm==="granted"&&(
@@ -71,7 +75,7 @@ export default function NotifPage() {
               <span style={{fontSize:11,color:C.p,padding:"5px 11px",background:C.plt,borderRadius:20,border:`1px solid ${C.p}30`,fontWeight:600}}>
                 🔔 {lang==="en"?"Push: On":"পুশ: চালু"}
               </span>
-              <button className="btn" onClick={()=>usersApi.testPush().then(()=>alert(lang==="en"?"✅ Test push sent!":"✅ পুশ পাঠানো হয়েছে!")).catch(e=>alert("❌ "+e.message))}
+              <button className="btn" onClick={()=>usersApi.testPush().then(()=>alert(lang==="en"?"Test push sent!":"পুশ পাঠানো হয়েছে!")).catch(e=>alert(""+e.message))}
                 style={{fontSize:11,padding:"5px 11px",borderRadius:20,border:`1.5px solid ${C.p}`,color:C.p,background:C.plt,cursor:"pointer",fontWeight:600}}>
                 🔔 {lang==="en"?"Test":"টেস্ট"}
               </button>
@@ -87,12 +91,19 @@ export default function NotifPage() {
           ))}
         </div>
       </div>
+      {list.length === 0 && (
+        <EmptyState C={C} icon="notification"
+          title={lang==="en" ? "No notifications" : "কোনো বিজ্ঞপ্তি নেই"}
+          description={lang==="en"
+            ? "Booking updates, payment confirmations and messages appear here."
+            : "বুকিং আপডেট, পেমেন্ট নিশ্চিতকরণ আর বার্তা এখানে দেখা যাবে।"} />
+      )}
       {list.map((n,i)=>(
         <div key={i} onClick={()=>{
           setNotifs(ns=>ns.map((x,j)=>j===i?{...x,unread:false}:x));
           if(n.id) usersApi.markNotifReadById(n.id).catch(()=>{});
         }} style={{display:"flex",gap:12,padding:13,background:n.unread?`${C.p}06`:"#fff",borderRadius:13,border:`1px solid ${n.unread?C.p+"30":C.bdr}`,cursor:"pointer",marginBottom:8,transition:"all .18s"}}>
-          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}>{n.icon}</div>
+          <div className="jc" style={{width:42,height:42,borderRadius:11,background:TYPE_COL[n.type][0],fontSize:18,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={18} /></div>
           <div style={{flex:1}}>
             <div className="row" style={{justifyContent:"space-between"}}>
               <div style={{fontSize:13,fontWeight:700}}>{lang==="en"?n.tEn:n.t}</div>

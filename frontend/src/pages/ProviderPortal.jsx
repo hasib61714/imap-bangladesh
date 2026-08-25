@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
@@ -98,7 +99,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
     // Notifications
     usersApi.getNotifications().then(data=>{
       const list=data.notifications||data||[];
-      if(list.length) setPNotifs(list.slice(0,10).map(n=>({id:n.id,icon:n.icon||"🔔",title:n.title_bn||n.title_en||"Notification",msg:n.body_bn||n.body_en||"",time:n.created_at?new Date(n.created_at).toLocaleDateString():"",read:!!n.is_read})));
+      if(list.length) setPNotifs(list.slice(0,10).map(n=>({id:n.id,icon:n.icon||"",title:n.title_bn||n.title_en||"Notification",msg:n.body_bn||n.body_en||"",time:n.created_at?new Date(n.created_at).toLocaleDateString():"",read:!!n.is_read})));
     }).catch(()=>{});
     // Reviews
     if(user.id){
@@ -223,7 +224,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
       {enableHighAccuracy:true,maximumAge:10000,timeout:20000}
     );
     setGpsTracking(p=>({...p,[jobId]:watchId}));
-    showToast(lang==="bn"?"📍 লাইভ লোকেশন চালু":"📍 Live location ON");
+    showToast(lang==="bn"?"লাইভ লোকেশন চালু":"Live location ON");
   };
 
   const sendChatMsg=()=>{
@@ -237,7 +238,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
 
   const acceptJob=async id=>{
     setJobs(j=>j.map(x=>x.id===id?{...x,status:"active"}:x));
-    showToast(lang==="bn"?"✅ কাজ গ্রহণ করা হয়েছে!":"✅ Job accepted!");
+    showToast(lang==="bn"?"কাজ গ্রহণ করা হয়েছে!":"Job accepted!");
     try{ await bookingsApi.updateStatus(id,"confirmed"); }catch(e){console.warn("accept:",e.message);}
   };
   const declineJob=async id=>{
@@ -247,28 +248,28 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
   };
   const completeJob=async id=>{
     setJobs(j=>j.map(x=>x.id===id?{...x,status:"completed"}:x));
-    showToast(lang==="bn"?"✅ কাজ সম্পন্ড!":"✅ Job completed!");
+    showToast(lang==="bn"?"কাজ সম্পন্ড!":"Job completed!");
     try{ await bookingsApi.updateStatus(id,"completed"); }catch(e){console.warn("complete:",e.message);}
   };
 
   const tabs=[
-    {v:"dash",icon:"📊",lbn:"ড্যাশবোর্ড",len:"Dashboard"},
-    {v:"jobs",icon:"💼",lbn:"কাজ",len:"Jobs"},
-    {v:"schedule",icon:"📅",lbn:"সময়সূচি",len:"Schedule"},
-    {v:"earnings",icon:"💰",lbn:"আয়",len:"Earnings"},
-    {v:"profile",icon:"👤",lbn:"প্রোফাইল",len:"Profile"},
-    {v:"reviews",icon:"⭐",lbn:"রিভিউ",len:"Reviews"},
-    {v:"chat",icon:"💬",lbn:"চ্যাট",len:"Chat"},
-    {v:"notifs",icon:"🔔",lbn:`বিজ্ঞপ্তি${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`,len:`Notifs${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`},
+    {v:"dash",icon:"dashboard",lbn:"ড্যাশবোর্ড",len:"Dashboard"},
+    {v:"jobs",icon:"professional",lbn:"কাজ",len:"Jobs"},
+    {v:"schedule",icon:"calendar",lbn:"সময়সূচি",len:"Schedule"},
+    {v:"earnings",icon:"cash",lbn:"আয়",len:"Earnings"},
+    {v:"profile",icon:"user",lbn:"প্রোফাইল",len:"Profile"},
+    {v:"reviews",icon:"star",lbn:"রিভিউ",len:"Reviews"},
+    {v:"chat",icon:"chat",lbn:"চ্যাট",len:"Chat"},
+    {v:"notifs",icon:"notification",lbn:`বিজ্ঞপ্তি${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`,len:`Notifs${pNotifs.filter(n=>!n.read).length>0?" ("+pNotifs.filter(n=>!n.read).length+")":""}`},
   ];
 
   const statCards=[
-    {icon:"💼",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
-    {icon:"🔄",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
-    {icon:"✅",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
-    {icon:"💰",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
-    {icon:"⭐",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
-    {icon:"📋",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
+    {icon:"professional",val:jobs.filter(j=>j.status==="incoming").length,lbn:"নতুন অনুরোধ",len:"New Requests",col:"#3B82F6"},
+    {icon:"loading",val:jobs.filter(j=>j.status==="active").length,lbn:"সক্রিয় কাজ",len:"Active Jobs",col:C.p},
+    {icon:"success",val:jobs.filter(j=>j.status==="completed").length,lbn:"সম্পন্ড",len:"Completed",col:"#00C170"},
+    {icon:"cash",val:"৳"+earnings.balance.toLocaleString(),lbn:"ব্যালেন্স",len:"Balance",col:"#F59E0B"},
+    {icon:"star",val:"4.8",lbn:"রেটিং",len:"Rating",col:"#8B5CF6"},
+    {icon:"document",val:jobs.length,lbn:"মোট কাজ",len:"Total Jobs",col:"#EF4444"},
   ];
 
   return(
@@ -310,12 +311,12 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
               {available&&<div style={{position:"absolute",inset:-4,borderRadius:"50%",background:C.p,opacity:.4,animation:"pp-pulse-ring 1.6s ease-out infinite"}}/>}
               <div style={{width:8,height:8,borderRadius:"50%",background:available?C.p:"#EF4444"}}/>
             </div>
-            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"✓":"✗"):(available?tr.ppAvailable:tr.ppBusy)}</span>
+            <span style={{fontSize:12,fontWeight:700,color:available?C.p:"#EF4444"}}>{isMobile?(available?"":""):(available?tr.ppAvailable:tr.ppBusy)}</span>
           </div>
           {/* Desktop-only: lang + dark + name */}
           {!isMobile&&<>
             <button onClick={()=>setLang(lang==="bn"?"en":"bn")} style={{background:C.plt,color:C.p,border:"none",borderRadius:14,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>{lang==="bn"?"EN":"বাং"}</button>
-            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"☀️":"🌙"}</button>
+            <button onClick={()=>setDark(!dark)} style={{background:C.plt,border:"none",borderRadius:14,padding:"5px 10px",fontSize:14,cursor:"pointer"}}>{dark?"":""}</button>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{background:C.p,color:"#fff",borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👷</div>
               <div style={{display:"flex",flexDirection:"column"}}>
@@ -353,7 +354,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                 </div>
                 {/* Dark toggle */}
                 <div onClick={()=>{setDark(!dark);setDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>{dark?"☀️":"🌙"}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                  <span>{dark?"":""}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
                 </div>
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Logout */}
@@ -386,7 +387,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:22}}>
               {statCards.map((s,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,borderTop:`3px solid ${s.col}`,textAlign:"center",animation:`pp-fadeUp .4s ease ${i*.08}s both`}}>
-                  <div style={{fontSize:24,marginBottom:6}}>{s.icon}</div>
+                  <div style={{fontSize:24,marginBottom:6}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={24} /></div>
                   <div style={{fontSize:20,fontWeight:800,color:s.col}}>{s.val}</div>
                   <div style={{fontSize:11,color:C.muted}}>{lang==="bn"?s.lbn:s.len}</div>
                 </div>
@@ -428,7 +429,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
 
         {tab==="jobs"&&(
           <>
-            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"💼 কাজের তালিকা":"💼 Job List"}</div>
+            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"কাজের তালিকা":"Job List"}</div>
             {["incoming","active","completed"].map(status=>{
               const list=jobs.filter(j=>j.status===status);
               const statusLabel={incoming:{bn:"নতুন অনুরোধ",en:"Incoming Requests",col:"#3B82F6"},active:{bn:"সক্রিয় কাজ",en:"Active Jobs",col:C.p},completed:{bn:"সম্পন্ড",en:"Completed",col:"#00C170"}};
@@ -461,7 +462,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                       {status==="active"&&(
                         <div style={{marginTop:12,display:"flex",gap:8}}>
                           <button onClick={()=>toggleGps(j.id)} style={{flex:1,padding:"10px",background:gpsTracking[j.id]!=null?"rgba(0,106,78,.12)":"rgba(59,130,246,.1)",color:gpsTracking[j.id]!=null?"#006A4E":"#1D4ED8",border:`1.5px solid ${gpsTracking[j.id]!=null?"rgba(0,106,78,.5)":"rgba(59,130,246,.4)"}`,borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                            {gpsTracking[j.id]!=null?(lang==="bn"?"📍 লাইভ: চালু":"📍 GPS: ON"):(lang==="bn"?"📍 লোকেশন দিন":"📍 Share GPS")}
+                            {gpsTracking[j.id]!=null?(lang==="bn"?"লাইভ: চালু":"GPS: ON"):(lang==="bn"?"লোকেশন দিন":"Share GPS")}
                           </button>
                           <button onClick={()=>completeJob(j.id)} style={{flex:2,padding:"10px",background:"rgba(16,185,129,.12)",color:"#065F46",border:"1px solid rgba(16,185,129,.35)",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>✅ {lang==="bn"?"সম্পন্ড চিহ্নিত করুন":"Mark as Completed"}</button>
                         </div>
@@ -477,7 +478,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
 
         {tab==="schedule"&&(
           <>
-            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"📅 সাপ্তাহিক সময়সূচি":"📅 Weekly Schedule"}</div>
+            <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>{lang==="bn"?"সাপ্তাহিক সময়সূচি":"Weekly Schedule"}</div>
             {Object.entries(schedule.slots).map(([day,slots])=>(
               <div key={day} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,marginBottom:12}}>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>{day}</div>
@@ -494,7 +495,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                       if(s.id) scheduleApi.toggle(s.id,newAvail).catch(()=>{});
                     }}
                     style={{padding:"9px 16px",borderRadius:10,background:s.avail?C.plt:"#F3F4F6",border:`1.5px solid ${s.avail?C.p:C.bdr}`,fontSize:13,fontWeight:600,color:s.avail?C.p:C.muted,cursor:"pointer",userSelect:"none"}}>
-                      {s.avail?"✅":"❌"} {s.t}
+                      {s.avail?"":""} {s.t}
                     </div>
                   ))}
                 </div>
@@ -514,18 +515,18 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
         {tab==="earnings"&&(
           <>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
-              <div style={{fontWeight:800,fontSize:18}}>{lang==="bn"?"💰 আয় ও পেমেন্ট":"💰 Earnings & Payments"}</div>
+              <div style={{fontWeight:800,fontSize:18}}>{lang==="bn"?"আয় ও পেমেন্ট":"Earnings & Payments"}</div>
               <button onClick={printEarningsReport} style={{padding:"9px 16px",background:"#8B5CF6",color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}}>📄 {lang==="bn"?"রিপোর্ট ডাউনলোড":"Earnings Report"}</button>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
               {[
-                {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"💳",col:C.p},
-                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"📈",col:"#00C170"},
-                {lbn:"মাসিক",len:"Monthly",val:earnings.thisMonth,icon:"📊",col:"#F59E0B"},
-                {lbn:"সর্বমোট",len:"All Time",val:earnings.total,icon:"🏆",col:"#8B5CF6"},
+                {lbn:"ব্যালেন্স",len:"Balance",val:earnings.balance,icon:"card",col:C.p},
+                {lbn:"সাপ্তাহিক",len:"This Week",val:earnings.thisWeek,icon:"earnings",col:"#00C170"},
+                {lbn:"মাসিক",len:"Monthly",val:earnings.thisMonth,icon:"dashboard",col:"#F59E0B"},
+                {lbn:"সর্বমোট",len:"All Time",val:earnings.total,icon:"trophy",col:"#8B5CF6"},
               ].map((e,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,display:"flex",alignItems:"center",gap:12}}>
-                  <span style={{fontSize:28}}>{e.icon}</span>
+                  <span style={{fontSize:28}}><Icon name=<Icon name={e.icon} size={14} style={{marginRight:6}} />size={28} /></span>
                   <div>
                     <div style={{fontSize:20,fontWeight:800,color:e.col}}>৳{e.val.toLocaleString()}</div>
                     <div style={{fontSize:12,color:C.muted}}>{lang==="bn"?e.lbn:e.len}</div>
@@ -581,7 +582,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
         {tab==="profile"&&(
           <>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontWeight:800,fontSize:18}}>{lang==="bn"?"👤 আমার প্রোফাইল":"👤 My Profile"}</div>
+              <div style={{fontWeight:800,fontSize:18}}>{lang==="bn"?"আমার প্রোফাইল":"My Profile"}</div>
               <button onClick={()=>setEditMode(!editMode)} style={{background:editMode?C.plt:C.p,color:editMode?C.p:"#fff",border:editMode?`1px solid ${C.p}`:"none",borderRadius:10,padding:"8px 16px",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
                 {editMode?(lang==="bn"?"বাতিল":"Cancel"):tr.ppEditProfile}
               </button>
@@ -610,14 +611,14 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             </div>
             <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`,marginBottom:16}}>
               {[
-                {key:"name",lbn:"নাম",len:"Full Name",icon:"👤"},
-                {key:"service",lbn:"সেবার ধরন",len:"Service Type",icon:"🔧"},
-                {key:"area",lbn:"কাজের এলাকা",len:"Work Area",icon:"📍"},
-                {key:"phone",lbn:"ফোন",len:"Phone",icon:"📱"},
-                {key:"rate",lbn:"প্রতি ঘণ্টার রেট (৳)",len:"Hourly Rate (৳)",icon:"💰"},
+                {key:"name",lbn:"নাম",len:"Full Name",icon:"user"},
+                {key:"service",lbn:"সেবার ধরন",len:"Service Type",icon:"repair"},
+                {key:"area",lbn:"কাজের এলাকা",len:"Work Area",icon:"location"},
+                {key:"phone",lbn:"ফোন",len:"Phone",icon:"phone"},
+                {key:"rate",lbn:"প্রতি ঘণ্টার রেট (৳)",len:"Hourly Rate (৳)",icon:"cash"},
               ].map(f=>(
                 <div key={f.key} style={{marginBottom:14}}>
-                  <div style={{fontSize:12,color:C.muted,marginBottom:5,fontWeight:600}}>{f.icon} {lang==="bn"?f.lbn:f.len}</div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:5,fontWeight:600}}><Icon name={f.icon} size={14} style={{marginRight:6}} />{lang==="bn"?f.lbn:f.len}</div>
                   {editMode?(
                     <input value={profile[f.key]} onChange={e=>setProfile(p=>({...p,[f.key]:e.target.value}))}
                       style={{width:"100%",padding:"11px 14px",border:`1.5px solid ${C.bdr}`,borderRadius:10,fontSize:14,background:C.bg,color:C.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
@@ -679,7 +680,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <div style={{background:C.card,borderRadius:16,padding:20,border:`1px solid ${C.bdr}`,marginBottom:20,display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{textAlign:"center",minWidth:80}}>
                 <div style={{fontSize:48,fontWeight:900,color:C.p,lineHeight:1}}>{avgRating}</div>
-                <div style={{fontSize:20,marginTop:4}}>{"⭐".repeat(Math.round(avgRating))}</div>
+                <div style={{fontSize:20,marginTop:4}}>{"".repeat(Math.round(avgRating))}</div>
                 <div style={{fontSize:12,color:C.muted,marginTop:4}}>{reviews.length} {lang==="bn"?"টি রিভিউ":"reviews"}</div>
               </div>
               <div style={{flex:1,minWidth:200}}>
@@ -705,7 +706,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
                     </div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:16}}>{"⭐".repeat(r.rating)}</div>
+                    <div style={{fontSize:16}}>{"".repeat(r.rating)}</div>
                     <div style={{fontSize:11,color:C.muted}}>{r.date}</div>
                   </div>
                 </div>
@@ -775,7 +776,7 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,
             <div style={{fontWeight:800,fontSize:18,marginBottom:16}}>🔔 {lang==="bn"?"বিজ্ঞপ্তি":"Notifications"}</div>
             {pNotifs.map(n=>(
               <div key={n.id} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${n.read?C.bdr:C.p}`,marginBottom:10,display:"flex",gap:14,alignItems:"flex-start",opacity:n.read?.75:1}}>
-                <div style={{fontSize:28,flexShrink:0}}>{n.icon}</div>
+                <div style={{fontSize:28,flexShrink:0}}><Icon name=<Icon name={n.icon} size={14} style={{marginRight:6}} />size={28} /></div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{n.title}</div>
                   <div style={{fontSize:13,color:C.sub,marginBottom:5}}>{n.msg}</div>

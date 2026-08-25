@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { kyc as kycApi, upload as uploadApi } from "../api";
@@ -8,10 +9,10 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
   const tr = T[lang]||T.bn;
 
   const DOC_TYPES=[
-    {key:"nid",   icon:"🪪", lbn:"জাতীয় পরিচয়পত্র (NID)", len:"National ID (NID)"},
-    {key:"driving",icon:"🚗", lbn:"ড্রাইভিং লাইসেন্স",      len:"Driving Licence"},
-    {key:"passport",icon:"📘", lbn:"পাসপোর্ট",              len:"Passport"},
-    {key:"birth", icon:"📜", lbn:"জন্ম নিবন্ধন সনদ",         len:"Birth Certificate"},
+    {key:"nid",   icon:"identity", lbn:"জাতীয় পরিচয়পত্র (NID)", len:"National ID (NID)"},
+    {key:"driving",icon:"moving", lbn:"ড্রাইভিং লাইসেন্স",      len:"Driving Licence"},
+    {key:"passport",icon:"document", lbn:"পাসপোর্ট",              len:"Passport"},
+    {key:"birth", icon:"document", lbn:"জন্ম নিবন্ধন সনদ",         len:"Birth Certificate"},
   ];
 
   const [docs,setDocs]=useState([]);
@@ -108,13 +109,13 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
   };
 
   const statusBadge=(s)=>{
-    const m={pending:{bg:"#FEF3C7",col:"#92400E",icon:"⏳",lbn:"যাচাই চলছে",len:"Pending"},
-      verified:{bg:"#D1FAE5",col:"#065F46",icon:"✅",lbn:"যাচাইকৃত",len:"Verified"},
-      rejected:{bg:"#FEE2E2",col:"#991B1B",icon:"❌",lbn:"প্রত্যাখ্যাত",len:"Rejected"},
-      not_submitted:{bg:"#F3F4F6",col:"#4B5563",icon:"📋",lbn:"দাখিল হয়নি",len:"Not Submitted"}};
+    const m={pending:{bg:"#FEF3C7",col:"#92400E",icon:"pending",lbn:"যাচাই চলছে",len:"Pending"},
+      verified:{bg:"#D1FAE5",col:"#065F46",icon:"success",lbn:"যাচাইকৃত",len:"Verified"},
+      rejected:{bg:"#FEE2E2",col:"#991B1B",icon:"error",lbn:"প্রত্যাখ্যাত",len:"Rejected"},
+      not_submitted:{bg:"#F3F4F6",col:"#4B5563",icon:"document",lbn:"দাখিল হয়নি",len:"Not Submitted"}};
     const item=m[s]||m.not_submitted;
     const isPending = s === "pending";
-    return <span style={{background:item.bg,color:item.col,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700,...(isPending?{animation:"kyc-pending-pulse 2s infinite"}:{})}}>{item.icon} {lang==="bn"?item.lbn:item.len}</span>;
+    return <span style={{background:item.bg,color:item.col,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700,...(isPending?{animation:"kyc-pending-pulse 2s infinite"}:{})}}><Icon name={item.icon} size={14} style={{marginRight:6}} />{lang==="bn"?item.lbn:item.len}</span>;
   };
 
   const UploadBtn=({field,label,value,setter})=>{
@@ -156,7 +157,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
       {!loading&&docs.length>0&&(
         <div style={{background:docs.some(d=>d.status==="verified")?C.plt:docs.some(d=>d.status==="pending")?"#FEF3C7":"#FEE2E2",borderRadius:14,padding:"14px 16px",marginBottom:18,border:`1px solid ${docs.some(d=>d.status==="verified")?C.p:docs.some(d=>d.status==="pending")?"#FCD34D":"#FCA5A5"}`,animation:"kyc-fadeUp .4s ease .1s both"}}>
           <div style={{fontWeight:700,fontSize:13,color:docs.some(d=>d.status==="verified")?C.p:docs.some(d=>d.status==="pending")?"#92400E":"#991B1B"}}>
-            {docs.some(d=>d.status==="verified")?"✅ "+tr.kycVerified:docs.some(d=>d.status==="pending")?"⏳ "+tr.kycPending:"❌ "+(lang==="bn"?"কিছু নথি প্রত্যাখ্যাত":"Some docs rejected")}
+            {docs.some(d=>d.status==="verified")?""+tr.kycVerified:docs.some(d=>d.status==="pending")?"⏳ "+tr.kycPending:""+(lang==="bn"?"কিছু নথি প্রত্যাখ্যাত":"Some docs rejected")}
           </div>
           <div style={{fontSize:11,color:C.muted,marginTop:3}}>{tr.kycNote}</div>
         </div>
@@ -176,7 +177,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
               <div key={doc.id} style={{background:C.card,borderRadius:14,padding:"16px",border:`1px solid ${C.bdr}`,marginBottom:10,borderLeft:`3px solid ${docStatus==="verified"?C.p:docStatus==="pending"?"#F59E0B":"#EF4444"}`,animation:`kyc-fadeUp .4s ease ${i*.1}s both`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:26}}>{dtype.icon}</span>
+                    <span style={{fontSize:26}}><Icon name=<Icon name={dtype.icon} size={14} style={{marginRight:6}} />size={26} /></span>
                     <div>
                       <div style={{fontWeight:700,fontSize:14}}>{lang==="bn"?dtype.lbn:dtype.len}</div>
                       <div style={{fontSize:12,color:C.muted}}>{lang==="bn"?"নথি নম্বর:":"Doc #:"} {docNumber}</div>
@@ -215,7 +216,7 @@ export default function KYCPage({user,onClose,dark,lang,onUpdate}){
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:16}}>
             {DOC_TYPES.map(dt=>(
               <button key={dt.key} onClick={()=>setSelType(dt.key)} style={{padding:"10px 8px",borderRadius:11,border:`2px solid ${selType===dt.key?C.p:C.bdr}`,background:selType===dt.key?C.plt:C.bg,cursor:"pointer",fontFamily:"inherit",textAlign:"center",transition:"all .2s"}}>
-                <div style={{fontSize:20,marginBottom:3}}>{dt.icon}</div>
+                <div style={{fontSize:20,marginBottom:3}}><Icon name=<Icon name={dt.icon} size={14} style={{marginRight:6}} />size={20} /></div>
                 <div style={{fontSize:11,fontWeight:700,color:selType===dt.key?C.p:C.text}}>{lang==="bn"?dt.lbn:dt.len}</div>
               </button>
             ))}

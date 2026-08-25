@@ -124,7 +124,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
         const match = matchCommand(final, lang);
         if (match) {
           const label = match.action === "emergency"
-            ? (lang === "en" ? "🚨 Emergency!" : "🚨 ইমার্জেন্সি!")
+            ? (lang === "en" ? "Emergency!" : "ইমার্জেন্সি!")
             : (PAGE_LABELS[lang][match.page] || match.page || "");
           showFeedback(
             lang === "en" ? `→ ${label}` : `→ ${label} এ যাচ্ছি`,
@@ -149,7 +149,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
       setLiveText("");
       if (e.error === "not-allowed") {
         showFeedback(
-          lang === "en" ? "🎙️ Mic permission denied" : "🎙️ মাইক অনুমতি দেওয়া হয়নি",
+          lang === "en" ? "Mic permission denied" : "মাইক অনুমতি দেওয়া হয়নি",
           false
         );
       }
@@ -335,7 +335,7 @@ export default function VoiceCommand({ onCommand, isMobile }) {
           ? (listening ? "Stop listening" : "Voice command")
           : (listening ? "বন্ধ করুন" : "ভয়েস কমান্ড")}
       >
-        {listening ? "🔴" : "🎙️"}
+        {listening ? "" : ""}
       </button>
     </div>
   );

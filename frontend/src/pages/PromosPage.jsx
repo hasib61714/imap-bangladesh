@@ -1,7 +1,8 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
-import { COUPONS, PROMO_CATS } from "../constants/data";
+import { PROMO_CATS } from "../constants/data";
 import { promos as promosApi } from "../api";
 
 export default function PromosPage(){
@@ -12,7 +13,9 @@ export default function PromosPage(){
   const [tab,setTab]=useState("offers"); // offers | flash
   const [catFilter,setCatFilter]=useState("all");
   const [copied,setCopied]=useState(null);
-  const [coupons,setCoupons]=useState(COUPONS);
+  // Was a hardcoded coupon list. A code the server has never heard of is
+  // a discount the customer is promised and then refused at checkout.
+  const [coupons,setCoupons]=useState([]);
   const [applying,setApplying]=useState(false);
 
   useEffect(()=>{
@@ -95,6 +98,13 @@ export default function PromosPage(){
       {/* Coupons grid */}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {visible.length===0&&<div style={{textAlign:"center",padding:"40px 20px",color:C.muted,fontSize:14}}>{lang==="en"?"No offers in this category":"এই বিভাগে কোনো অফার নেই"}</div>}
+        {visible.length === 0 && (
+          <EmptyState C={C} icon="gift"
+            title={lang==="en" ? "No offers right now" : "এখন কোনো অফার নেই"}
+            description={lang==="en"
+              ? "Promotions appear here when they are running."
+              : "প্রচার চালু থাকলে এখানে দেখা যাবে।"} />
+        )}
         {visible.map((c,i)=>{
           const isApplied=appliedCode?.code===c.code;
           return(
@@ -116,7 +126,7 @@ export default function PromosPage(){
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
                 <button onClick={()=>copyCode(c)} style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.sub,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-                  {copied===c.code?tr.prCopied:"📋 Copy"}
+                  {copied===c.code?tr.prCopied:"Copy"}
                 </button>
                 <button onClick={()=>{if(!isApplied){setCode(c.code);setAppliedCode(c);setApplyResult("ok");}else{setAppliedCode(null);setApplyResult(null);setCode("");}}}
                   style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${isApplied?"#DC2626":C.p}`,background:isApplied?"#FEF2F2":C.plt,color:isApplied?"#DC2626":C.p,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>

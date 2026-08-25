@@ -1,13 +1,15 @@
 import { useContext, useState, useEffect } from "react";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
-import { PF_PROVIDERS } from "../constants/data";
+
 import { providers as providersApi } from "../api";
 
 export default function PortfolioPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
-  const [pfProviders,setPfProviders]=useState(PF_PROVIDERS);
-  const [sel,setSel]=useState(PF_PROVIDERS[0]);
+  // Opened with two invented providers, each with a rating and a job count.
+  const [pfProviders,setPfProviders]=useState([]);
+  const [sel,setSel]=useState(null);
 
   useEffect(()=>{
     providersApi.list({limit:6,sort:"rating"}).then(data=>{
@@ -21,11 +23,25 @@ export default function PortfolioPage(){
         about:p.bio_bn||p.bio_en||"",
         aboutEn:p.bio_en||p.bio_bn||"",
         skills:p.service_type_en?[p.service_type_en,...(p.cat_en&&p.cat_en!==p.service_type_en?[p.cat_en]:[])]:["General Service"],
-        gallery:[p.cat_icon||"⚡","🔧","🛠️","🔌","💡","⚙️"],
+        gallery:[p.cat_icon||"","","","","",""],
       }));
       if(list.length){setPfProviders(list);setSel(list[0]);}
     }).catch(()=>{});
   },[]);
+
+  // Nothing below can be drawn without a selected provider — the detail card
+  // reads sel.name, sel.skill, sel.rating and half a dozen more. Returning the
+  // empty state here rather than guarding each read keeps one answer in one
+  // place, and there is nothing else on this screen to show.
+  if (!sel) {
+    return (
+      <EmptyState C={C} icon="team"
+        title={lang==="en" ? "No portfolios yet" : "এখনো কোনো পোর্টফোলিও নেই"}
+        description={lang==="en"
+          ? "Verified providers who add work samples appear here."
+          : "যাচাইকৃত Provider কাজের নমুনা যোগ করলে এখানে দেখা যাবে।"} />
+    );
+  }
 
   return(
     <div>
@@ -43,7 +59,7 @@ export default function PortfolioPage(){
       <div style={{background:C.card,borderRadius:16,padding:"18px",border:`1px solid ${C.bdr}`,marginBottom:16}}>
         <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
           <div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
-            {sel.skill==="Electrician"?"⚡":"🧹"}
+            {sel.skill==="Electrician"?"":""}
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:16,fontWeight:800,color:C.text}}>{sel.name}</div>

@@ -115,7 +115,7 @@ export default function CalendarPage({onBook}) {
           {Object.entries(CAL_SLOTS).map(([section,slots])=>(
             <div key={section} style={{marginBottom:18}}>
               <div style={{fontSize:12,fontWeight:700,color:C.sub,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-                <span>{section==="morning"?"🌅":section==="afternoon"?"☀️":"🌙"}</span>
+                <span>{section==="morning"?"":section==="afternoon"?"":""}</span>
                 {sectionLabel[section]}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
@@ -146,7 +146,7 @@ export default function CalendarPage({onBook}) {
           {/* Book CTA */}
           <button onClick={handleBook} disabled={!selSlot||booked}
             style={{width:"100%",padding:"14px",borderRadius:14,background:selSlot&&!booked?C.p:"#ccc",border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:selSlot&&!booked?"pointer":"default",fontFamily:"'Hind Siliguri',sans-serif",transition:"background .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            {booked?"✅ বুকিং সম্পন্ন!":(selSlot?`${tr.calBook} ${selSlot}`:tr.calSelectSlot)}
+            {booked?"বুকিং সম্পন্ন!":(selSlot?`${tr.calBook} ${selSlot}`:tr.calSelectSlot)}
           </button>
         </div>
       )}

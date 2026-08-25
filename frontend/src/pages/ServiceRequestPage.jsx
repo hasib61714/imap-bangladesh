@@ -105,7 +105,7 @@ export default function ServiceRequestPage(){
             style={{width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"'Hind Siliguri',sans-serif",marginBottom:16,boxSizing:"border-box"}}/>
           <div style={{background:C.plt,borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:12,color:C.sub}}>
             <div style={{fontWeight:700,color:C.text,marginBottom:6}}>📋 {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
-            <div>✅ {svcType} • {urgent?"🚨 Urgent":""}</div>
+            <div>✅ {svcType} • {urgent?"Urgent":""}</div>
             <div>📍 {address.slice(0,40)}</div>
             <div>📅 {date} {time}</div>
           </div>

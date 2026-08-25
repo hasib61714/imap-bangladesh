@@ -118,7 +118,7 @@ export default function Chat({isMobile}) {
               {m.text}{m.streaming&&<span style={{display:"inline-block",animation:"pulse 1s infinite",color:C.p,fontWeight:700,marginLeft:1}}>▋</span>}
               {m.from==="ai"&&m.source&&m.source!=="system"&&!m.streaming&&(
                 <div style={{fontSize:9,color:m.source==="llm"||m.source==="gemini"?"#006A4E":C.muted,marginTop:4,fontWeight:600}}>
-                  {m.source==="gemini"?"✨ Gemini":m.source==="llm"?"🤖 GPT":"📚 Smart"}
+                  {m.source==="gemini"?"Gemini":m.source==="llm"?"GPT":"Smart"}
                 </div>
               )}
             </div>
@@ -150,7 +150,7 @@ export default function Chat({isMobile}) {
       <div style={{padding:"7px 10px 10px",display:"flex",gap:6,alignItems:"center"}}>
         {/* Mic button */}
         <button onClick={isListening?stopVoice:startVoice} className="btn jc" title={lang==="en"?"Voice input":"ভয়েস দিয়ে লিখুন"} style={{width:36,height:36,borderRadius:9,background:isListening?C.red:C.plt,border:`1.5px solid ${isListening?C.red:C.bdr}`,fontSize:16,flexShrink:0,animation:isListening?"pulse 1s infinite":"none"}}>
-          {isListening?"🔴":"🎙️"}
+          {isListening?"":""}
         </button>
         <input
           value={inp}

@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useUser } from "../contexts";
 import { T } from "../constants/translations";
 import { LEVELS, LOYALTY_REWARDS } from "../constants/data";
@@ -34,7 +35,7 @@ export default function LoyaltyPage(){
             <div style={{fontSize:12,color:C.sub,marginTop:2}}>{tr.lyPoints}</div>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:32}}>{level.icon}</div>
+            <div style={{fontSize:32}}><Icon name=<Icon name={level.icon} size={14} style={{marginRight:6}} />size={32} /></div>
             <div style={{fontSize:12,fontWeight:800,color:level.color}}>{lang==="en"?level.name:level.nameBn}</div>
           </div>
         </div>
@@ -50,7 +51,7 @@ export default function LoyaltyPage(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:16,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["points","🎯 "+tr.lyEarn+"/"+tr.lyRedeem],["history","📋 "+tr.lyHistory]].map(([id,lbl])=>(
+        {[["points",""+tr.lyEarn+"/"+tr.lyRedeem],["history",""+tr.lyHistory]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lbl}</button>
         ))}
       </div>
@@ -65,7 +66,7 @@ export default function LoyaltyPage(){
               const isRedeemed=redeemedCode===r.code;
               return(
                 <div key={r.pts} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${canRedeem?C.p:C.bdr}`,display:"flex",alignItems:"center",gap:14}}>
-                  <div style={{fontSize:28}}>{r.icon}</div>
+                  <div style={{fontSize:28}}><Icon name=<Icon name={r.icon} size={14} style={{marginRight:6}} />size={28} /></div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.text}}>{lang==="en"?r.titleEn:r.titleBn}</div>
                     <div style={{fontSize:11,color:canRedeem?"#006A4E":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`✅ ${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
@@ -98,7 +99,7 @@ export default function LoyaltyPage(){
           )}
           {history.map((h,i)=>(
             <div key={h.id||i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i<history.length-1?`1px solid ${C.bdr}`:"none"}}>
-              <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{h.points>0?"🎯":"🎁"}</div>
+              <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{h.points>0?"":""}</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?h.reason_en:h.reason_bn}</div>
                 <div style={{fontSize:11,color:C.muted}}>{new Date(h.created_at).toLocaleDateString("bn-BD")}</div>

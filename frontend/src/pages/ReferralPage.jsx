@@ -1,23 +1,29 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
+import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx, useUser } from "../contexts";
 import { T } from "../constants/translations";
-import { RF_FRIENDS, RF_STEPS } from "../constants/data";
+import { RF_STEPS } from "../constants/data";
 import { users as usersApi } from "../api";
 
 export default function ReferralPage(){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const {user:authUser}=useUser();
   const [copied,setCopied]=useState(false);
-  const [rfData,setRfData]=useState({referral_code:authUser?.referral_code||null, friends:RF_FRIENDS});
+    // Was seeded with three invented friends, and the loader below then did
+  // `d.friends?.length ? d.friends : prev.friends` — so a successful call
+  // reporting "you have referred nobody" was DISCARDED in favour of the
+  // invention. An empty answer is an answer.
+  const [rfData,setRfData]=useState({referral_code:authUser?.referral_code||null, friends:[]});
 
   useEffect(()=>{
     usersApi.getReferral()
-      .then(d=>{ if(d) setRfData(prev=>({...prev,...d,friends:d.friends?.length?d.friends:prev.friends})); })
+      .then(d=>{ if(d) setRfData(prev=>({...prev,...d,friends:Array.isArray(d.friends)?d.friends:prev.friends})); })
       .catch(()=>{});
   },[]);
 
   const refCode=rfData.referral_code||authUser?.referral_code||"IMAP-????";
-  const friends=rfData.friends||RF_FRIENDS;
+  const friends=rfData.friends||[];
   const totalEarned=friends.reduce((s,f)=>s+f.earned,0);
 
   const doShare=()=>{
@@ -37,7 +43,7 @@ export default function ReferralPage(){
         <div style={{fontSize:26,fontWeight:900,letterSpacing:4,fontFamily:"monospace",background:"rgba(255,255,255,.15)",padding:"10px 20px",borderRadius:12,marginBottom:16,display:"inline-block"}}>{refCode}</div>
         <div style={{display:"flex",gap:10,justifyContent:"center"}}>
           <button onClick={doCopy} style={{padding:"10px 20px",borderRadius:10,background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            {copied?tr.rfCopied:"📋 Copy"}
+            {copied?tr.rfCopied:"Copy"}
           </button>
           <button onClick={doShare} style={{
             padding:"10px 20px",borderRadius:10,
@@ -53,9 +59,9 @@ export default function ReferralPage(){
       </div>
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:12,marginBottom:20}}>
-        {[[friends.length,tr.rfFriends,"👥"],[totalEarned,"৳ "+tr.rfEarned,"💰"],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
+        {[[friends.length,tr.rfFriends,""],[totalEarned,"৳ "+tr.rfEarned,""],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
           <div key={lbl} style={{background:C.card,borderRadius:14,padding:"14px 10px",border:`1px solid ${C.bdr}`,textAlign:"center"}}>
-            <div style={{fontSize:20}}>{ic}</div>
+            <div style={{fontSize:20}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div>
             <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:-1}}>{val}{lbl==="৳ "+tr.rfEarned?"":""}</div>
             <div style={{fontSize:11,color:C.sub}}>{lbl}</div>
           </div>
@@ -66,7 +72,7 @@ export default function ReferralPage(){
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>{tr.rfHow}</div>
         {RF_STEPS.map((s,i)=>(
           <div key={i} style={{display:"flex",gap:12,marginBottom:i<RF_STEPS.length-1?16:0}}>
-            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+            <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={18} /></div>
             <div>
               <div style={{fontSize:13,color:C.text,fontWeight:600}}>{lang==="en"?s.en:s.bn}</div>
               {i===2&&<div style={{fontSize:12,color:C.p,fontWeight:800,marginTop:3}}>+৳150 {tr.rfBonus}</div>}
@@ -77,6 +83,13 @@ export default function ReferralPage(){
       {/* Friends list */}
       <div style={{background:C.card,borderRadius:16,padding:"4px 0",border:`1px solid ${C.bdr}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,padding:"12px 16px 8px"}}>{tr.rfFriends}</div>
+        {friends.length === 0 && (
+          <EmptyState C={C} compact icon="referral"
+            title={lang==="bn" ? "এখনো কাউকে রেফার করেননি" : "No referrals yet"}
+            description={lang==="bn"
+              ? "উপরের কোডটি বন্ধুদের সাথে শেয়ার করুন। তারা নিবন্ধন করলে এখানে দেখা যাবে।"
+              : "Share your code above. Friends who sign up with it appear here."} />
+        )}
         {friends.map((f,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:`1px solid ${C.bdr}`}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",flexShrink:0}}>{f.name[0]}</div>

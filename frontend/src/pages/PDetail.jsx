@@ -76,7 +76,7 @@ export default function PDetail({p,onClose,onBook,onChat}) {
       </div>
       {tab==="about"&&<div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:10,marginBottom:14}}>
-          {[["💼",tr.totalJobsL,p.jobs],["📊",tr.scoreL,p.score+"/100"],["💹",tr.loanScoreL,p.loanScore+"/100"]].map(([ic,l,v],i)=>(
+          {[["",tr.totalJobsL,p.jobs],["",tr.scoreL,p.score+"/100"],["",tr.loanScoreL,p.loanScore+"/100"]].map(([ic,l,v],i)=>(
             <div key={i} style={{
               background:dark?"rgba(34,212,127,.06)":"rgba(29,191,115,.05)",
               borderRadius:12,padding:12,textAlign:"center",
@@ -92,12 +92,12 @@ export default function PDetail({p,onClose,onBook,onChat}) {
       }}>
           <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:6}}>{tr.verifiedL}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            {["✅ NID","✅ Phone","✅ Background","✅ Photo"].map(i=><div key={i} style={{fontSize:12,color:C.sub}}>{i}</div>)}
+            {["NID","Phone","Background","Photo"].map(i=><div key={i} style={{fontSize:12,color:C.sub}}>{i}</div>)}
           </div>
         </div>
       </div>}
       {tab==="stats"&&<div>
-        {[["📋",lang==="en"?"Service History":"সেবার ইতিহাস",95],["💳",lang==="en"?"Payment Regularity":"পেমেন্ট নিয়মিততা",88],["⭐",lang==="en"?"Customer Rating":"গ্রাহক রেটিং",92],["📱",lang==="en"?"Activity":"সক্রিয়তা",78]].map(([ic,l,s],i)=>(
+        {[["",lang==="en"?"Service History":"সেবার ইতিহাস",95],["",lang==="en"?"Payment Regularity":"পেমেন্ট নিয়মিততা",88],["",lang==="en"?"Customer Rating":"গ্রাহক রেটিং",92],["",lang==="en"?"Activity":"সক্রিয়তা",78]].map(([ic,l,s],i)=>(
           <div key={i} style={{marginBottom:12}}>
             <div className="row" style={{justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:13}}>{ic} {l}</span><span style={{fontSize:13,fontWeight:700,color:s>=80?C.p:"#F59E0B"}}>{s}%</span></div>
             <PBar v={s} col={s>=80?C.p:"#F59E0B"}/>

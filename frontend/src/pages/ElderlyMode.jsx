@@ -1,4 +1,5 @@
 import { useC, useTr, useLiveData } from "../contexts";
+import Icon from "../components/Icon";
 import { PROVIDERS } from "../constants/data";
 import { toUiProv } from "../utils/helpers";
 
@@ -7,7 +8,7 @@ export default function ElderlyMode({onExit,onBook,onEmergency}) {
   const tr=useTr();
   const { providers: ctxProviders } = useLiveData();
   const pv = ctxProviders.map(toUiProv);
-  const SERVICES=[{icon:"⚡",name:tr.elecProblem,p:pv[0]||PROVIDERS[0]},{icon:"🔧",name:tr.waterProblem,p:pv[2]||PROVIDERS[2]},{icon:"🏥",name:tr.docNurse,p:pv[1]||PROVIDERS[1]},{icon:"🧹",name:tr.cleanService,p:pv[3]||PROVIDERS[3]}];
+  const SERVICES=[{icon:"",name:tr.elecProblem,p:pv[0]||PROVIDERS[0]},{icon:"",name:tr.waterProblem,p:pv[2]||PROVIDERS[2]},{icon:"",name:tr.docNurse,p:pv[1]||PROVIDERS[1]},{icon:"",name:tr.cleanService,p:pv[3]||PROVIDERS[3]}];
   return (
     <div style={{minHeight:"100vh",background:C.bg,padding:"24px 16px 88px",fontFamily:"'Hind Siliguri',sans-serif"}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:24}}>
@@ -28,7 +29,7 @@ export default function ElderlyMode({onExit,onBook,onEmergency}) {
             boxShadow:`0 4px 16px rgba(21,163,96,.1),inset 0 1px 0 rgba(255,255,255,.5)`,
             width:"100%",transition:"all .2s"
           }}>
-            <div style={{fontSize:46,marginBottom:10}}>{s.icon}</div>
+            <div style={{fontSize:46,marginBottom:10}}><Icon name={s.icon} size={46} /></div>
             <div style={{fontSize:18,fontWeight:700,color:C.text,lineHeight:1.3}}>{s.name}</div>
           </button>
         ))}

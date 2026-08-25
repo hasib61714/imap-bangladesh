@@ -53,7 +53,7 @@ export default function ProviderDash() {
       </div>
       {tab==="overview"&&<div>
         <div className="g2" style={{marginBottom:14}}>
-          {[{ic:"📊",l:tr.perfScore,v:`${p.score}/100`,col:C.p},{ic:"⏱️",l:tr.avgResp,v:`8 ${tr.min}`,col:"#3B82F6"},{ic:"📋",l:tr.todayJobs,v:"3",col:"#F59E0B"},{ic:"💹",l:tr.loanScoreL||"Loan Score",v:`${p.loanScore}/100`,col:"#8B5CF6"}].map((item,i)=>(
+          {[{ic:"",l:tr.perfScore,v:`${p.score}/100`,col:C.p},{ic:"⏱️",l:tr.avgResp,v:`8 ${tr.min}`,col:"#3B82F6"},{ic:"",l:tr.todayJobs,v:"3",col:"#F59E0B"},{ic:"",l:tr.loanScoreL||"Loan Score",v:`${p.loanScore}/100`,col:"#8B5CF6"}].map((item,i)=>(
             <div key={i} style={{
               background:C.card,borderRadius:13,padding:14,
               border:`1px solid ${C.bdr}`,
@@ -71,7 +71,7 @@ export default function ProviderDash() {
           boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4)`
         }}>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {(lang==="en"?["⚡ Electrical Expert","🌟 Top Rated","⏰ On Time","🔒 Trusted"]:["⚡ বিদ্যুৎ বিশেষজ্ঞ","🌟 সেরা রেটিং","⏰ সময়মতো","🔒 বিশ্বস্ত"]).map(b=>(
+            {(lang==="en"?["Electrical Expert","Top Rated","⏰ On Time","Trusted"]:["বিদ্যুৎ বিশেষজ্ঞ","সেরা রেটিং","⏰ সময়মতো","বিশ্বস্ত"]).map(b=>(
               <span key={b} className="badge" style={{background:C.plt,color:C.p,fontSize:11,padding:"5px 11px"}}>{b}</span>
             ))}
           </div>
