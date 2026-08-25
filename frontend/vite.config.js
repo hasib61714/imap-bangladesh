@@ -25,6 +25,15 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Realtime goes through the same origin in development, so the client
+      // needs no second URL to get wrong. `ws: true` is what makes the
+      // upgrade handshake pass through rather than 404.
+      '/socket.io': {
+        target: process.env.VITE_DEV_API_ORIGIN || 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
 

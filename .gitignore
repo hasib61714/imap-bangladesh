@@ -60,3 +60,4 @@ coverage/
 # localSealedDriver.js for why a local root is safe and where it is not.
 backend/.private/
 .private/
+.gstack/

@@ -5,7 +5,25 @@
 import { io } from "socket.io-client";
 import { getToken } from "./api";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
+/**
+ * Where the socket server is.
+ *
+ * `VITE_API_URL` is an absolute URL in a deployed build and the RELATIVE
+ * "/api" in development. Stripping "/api" from "/api" leaves "", which is
+ * falsy, so the old expression fell through to the hardcoded
+ * `http://localhost:5000` — a port the dev backend does not use, and one
+ * that on this machine is held by an unrelated service. The result was a
+ * websocket that failed, retried, and filled the console on every page load
+ * while realtime silently did not work.
+ *
+ * Relative base → same origin, and the vite dev server proxies /socket.io
+ * (with ws: true) to the local backend. Absolute base → strip the /api
+ * suffix as before.
+ */
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const SOCKET_URL = /^https?:\/\//.test(API_BASE)
+  ? API_BASE.replace(/\/api\/?$/, "")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 let socket = null;
 
@@ -32,6 +50,14 @@ export const connectSocket = () => {
 
   socket.on("connect_error", (err) => {
     if (import.meta.env.DEV) console.warn("⚠️ Socket.io error:", err.message);
+  });
+
+  // Realtime is an enhancement, not a requirement: chat and live booking
+  // updates degrade to polling elsewhere in the app. After the configured
+  // attempts are exhausted, stop — an endless reconnect loop buries every
+  // other console message and keeps a dead socket alive in memory.
+  socket.io.on("reconnect_failed", () => {
+    if (import.meta.env.DEV) console.warn("⚠️ Socket.io gave up; realtime is off for this session.");
   });
 
   // Refresh JWT on every reconnect attempt so expiry never blocks reconnection

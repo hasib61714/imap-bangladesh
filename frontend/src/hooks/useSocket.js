@@ -1,72 +1,68 @@
 /**
- * useSocket — singleton Socket.io connection
- * Shared across the whole app. Reconnects automatically.
+ * useSocket — React access to the app's ONE socket connection.
+ *
+ * WHY THIS FILE NO LONGER OPENS A SOCKET
+ * ──────────────────────────────────────
+ * There were two socket modules, and each described itself as the
+ * singleton: `src/socket.js` (used by ProviderPortal) and this hook (used by
+ * App.jsx). Both called `io()` with their own copy of the URL expression, so
+ * every session opened TWO websockets to the same server, authenticated
+ * twice, joined rooms twice, and delivered every event twice to whichever
+ * listeners happened to be on the other one.
+ *
+ * They also carried the same bug, twice:
+ *
+ *     import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000"
+ *
+ * `VITE_API_URL` is the RELATIVE "/api" in development, and "/api" with
+ * "/api" removed is "", which is falsy — so both fell through to a hardcoded
+ * port the dev backend does not use. The console filled with failed upgrade
+ * attempts on every page load while realtime silently did not work.
+ *
+ * This is now a thin adapter over `src/socket.js`. One module owns the
+ * connection, one place derives the URL, and fixing either can only be done
+ * once.
  */
 import { useEffect, useRef, useCallback } from "react";
-import { io } from "socket.io-client";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
-
-let _socket = null;
-
-function getSocket(token) {
-  if (_socket && _socket.connected) return _socket;
-  if (_socket) { _socket.disconnect(); _socket = null; }
-
-  _socket = io(SOCKET_URL, {
-    auth:         { token: token || "" },
-    transports:   ["websocket", "polling"],
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionAttempts: 10,
-  });
-
-  if (import.meta.env.DEV) {
-    _socket.on("connect",    () => console.log("🔌 Socket connected:", _socket.id));
-    _socket.on("disconnect", () => console.log("🔌 Socket disconnected"));
-    _socket.on("connect_error", e => console.warn("Socket error:", e.message));
-  }
-
-  return _socket;
-}
+import { connectSocket, getSocket } from "../socket";
 
 export function useSocket(token) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = getSocket(token);
-    // If token changed, force reconnect with new auth
-    if (token && _socket && !_socket.connected) {
-      _socket.auth = { token };
-      _socket.connect();
+    // `connectSocket` reads the current token itself and reuses a live
+    // connection, so this is idempotent across every component that calls it.
+    socketRef.current = connectSocket();
+    const s = getSocket();
+    if (token && s && !s.connected) {
+      s.auth = { token };
+      s.connect();
     }
   }, [token]);
 
-  const joinRoom = useCallback((roomId) => {
-    socketRef.current?.emit("join_room", roomId);
+  const emit = useCallback((event, payload) => {
+    const s = socketRef.current || getSocket();
+    s?.emit(event, payload);
   }, []);
 
-  const leaveRoom = useCallback((roomId) => {
-    socketRef.current?.emit("leave_room", roomId);
-  }, []);
+  const joinRoom       = useCallback((roomId) => emit("join_room", roomId), [emit]);
+  const leaveRoom      = useCallback((roomId) => emit("leave_room", roomId), [emit]);
+  const emitLocation   = useCallback((bookingId, lat, lng) => emit("location_update", { bookingId, lat, lng }), [emit]);
+  const emitTyping     = useCallback((bookingId) => emit("typing", { bookingId }), [emit]);
+  const emitStopTyping = useCallback((bookingId) => emit("stop_typing", { bookingId }), [emit]);
 
-  const emitLocation = useCallback((bookingId, lat, lng) => {
-    socketRef.current?.emit("location_update", { bookingId, lat, lng });
-  }, []);
-
-  const emitTyping = useCallback((bookingId) => {
-    socketRef.current?.emit("typing", { bookingId });
-  }, []);
-
-  const emitStopTyping = useCallback((bookingId) => {
-    socketRef.current?.emit("stop_typing", { bookingId });
-  }, []);
-
-  /** Subscribe to a socket event; returns unsubscribe function */
+  /**
+   * Subscribe to a socket event; returns an unsubscribe function.
+   *
+   * The handler is captured so the cleanup removes THIS listener rather than
+   * whatever `socketRef.current` happens to be at unmount — which, after a
+   * reconnect, is a different object.
+   */
   const on = useCallback((event, handler) => {
-    if (!socketRef.current) return () => {};
-    socketRef.current.on(event, handler);
-    return () => socketRef.current?.off(event, handler);
+    const s = socketRef.current || getSocket();
+    if (!s) return () => {};
+    s.on(event, handler);
+    return () => s.off(event, handler);
   }, []);
 
   return { socketRef, joinRoom, leaveRoom, emitLocation, emitTyping, emitStopTyping, on };

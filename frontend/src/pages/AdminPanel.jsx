@@ -33,6 +33,21 @@ const StatusTag = ({ status, lang }) => {
     ongoing:   { color: "processing", lbn: "চলমান",         len: "Ongoing"   },
     cancelled: { color: "default",    lbn: "বাতিল",         len: "Cancelled" },
     verified:  { color: "success",    lbn: "যাচাইকৃত",     len: "Verified"  },
+
+    // The verification machine's states (STATE-MACHINES §9). Without these
+    // the tag fell through to `m.lbn = status` and rendered the raw English
+    // identifier — a Bangla-first product showing "submitted" and
+    // "under_review" to a Bangla-speaking reviewer.
+    submitted:    { color: "warning",    lbn: "অপেক্ষায়",          len: "Waiting"      },
+    under_review: { color: "processing", lbn: "পর্যালোচনায়",       len: "In review"    },
+    more_info:    { color: "blue",       lbn: "তথ্য চাওয়া হয়েছে", len: "Info needed"  },
+    revoked:      { color: "error",      lbn: "বাতিল করা হয়েছে",  len: "Revoked"      },
+    expired:      { color: "default",    lbn: "মেয়াদোত্তীর্ণ",     len: "Expired"      },
+    not_submitted:{ color: "default",    lbn: "জমা দেওয়া হয়নি",  len: "Not submitted"},
+
+    // Provider listing states.
+    applied:      { color: "warning",    lbn: "আবেদন করেছেন",      len: "Applied"      },
+    approved:     { color: "success",    lbn: "অনুমোদিত",          len: "Approved"     },
   };
   const m = map[status] || { color: "default", lbn: status, len: status };
   return <Tag color={m.color}>{lang === "bn" ? m.lbn : m.len}</Tag>;
