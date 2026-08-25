@@ -14,10 +14,11 @@ import {
   MenuFoldOutlined, MenuUnfoldOutlined, SunOutlined, MoonOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
-import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi, services as servicesApi, loans as loansApi } from "../api";
+import { admin as adminApi, ai as aiApi, sos as sosApi, payments as paymentsApi, services as servicesApi, loans as loansApi,
+         verification as verificationApi, listing as listingApi } from "../api";
 
 const { Header, Sider, Content } = Layout;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
@@ -32,6 +33,21 @@ const StatusTag = ({ status, lang }) => {
     ongoing:   { color: "processing", lbn: "চলমান",         len: "Ongoing"   },
     cancelled: { color: "default",    lbn: "বাতিল",         len: "Cancelled" },
     verified:  { color: "success",    lbn: "যাচাইকৃত",     len: "Verified"  },
+
+    // The verification machine's states (STATE-MACHINES §9). Without these
+    // the tag fell through to `m.lbn = status` and rendered the raw English
+    // identifier — a Bangla-first product showing "submitted" and
+    // "under_review" to a Bangla-speaking reviewer.
+    submitted:    { color: "warning",    lbn: "অপেক্ষায়",          len: "Waiting"      },
+    under_review: { color: "processing", lbn: "পর্যালোচনায়",       len: "In review"    },
+    more_info:    { color: "blue",       lbn: "তথ্য চাওয়া হয়েছে", len: "Info needed"  },
+    revoked:      { color: "error",      lbn: "বাতিল করা হয়েছে",  len: "Revoked"      },
+    expired:      { color: "default",    lbn: "মেয়াদোত্তীর্ণ",     len: "Expired"      },
+    not_submitted:{ color: "default",    lbn: "জমা দেওয়া হয়নি",  len: "Not submitted"},
+
+    // Provider listing states.
+    applied:      { color: "warning",    lbn: "আবেদন করেছেন",      len: "Applied"      },
+    approved:     { color: "success",    lbn: "অনুমোদিত",          len: "Approved"     },
   };
   const m = map[status] || { color: "default", lbn: status, len: status };
   return <Tag color={m.color}>{lang === "bn" ? m.lbn : m.len}</Tag>;
@@ -87,43 +103,29 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   },[]);
 
   /* ── DATA ─────────────────────────────────────────── */
-  const [providers, setProviders] = useState([
-    { id:1, name:"রাহেলা বেগম",   service:"নার্সিং",         area:"ঢাকা",      status:"pending",   rating:4.8, jobs:124, phone:"01711-112233", nid:"1234567890" },
-    { id:2, name:"করিম মিয়া",    service:"ইলেকট্রিশিয়ান", area:"চট্টগ্রাম", status:"active",    rating:4.9, jobs:312, phone:"01811-223344", nid:"9876543210" },
-    { id:3, name:"সুমন হোসেন",   service:"প্লাম্বার",       area:"সিলেট",     status:"pending",   rating:4.6, jobs:87,  phone:"01911-334455", nid:"5678901234" },
-    { id:4, name:"নাফিসা আক্তার",service:"পরিষ্কার",        area:"রাজশাহী",   status:"active",    rating:4.7, jobs:203, phone:"01611-445566", nid:"" },
-    { id:5, name:"জামাল উদ্দিন", service:"ড্রাইভার",        area:"খুলনা",     status:"suspended", rating:3.8, jobs:45,  phone:"01511-556677", nid:"1122334455" },
-  ]);
-  const [users, setUsers] = useState([
-    { id:1, name:"আহমেদ রাহাত",   phone:"01700-111222", role:"customer", status:"active",    bookings:14, joined:"২০২৪-০১" },
-    { id:2, name:"সুমাইয়া খানম", phone:"01800-222333", role:"customer", status:"active",    bookings:8,  joined:"২০২৪-০৩" },
-    { id:3, name:"করিম সাহেব",    phone:"01900-333444", role:"customer", status:"active",    bookings:22, joined:"২০২৩-১১" },
-    { id:4, name:"নুসরাত জাহান",  phone:"01600-444555", role:"customer", status:"suspended", bookings:3,  joined:"২০২৪-০৬" },
-    { id:5, name:"তানভীর আহমেদ", phone:"01500-555666", role:"customer", status:"active",    bookings:17, joined:"২০২৪-০২" },
-  ]);
-  const [bookings] = useState([
-    { id:"BK-001", customer:"আহমেদ রাহাত",   provider:"করিম মিয়া",    service:"ইলেকট্রিশিয়ান", status:"completed", amount:800,  date:"২০২৫-০৬-১০" },
-    { id:"BK-002", customer:"সুমাইয়া খানম", provider:"রাহেলা বেগম",   service:"নার্সিং",        status:"ongoing",   amount:1200, date:"২০২৫-০৬-১১" },
-    { id:"BK-003", customer:"করিম সাহেব",    provider:"সুমন হোসেন",   service:"প্লাম্বার",      status:"pending",   amount:600,  date:"২০২৫-০৬-১১" },
-    { id:"BK-004", customer:"নুসরাত জাহান",  provider:"নাফিসা আক্তার",service:"পরিষ্কার",       status:"completed", amount:500,  date:"২০২৫-০৬-০৯" },
-    { id:"BK-005", customer:"তানভীর আহমেদ", provider:"করিম মিয়া",    service:"ইলেকট্রিশিয়ান", status:"cancelled", amount:0,    date:"২০২৫-০৬-০৮" },
-  ]);
+  /**
+   * EMPTY, NOT INVENTED.
+   *
+   * These four lists used to be initialised with five fabricated people
+   * each — names, phone numbers, NID numbers, bookings — and every loader
+   * below guarded its update with `if (d?.x?.length)`. So when the real API
+   * returned NOTHING, the invented rows stayed on screen: an operator saw
+   * five KYC applications that did not exist and could click Approve on
+   * them. The panel was not showing stale data; it was showing fiction and
+   * offering to act on it.
+   *
+   * They start empty, the loaders always replace, and each tab renders an
+   * explicit empty state. An operator who sees nothing is being told the
+   * truth: there is nothing.
+   */
+  const [providers, setProviders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [kycFilter, setKycFilter]       = useState("all");
   const [kycRejectModal, setKycRejectModal] = useState({ open:false, id:null });
   const [kycRejectReason, setKycRejectReason] = useState("");
-  const [kycList, setKycList] = useState([
-    { id:"kyc_101", userName:"আহমেদ রাহাত",   phone:"01700-111222", docType:"nid",      docNum:"1234567890",  submittedAt:"২০২৫-০৬-১০", status:"pending",  rejectionReason:"" },
-    { id:"kyc_102", userName:"সুমাইয়া খানম", phone:"01800-222333", docType:"passport", docNum:"AB1234567",   submittedAt:"২০২৫-০৬-০৯", status:"pending",  rejectionReason:"" },
-    { id:"kyc_103", userName:"করিম সাহেব",    phone:"01900-333444", docType:"driving",  docNum:"DL-78901234", submittedAt:"২০২৫-০৬-০৮", status:"verified", rejectionReason:"" },
-    { id:"kyc_104", userName:"নুসরাত জাহান",  phone:"01600-444555", docType:"birth",    docNum:"BN-99887766", submittedAt:"২০২৫-০৬-০৭", status:"rejected", rejectionReason:"ছবি অস্পষ্ট" },
-    { id:"kyc_105", userName:"তানভীর আহমেদ", phone:"01500-555666", docType:"nid",      docNum:"9876543210",  submittedAt:"২০২৫-০৬-০৬", status:"pending",  rejectionReason:"" },
-  ]);
-  const [tickets, setTickets] = useState([
-    { id:"T01", customer:"আহমেদ রাহাত",   provider:"করিম মিয়া",    issue:"সময়মতো আসেনি",        status:"open",     date:"২০২৫-০৬-১০", priority:"high"   },
-    { id:"T02", customer:"সুমাইয়া খানম", provider:"রাহেলা বেগম",   issue:"কাজের মান খারাপ",     status:"open",     date:"২০২৫-০৬-০৯", priority:"medium" },
-    { id:"T03", customer:"করিম সাহেব",    provider:"সুমন হোসেন",   issue:"অতিরিক্ত চার্জ",      status:"resolved", date:"২০২৫-০৬-০৭", priority:"low"    },
-    { id:"T04", customer:"নুসরাত জাহান",  provider:"নাফিসা আক্তার",issue:"ফোন ধরেনি",            status:"open",     date:"২০২৫-০৬-০৬", priority:"high"   },
-  ]);
+  const [kycList, setKycList] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [ticketFilter, setTicketFilter] = useState("all");
   const [announcements, setAnnouncements] = useState([]);
   const [notifTitle, setNotifTitle] = useState("");
@@ -141,38 +143,259 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const [bSearch, setBSearch] = useState("");
 
   /* ── ACTIONS ──────────────────────────────────────── */
-  const approveProvider = async id => {
-    setProviders(p => p.map(x => x.id===id ? {...x,status:"active"} : x));
-    toast(lang==="bn" ? "✅ অনুমোদন হয়েছে!" : "✅ Approved!");
-    try { await adminApi.updateUser(id, {is_active:1}); } catch(e) { console.warn(e.message); }
+  /**
+   * The provider listing decisions.
+   *
+   * WHAT THESE USED TO DO
+   * ─────────────────────
+   *   setProviders(... status: "active" ...);
+   *   toast("✅ Approved!");
+   *   try { await adminApi.updateUser(id, { is_active: 1 }); } catch { console.warn }
+   *
+   * `is_active` is the USER ACCOUNT. Setting it did not make a provider
+   * listable and never had — F-12 recorded that no endpoint could. So the
+   * button said "Approved!", activated an account, and left the provider
+   * exactly as invisible as before. The failure was swallowed too.
+   *
+   * They now call the real listing endpoints, which require a verified
+   * identity case before approving (TRUST §6) and a stated reason before
+   * refusing or suspending (R-1103).
+   */
+  const [listingBusy, setListingBusy] = useState(null);
+  const [listingModal, setListingModal] = useState({ open: false, id: null, mode: null });
+  const [listingReason, setListingReason] = useState("");
+
+  const runListing = async (providerId, fn, successMsg, tone = "success") => {
+    if (listingBusy) return false;
+    setListingBusy(providerId);
+    try {
+      await fn();
+      await loadProviders(pSearch);
+      toast(successMsg, tone);
+      return true;
+    } catch (e) {
+      toast(failure(e), "error");
+      return false;
+    } finally {
+      setListingBusy(null);
+    }
   };
-  const rejectProvider = async id => {
-    setProviders(p => p.map(x => x.id===id ? {...x,status:"rejected"} : x));
-    toast(lang==="bn" ? "প্রত্যাখ্যান হয়েছে" : "Rejected", "warning");
-    try { await adminApi.updateUser(id, {is_active:0}); } catch(e) { console.warn(e.message); }
+
+  const approveProvider = (row) =>
+    runListing(row._pid, () => listingApi.approve(row._pid),
+      lang === "bn" ? "✅ তালিকাভুক্ত করা হয়েছে" : "✅ Now listed");
+
+  const submitListingDecision = async () => {
+    const reason = listingReason.trim();
+    if (reason.length < 10) {
+      toast(lang === "bn"
+        ? "কারণ লিখুন — অন্তত ১০ অক্ষর। প্রদানকারী এটি দেখবেন।"
+        : "Write a reason — at least 10 characters. The provider sees it.", "warning");
+      return;
+    }
+    const { id, mode } = listingModal;
+    const ok = await runListing(id,
+      () => (mode === "suspend" ? listingApi.suspend(id, reason) : listingApi.reject(id, reason)),
+      mode === "suspend"
+        ? (lang === "bn" ? "তালিকা থেকে সরানো হয়েছে" : "Removed from the marketplace")
+        : (lang === "bn" ? "আবেদন প্রত্যাখ্যাত" : "Application rejected"),
+      "warning");
+    if (ok) { setListingModal({ open: false, id: null, mode: null }); setListingReason(""); }
   };
+
   const toggleSuspend = async (type, id) => {
-    if (type==="provider") setProviders(p => p.map(x => x.id===id ? {...x, status:x.status==="suspended"?"active":"suspended"} : x));
-    else                   setUsers(p   => p.map(x => x.id===id ? {...x, status:x.status==="suspended"?"active":"suspended"} : x));
-    toast(lang==="bn" ? "✅ অবস্থা পরিবর্তিত" : "✅ Status updated");
-    try { await adminApi.updateUser(id, {is_active:-1}); } catch(e) { console.warn(e.message); }
+    // P1-11: this used to send is_active:-1 for both directions. The API
+    // stored -1, and the auth middleware treats -1 as active — so the row
+    // showed "suspended" while the account kept working. Send the real
+    // target state, and only update the UI once the server confirms.
+    const list = type === "provider" ? providers : users;
+    const current = list.find(x => x.id === id);
+    const nextActive = current?.status === "suspended" ? 1 : 0;
+    try {
+      await adminApi.updateUser(id, { is_active: nextActive });
+      const nextStatus = nextActive ? "active" : "suspended";
+      if (type==="provider") setProviders(p => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
+      else                   setUsers(p   => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
+      toast(lang==="bn" ? "✅ অবস্থা পরিবর্তিত" : "✅ Status updated");
+    } catch(e) {
+      toast((lang==="bn" ? "পরিবর্তন ব্যর্থ: " : "Update failed: ") + (e.data?.error || e.message), "error");
+    }
   };
-  const kycApprove = id => {
-    setKycList(k => k.map(x => x.id===id ? {...x, status:"verified"} : x));
-    toast(lang==="bn" ? "✅ KYC অনুমোদিত" : "✅ KYC Approved");
-    adminApi.kycReview(id, "verified").catch(e => console.warn("kyc approve:", e.message));
+  /**
+   * Open one case's evidence.
+   *
+   * Two audited steps, and the reason is required by the SERVER, not by a
+   * check here — the kernel denies a document read that does not carry one
+   * (R-1103, D-03). This asks the reviewer once and sends it with every
+   * document, so the requirement is met deliberately rather than
+   * discovered as a 422.
+   *
+   * Each URL is signed and lives five minutes. Nothing is cached, and the
+   * URLs are dropped from state when the panel closes.
+   */
+  const loadKycImages = async (id, reason) => {
+    const why = String(reason || "").trim();
+    if (why.length < 4) {
+      toast(lang === "bn"
+        ? "কেন দেখছেন তা লিখুন — এটি রেকর্ড করা হবে।"
+        : "Say why you are opening this — it is recorded.", "warning");
+      return;
+    }
+    setKycList(k => k.map(x => x.id === id ? { ...x, docsLoading: true } : x));
+    try {
+      const c = await verificationApi.case(id);
+
+      // A case migrated from the old table has its evidence in LONGTEXT
+      // columns rather than object storage, so it comes back as base64.
+      // That is the shape the old architecture left behind; it goes away
+      // when the byte copy runs.
+      let docs = [];
+      if (c.documents?.length) {
+        docs = await Promise.all(c.documents.map(async (d) => {
+          const u = await verificationApi.documentUrl(d.documentId, why);
+          return { kind: d.docType, src: u.url, expiresIn: u.expires_in };
+        }));
+      } else if (c.legacyEvidence) {
+        const kinds = Object.entries(c.legacyEvidence.available)
+          .filter(([, present]) => present).map(([kind]) => kind);
+        docs = await Promise.all(kinds.map(async (kind) => {
+          const r = await verificationApi.legacyImage(id, kind, why);
+          const img = String(r.image || "");
+          return { kind, src: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`, legacy: true };
+        }));
+      }
+
+      setKycList(k => k.map(x => x.id === id
+        ? { ...x, docs, docsLoading: false, caseState: c.state, availableTransitions: c.availableTransitions }
+        : x));
+      if (!docs.length) {
+        toast(lang === "bn" ? "এই আবেদনে কোনো নথি নেই" : "This case has no documents", "warning");
+      }
+    } catch (e) {
+      setKycList(k => k.map(x => x.id === id ? { ...x, docsLoading: false } : x));
+      toast((lang === "bn" ? "নথি খোলা যায়নি: " : "Could not open the documents: ") + failure(e), "error");
+    }
   };
-  const kycReject = () => {
-    const reason = kycRejectReason || "N/A";
-    setKycList(k => k.map(x => x.id===kycRejectModal.id ? {...x, status:"rejected", rejectionReason:reason} : x));
-    setKycRejectModal({open:false, id:null});
-    setKycRejectReason("");
-    toast(lang==="bn" ? "KYC প্রত্যাখ্যাত" : "KYC Rejected", "warning");
-    adminApi.kycReview(kycRejectModal.id, "rejected", reason).catch(e => console.warn("kyc reject:", e.message));
+
+  /**
+   * The verification decisions.
+   *
+   * WHAT THESE USED TO DO
+   * ─────────────────────
+   *   setKycList(... status: "verified" ...);
+   *   toast("✅ KYC Approved");
+   *   adminApi.kycReview(id, "verified").catch(e => console.warn(...));
+   *
+   * The list was updated, the success toast was shown, and the request was
+   * fired into a `console.warn`. An operator who was not permitted to
+   * approve — or who hit a state conflict, or lost the network — saw
+   * "✅ KYC Approved" and had approved nothing. The UI reported an outcome
+   * it had not waited for and could not observe.
+   *
+   * Now every decision awaits the server, the list is refreshed from what
+   * the server actually says, and a failure is shown to the person who
+   * caused it. The reviewer is never told something happened unless it did.
+   */
+  const [kycBusy, setKycBusy] = useState(null);
+
+  /** The message a failure should show. Never a raw exception. */
+  const failure = (e) =>
+    e?.data?.user_message?.[lang === "bn" ? "bn" : "en"] ||
+    e?.data?.error || e?.message ||
+    (lang === "bn" ? "কাজটি সম্পন্ন হয়নি।" : "That did not go through.");
+
+  /**
+   * Run one decision against the server and reflect ONLY what it returns.
+   *
+   * The case is claimed first where the machine requires it: there is no
+   * `submitted → verified` edge, and the two steps are recorded separately
+   * so the audit log can distinguish "reviewed it, then approved" from
+   * "approved".
+   */
+  const decide = async (id, action, { reason, claimFirst = true } = {}) => {
+    if (kycBusy) return;
+    setKycBusy(id);
+    try {
+      if (claimFirst) {
+        try { await verificationApi.claim(id); }
+        catch (e) {
+          // Already claimed by this or another reviewer — the only failure
+          // worth continuing past.
+          if (e?.data?.code !== "VERIFICATION_TRANSITION_INVALID") throw e;
+        }
+      }
+      await action(id, reason);
+      await loadKyc(kycFilter === "all" ? "submitted" : kycFilter);
+      return true;
+    } catch (e) {
+      toast(failure(e), "error");
+      return false;
+    } finally {
+      setKycBusy(null);
+    }
+  };
+
+  const kycApprove = async (id) => {
+    const ok = await decide(id, (i) => verificationApi.approve(i));
+    if (ok) toast(lang === "bn" ? "✅ পরিচয় যাচাই সম্পন্ন" : "✅ Identity verified");
+  };
+
+  const kycReject = async () => {
+    const reason = kycRejectReason.trim();
+    // R-1103, said in the UI rather than discovered as a 422: a refusal a
+    // person cannot answer is not a decision they can act on.
+    if (reason.length < 10) {
+      toast(lang === "bn"
+        ? "কারণ লিখুন — অন্তত ১০ অক্ষর। আবেদনকারী এটাই দেখবেন।"
+        : "Write a reason — at least 10 characters. The applicant sees exactly this.", "warning");
+      return;
+    }
+    const id = kycRejectModal.id;
+    const ok = await decide(id, (i, r) => verificationApi.reject(i, r), { reason });
+    if (ok) {
+      setKycRejectModal({ open: false, id: null });
+      setKycRejectReason("");
+      toast(lang === "bn" ? "প্রত্যাখ্যাত — আবেদনকারীকে কারণ জানানো হয়েছে" : "Rejected — the applicant has been told why", "warning");
+    }
+  };
+
+  /** "Your photo is blurred, send another" — a request, not a refusal. */
+  const kycRequestInfo = async () => {
+    const reason = kycRejectReason.trim();
+    if (reason.length < 10) {
+      toast(lang === "bn"
+        ? "কী দরকার তা লিখুন — অন্তত ১০ অক্ষর।"
+        : "Say what is needed — at least 10 characters.", "warning");
+      return;
+    }
+    const ok = await decide(kycRejectModal.id, (i, r) => verificationApi.requestInfo(i, r), { reason });
+    if (ok) {
+      setKycRejectModal({ open: false, id: null });
+      setKycRejectReason("");
+      toast(lang === "bn" ? "আবেদনকারীকে জানানো হয়েছে" : "The applicant has been asked", "info");
+    }
+  };
+
+  /** verified → revoked. Takes standing away from a working provider. */
+  const kycRevoke = async () => {
+    const reason = kycRejectReason.trim();
+    if (reason.length < 10) {
+      toast(lang === "bn"
+        ? "কারণ লিখুন — অন্তত ১০ অক্ষর।"
+        : "Write a reason — at least 10 characters.", "warning");
+      return;
+    }
+    const ok = await decide(kycRejectModal.id, (i, r) => verificationApi.revoke(i, r),
+      { reason, claimFirst: false });
+    if (ok) {
+      setKycRejectModal({ open: false, id: null });
+      setKycRejectReason("");
+      toast(lang === "bn" ? "যাচাই বাতিল করা হয়েছে" : "Verification revoked", "warning");
+    }
   };
 
   /* ── SIDEBAR MENU ──────────────────────────────────── */
-  const kycPending  = kycList.filter(k => k.status==="pending").length;
+  const kycPending  = kycList.filter(k => k.status === "submitted" || k.status === "under_review").length;
   const openTickets = tickets.filter(t => t.status==="open").length;
   const [sosAlerts, setSosAlerts] = useState([]);
   const [sosLoading, setSosLoading] = useState(false);
@@ -294,14 +517,22 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     setDataLoading(true);
     try {
       const d = await adminApi.providers(q ? { q } : {});
-      if (d?.providers?.length) {
-        setProviders(d.providers.map(p => ({
+      {
+        setProviders((d.providers || []).map(p => ({
           id: p.user_id || p.id,
           _pid: p.id,
           name: p.name,
           service: p.service_slug || "—",
           area: p.area || "—",
-          status: p.is_active === 1 ? "active" : p.is_active === 0 ? "suspended" : "pending",
+          // The ACCOUNT's state and the LISTING's state are two different
+          // questions. They were conflated: `status` was derived from
+          // `is_active`, so the panel could not show whether a provider was
+          // actually listable and "Approve" activated an account.
+          accountActive: p.is_active === 1,
+          listingState: p.listing_state || "applied",
+          identityVerified: p.identity_verified === 1 || p.identity_verified === true,
+          hourlyRate: p.hourly_rate === null || p.hourly_rate === undefined ? null : Number(p.hourly_rate),
+          status: p.listing_state || "applied",
           rating: parseFloat(p.rating || 0).toFixed(1),
           jobs: p.total_jobs || 0,
           earned: parseFloat(p.earned || 0),
@@ -318,8 +549,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     setDataLoading(true);
     try {
       const d = await adminApi.users(q ? { q, role: "customer" } : { role: "customer" });
-      if (d?.users?.length) {
-        setUsers(d.users.map(u => ({
+      {
+        setUsers((d.users || []).map(u => ({
           id: u.id,
           name: u.name,
           phone: u.phone,
@@ -338,9 +569,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     setDataLoading(true);
     try {
       const d = await adminApi.bookings(status ? { status } : {});
-      if (d?.bookings?.length) {
-        // bookings state is read-only in this panel, so we shadow with a local ref
-        setRealBookings(d.bookings.map(b => ({
+      {
+        setBookings((d.bookings || []).map(b => ({
           id: b.id?.toString().slice(0,8) || b.id,
           _rawId: b.id,
           customer: b.customer_name || b.customer_id,
@@ -355,30 +585,41 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     finally { setDataLoading(false); }
   };
 
-  const loadKyc = async (status = "pending") => {
+  /**
+   * The verification queue.
+   *
+   * `/api/verification/queue` rather than `/api/admin/kyc`: one queue over
+   * `verification_case`, which is where the state machine lives. The old
+   * endpoint reads the legacy `kyc_docs` table and only sees the backlog
+   * that predates object storage.
+   *
+   * It carries NO document of any kind — not a URL, not a key, not a byte.
+   * Evidence is opened one case at a time, with a stated reason, and each
+   * open is recorded (V-07).
+   */
+  const loadKyc = async (state = "submitted") => {
     setDataLoading(true);
     try {
-      const d = await adminApi.kyc({ status });
-      if (d?.docs?.length) {
-        setKycList(d.docs.map(k => ({
-          id: k.id,
-          userName: k.name || k.user_id,
-          phone: k.phone || "—",
-          docType: k.doc_type,
-          docNum: k.doc_number,
-          submittedAt: k.submitted_at ? new Date(k.submitted_at).toLocaleDateString("bn-BD") : "—",
-          status: k.status,
-          rejectionReason: k.rejection_reason || "",
-          frontImg:  k.front_image  || null,
-          backImg:   k.back_image   || null,
-          selfieImg: k.selfie_image || null,
-        })));
-      }
-    } catch(e) { console.warn("load kyc:", e.message); }
-    finally { setDataLoading(false); }
+      const d = await verificationApi.queue(state);
+      setKycList((d.cases || []).map(k => ({
+        id: k.caseId,
+        userName: k.subjectName || k.subjectId,
+        phone: k.subjectPhone || "—",
+        email: k.subjectEmail || null,
+        submittedAt: k.submittedAt ? new Date(k.submittedAt).toLocaleDateString(lang === "bn" ? "bn-BD" : "en-GB") : "—",
+        waitingDays: k.submittedAt ? Math.floor((Date.now() - new Date(k.submittedAt)) / 86400000) : null,
+        status: k.state,
+        documentCount: k.documentCount || 0,
+        legacy: !!k.legacy,
+        docs: null,          // loaded on demand, with a reason
+        docsLoading: false,
+      })));
+    } catch (e) {
+      setKycList([]);
+      toast((lang === "bn" ? "সারি লোড হয়নি: " : "Could not load the queue: ") + failure(e), "error");
+    } finally { setDataLoading(false); }
   };
 
-  const [realBookings, setRealBookings] = useState([]);
   const [bFilter, setBFilter] = useState("");
 
   const loadPromos = async () => {
@@ -453,7 +694,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     else if (tab === "providers")     loadProviders(pSearch);
     else if (tab === "users")         loadUsers(uSearch);
     else if (tab === "bookings")      loadBookings(bFilter);
-    else if (tab === "kyc")           loadKyc(kycFilter === "all" ? "pending" : kycFilter);
+    else if (tab === "kyc")           loadKyc(kycFilter === "all" ? "submitted" : kycFilter);
     else if (tab === "promos")        loadPromos();
     else if (tab === "categories")    loadCategories();
     else if (tab === "notifications") loadAnnouncements();
@@ -491,20 +732,72 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   useEffect(() => { if(tab==="ai") loadAiData(); }, [tab]);
 
   /* ── TABLE COLUMNS ─────────────────────────────────── */
+  /**
+   * The provider queue.
+   *
+   * `TRUST-ARCHITECTURE.md` §5 makes listing a conjunction, so the table
+   * shows the two clauses an operator can act on — the human approval and
+   * the identity verification — rather than one status that answered
+   * neither. A provider who is approved but unverified is still not listed,
+   * and before this the panel had no way to say so.
+   */
   const providerCols = [
     { title:lang==="bn"?"নাম":"Name",    dataIndex:"name",    key:"name",    render:n=><Text strong>{n}</Text> },
     { title:lang==="bn"?"সেবা":"Service", dataIndex:"service", key:"service" },
     { title:lang==="bn"?"এলাকা":"Area",   dataIndex:"area",    key:"area"    },
     { title:lang==="bn"?"রেটিং":"Rating", dataIndex:"rating",  key:"rating",  render:v=><Text style={{color:"#F59E0B"}}>⭐ {v}</Text> },
     { title:lang==="bn"?"কাজ":"Jobs",     dataIndex:"jobs",    key:"jobs"    },
-    { title:"NID", dataIndex:"nid", key:"nid", render:v => v ? <Tag color="success">✅ {v}</Tag> : <Tag color="error">❌ নেই</Tag> },
-    { title:lang==="bn"?"অবস্থা":"Status", dataIndex:"status", key:"status", render:s=><StatusTag status={s} lang={lang}/> },
+    {
+      title: lang==="bn"?"পরিচয়":"Identity", key:"identity",
+      render: (_,p) => p.identityVerified
+        ? <Tag color="success">{lang==="bn"?"✅ যাচাইকৃত":"✅ Verified"}</Tag>
+        : <Tag color="warning">{lang==="bn"?"অযাচাইকৃত":"Not verified"}</Tag>,
+    },
+    {
+      title: lang==="bn"?"তালিকা":"Listing", dataIndex:"listingState", key:"listingState",
+      render: s => <StatusTag status={s} lang={lang}/>,
+    },
+    {
+      // Whether they are ACTUALLY visible to customers, which is the
+      // conjunction rather than any single column.
+      title: lang==="bn"?"দৃশ্যমান":"Live", key:"live",
+      render: (_,p) => {
+        const live = p.listingState === "approved" && p.identityVerified && p.accountActive && p.hourlyRate > 0;
+        return live
+          ? <Tag color="success">{lang==="bn"?"হ্যাঁ":"Yes"}</Tag>
+          : <Tag color="default">{lang==="bn"?"না":"No"}</Tag>;
+      },
+    },
     { title:lang==="bn"?"অ্যাকশন":"Action", key:"action", render:(_,p)=>(
-      <Space>
-        {p.status==="pending" && <Button size="small" type="primary" onClick={()=>approveProvider(p.id)}><CheckOutlined /></Button>}
-        {p.status==="pending" && <Button size="small" danger onClick={()=>rejectProvider(p.id)}><CloseOutlined /></Button>}
+      <Space wrap>
+        {p.listingState !== "approved" && (
+          <Button size="small" type="primary" loading={listingBusy===p._pid}
+            // TRUST §6: identity verification is what grants listing
+            // eligibility, so approving without it is refused by the server.
+            // Saying so here beats letting the operator find out as a 409.
+            disabled={!p.identityVerified}
+            title={!p.identityVerified
+              ? (lang==="bn"?"আগে পরিচয় যাচাই প্রয়োজন":"Identity must be verified first")
+              : undefined}
+            onClick={()=>approveProvider(p)}>
+            {lang==="bn"?"তালিকাভুক্ত":"List"}
+          </Button>
+        )}
+        {p.listingState === "applied" && (
+          <Button size="small" danger disabled={listingBusy===p._pid}
+            onClick={()=>{setListingModal({open:true,id:p._pid,mode:"reject"});setListingReason("");}}>
+            {lang==="bn"?"প্রত্যাখ্যান":"Reject"}
+          </Button>
+        )}
+        {p.listingState === "approved" && (
+          <Button size="small" danger ghost disabled={listingBusy===p._pid}
+            onClick={()=>{setListingModal({open:true,id:p._pid,mode:"suspend"});setListingReason("");}}>
+            {lang==="bn"?"স্থগিত":"Suspend"}
+          </Button>
+        )}
         <Button size="small" onClick={()=>toggleSuspend("provider",p.id)}>
-          {p.status==="suspended"?(lang==="bn"?"সক্রিয়":"Activate"):(lang==="bn"?"বন্ধ":"Suspend")}
+          {/* The ACCOUNT, which is a different thing from the listing. */}
+          {p.accountActive?(lang==="bn"?"অ্যাকাউন্ট বন্ধ":"Disable account"):(lang==="bn"?"অ্যাকাউন্ট চালু":"Enable account")}
         </Button>
       </Space>
     )},
@@ -536,7 +829,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   const filtP = providers.filter(p => !pSearch||(p.name||'').includes(pSearch)||(p.service||'').includes(pSearch)||(p.area||'').includes(pSearch));
   const filtU = users.filter(u => !uSearch||(u.name||'').includes(uSearch)||(u.phone||'').includes(uSearch));
-  const displayBookings = realBookings.length ? realBookings : bookings;
+  const displayBookings = bookings;
   const filtB = displayBookings.filter(b => !bSearch||(b.id||'').includes(bSearch)||(b.customer||'').includes(bSearch)||(b.provider||'').includes(bSearch));
 
   const monthlyRev = [
@@ -703,18 +996,39 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   </Col>
                   <Col xs={24} lg={10}>
                     <Card title={lang==="bn"?"⏳ অনুমোদন অপেক্ষামাণ":"⏳ Pending Approvals"} bordered>
-                      {providers.filter(p=>p.status==="pending").map(p=>(
+                      {/* `status` used to be derived from `is_active`, and
+                          "pending" meant is_active was neither 0 nor 1 —
+                          which essentially never happened, so this list was
+                          almost always empty regardless of how many people
+                          were actually waiting. It reads the listing state
+                          now, which is the thing being approved. */}
+                      {providers.filter(p=>p.listingState==="applied").map(p=>(
                         <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid rgba(0,0,0,0.06)"}}>
                           <div>
                             <Text strong>{p.name}</Text><br/>
                             <Text type="secondary" style={{fontSize:12}}>{p.service} · {p.area}</Text>
+                            {!p.identityVerified && (
+                              <><br/><Text type="warning" style={{fontSize:11}}>
+                                {lang==="bn"?"পরিচয় যাচাই বাকি":"identity not verified yet"}
+                              </Text></>
+                            )}
                           </div>
                           <Space>
-                            <Button size="small" type="primary" icon={<CheckOutlined/>} onClick={()=>approveProvider(p.id)} />
-                            <Button size="small" danger icon={<CloseOutlined/>} onClick={()=>rejectProvider(p.id)} />
+                            <Button size="small" type="primary" icon={<CheckOutlined/>}
+                              loading={listingBusy===p._pid}
+                              disabled={!p.identityVerified}
+                              onClick={()=>approveProvider(p)} />
+                            <Button size="small" danger icon={<CloseOutlined/>}
+                              disabled={listingBusy===p._pid}
+                              onClick={()=>{setListingModal({open:true,id:p._pid,mode:"reject"});setListingReason("");}} />
                           </Space>
                         </div>
                       ))}
+                      {providers.filter(p=>p.listingState==="applied").length===0 && (
+                        <Text type="secondary" style={{fontSize:13}}>
+                          {lang==="bn"?"কোনো আবেদন অপেক্ষমাণ নেই।":"No applications waiting."}
+                        </Text>
+                      )}
                       {providers.filter(p=>p.status==="pending").length===0 &&
                         <Text type="secondary">{lang==="bn"?"কোনো অপেক্ষমাণ নেই":"None pending"}</Text>}
                     </Card>
@@ -733,7 +1047,31 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
                 </div>
                 <Table dataSource={filtP} columns={providerCols} rowKey="id" bordered size="middle"
-                  loading={dataLoading} scroll={{x:900}} pagination={{pageSize:10}} />
+                  loading={dataLoading} scroll={{x:1100}} pagination={{pageSize:10}} />
+                <Modal
+                  title={listingModal.mode==="suspend"
+                    ? (lang==="bn"?"তালিকা থেকে সরানোর কারণ":"Why remove this provider?")
+                    : (lang==="bn"?"প্রত্যাখ্যানের কারণ":"Why reject this application?")}
+                  open={listingModal.open}
+                  confirmLoading={!!listingBusy}
+                  onOk={submitListingDecision}
+                  onCancel={()=>setListingModal({open:false,id:null,mode:null})}
+                  okText={lang==="bn"?"নিশ্চিত":"Confirm"} okButtonProps={{danger:true}}>
+                  <Paragraph type="secondary" style={{fontSize:13}}>
+                    {listingModal.mode==="suspend"
+                      ? (lang==="bn"
+                          ? "প্রদানকারী তৎক্ষণাৎ মার্কেটপ্লেস থেকে সরে যাবেন। কারণটি রেকর্ড হবে।"
+                          : "The provider disappears from the marketplace immediately. The reason is recorded.")
+                      : (lang==="bn"
+                          ? "আবেদনকারী এই কারণটি দেখবেন এবং সংশোধন করে আবার আবেদন করতে পারবেন।"
+                          : "The applicant sees this reason and can correct it and apply again.")}
+                  </Paragraph>
+                  <Input.TextArea rows={3} value={listingReason} maxLength={500} showCount
+                    onChange={e=>setListingReason(e.target.value)}
+                    placeholder={lang==="bn"
+                      ? "যেমন: সেবার বিবরণ অসম্পূর্ণ এবং এলাকা উল্লেখ নেই।"
+                      : "e.g. The service description is incomplete and no area is given."} />
+                </Modal>
               </>
             )}
 
@@ -785,87 +1123,192 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
               </>
             )}
 
-            {/* ── KYC ── */}
+            {/* ── VERIFICATION ── */}
             {tab==="kyc" && (
               <>
-                <Title level={4}>🪪 {lang==="bn"?"KYC যাচাই":"KYC Verification"}</Title>
+                <Title level={4} style={{marginBottom:4}}>🪪 {lang==="bn"?"পরিচয় যাচাই":"Identity verification"}</Title>
+                <Paragraph type="secondary" style={{fontSize:13,marginBottom:16,maxWidth:640}}>
+                  {lang==="bn"
+                    ? "একটি নথি খোলা রেকর্ড করা হয় — কে খুলেছেন, কখন, এবং কেন। সিদ্ধান্ত মানুষই নেন; কোনো স্বয়ংক্রিয় অনুমোদন নেই।"
+                    : "Opening a document is recorded — who opened it, when, and why. Every decision is made by a person; nothing here approves anybody automatically."}
+                </Paragraph>
+
                 <Space style={{marginBottom:16}} wrap>
                   {[
-                    {v:"all",      l:lang==="bn"?"সব":"All"},
-                    {v:"pending",  l:`${lang==="bn"?"অপেক্ষায়":"Pending"} (${kycList.filter(k=>k.status==="pending").length})`},
-                    {v:"verified", l:lang==="bn"?"যাচাইকৃত":"Verified"},
-                    {v:"rejected", l:lang==="bn"?"প্রত্যাখ্যাত":"Rejected"},
+                    {v:"submitted",    l:lang==="bn"?"অপেক্ষায়":"Waiting"},
+                    {v:"under_review", l:lang==="bn"?"পর্যালোচনায়":"In review"},
+                    {v:"more_info",    l:lang==="bn"?"তথ্য চাওয়া হয়েছে":"Info requested"},
+                    {v:"verified",     l:lang==="bn"?"যাচাইকৃত":"Verified"},
+                    {v:"rejected",     l:lang==="bn"?"প্রত্যাখ্যাত":"Rejected"},
                   ].map(f=>(
                     <Button key={f.v} type={kycFilter===f.v?"primary":"default"} size="small"
-                      onClick={()=>{setKycFilter(f.v); loadKyc(f.v==="all"?"pending":f.v);}}>{f.l}</Button>
+                      onClick={()=>{setKycFilter(f.v); loadKyc(f.v);}}>{f.l}</Button>
                   ))}
+                  <Button size="small" onClick={()=>loadKyc(kycFilter==="all"?"submitted":kycFilter)} loading={dataLoading}>
+                    {lang==="bn"?"রিফ্রেশ":"Refresh"}
+                  </Button>
                 </Space>
+
+                {/* An empty queue is a fact, and it is stated. The list used to
+                    be seeded with five invented applicants, so "nothing here"
+                    was never something an operator could see. */}
+                {!dataLoading && kycList.length===0 && (
+                  <Card bordered style={{textAlign:"center",padding:"32px 16px"}}>
+                    <div style={{fontSize:40,marginBottom:8}}>✅</div>
+                    <Text strong style={{display:"block",marginBottom:4}}>
+                      {lang==="bn"?"এই তালিকায় কিছু নেই":"Nothing in this list"}
+                    </Text>
+                    <Text type="secondary" style={{fontSize:13}}>
+                      {lang==="bn"?"কেউ অপেক্ষা করছেন না।":"Nobody is waiting."}
+                    </Text>
+                  </Card>
+                )}
+
                 <Row gutter={[12,12]}>
-                  {kycList.filter(k=>kycFilter==="all"||k.status===kycFilter).map(kyc=>{
-                    const docIcons={nid:"🪪",driving:"🚗",passport:"📘",birth:"📜"};
-                    const borderColor=kyc.status==="verified"?"#00C170":kyc.status==="pending"?"#F59E0B":"#EF4444";
+                  {kycList.map(kyc=>{
+                    const tone = kyc.status==="verified" ? "#00C170"
+                      : kyc.status==="rejected" ? "#EF4444"
+                      : kyc.status==="more_info" ? "#3B82F6" : "#F59E0B";
+                    const decidable = kyc.status==="submitted" || kyc.status==="under_review";
+                    // How long somebody has been waiting is the number an
+                    // operations team actually manages, so it is on the card
+                    // rather than derivable from a date.
+                    const waited = kyc.waitingDays;
                     return (
-                      <Col xs={24} md={12} key={kyc.id}>
-                        <Card bordered style={{borderLeft:`4px solid ${borderColor}`}} bodyStyle={{padding:16}}>
+                      <Col xs={24} lg={12} key={kyc.id}>
+                        <Card bordered style={{borderLeft:`4px solid ${tone}`}} bodyStyle={{padding:16}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-                            <Space align="start">
-                              <Text style={{fontSize:36}}>{docIcons[kyc.docType]||"📋"}</Text>
-                              <div>
-                                <Text strong>{kyc.userName}</Text><br/>
-                                <Text type="secondary" style={{fontSize:12}}>{kyc.phone}</Text><br/>
-                                <Text type="secondary" style={{fontSize:12}}>{kyc.docType.toUpperCase()} · {kyc.docNum}</Text><br/>
-                                <Text type="secondary" style={{fontSize:11}}>{kyc.submittedAt}</Text>
-                              </div>
-                            </Space>
-                            <div style={{textAlign:"right"}}>
-                              <StatusTag status={kyc.status} lang={lang}/>
-                              {kyc.status==="pending" && (
-                                <Space style={{marginTop:8}}>
-                                  <Button size="small" type="primary" icon={<CheckOutlined/>} onClick={()=>kycApprove(kyc.id)}>
-                                    {lang==="bn"?"অনুমোদন":"Approve"}
-                                  </Button>
-                                  <Button size="small" danger icon={<CloseOutlined/>} onClick={()=>{setKycRejectModal({open:true,id:kyc.id});setKycRejectReason("");}}>
-                                    {lang==="bn"?"প্রত্যাখ্যান":"Reject"}
-                                  </Button>
-                                </Space>
-                              )}
+                            <div>
+                              <Text strong style={{fontSize:15}}>{kyc.userName}</Text>
+                              {kyc.legacy && <Tag style={{marginLeft:6}}>{lang==="bn"?"পুরোনো":"legacy"}</Tag>}
+                              <br/>
+                              <Text type="secondary" style={{fontSize:12}}>{kyc.phone}</Text>
+                              {kyc.email && <><br/><Text type="secondary" style={{fontSize:12}}>{kyc.email}</Text></>}
+                              <br/>
+                              <Text type="secondary" style={{fontSize:11}}>
+                                {kyc.submittedAt}
+                                {waited!=null && waited>0 && ` · ${waited} ${lang==="bn"?"দিন অপেক্ষায়":(waited===1?"day waiting":"days waiting")}`}
+                                {` · ${kyc.documentCount} ${lang==="bn"?"নথি":(kyc.documentCount===1?"document":"documents")}`}
+                              </Text>
                             </div>
+                            <StatusTag status={kyc.status} lang={lang}/>
                           </div>
-                          {kyc.status==="rejected"&&kyc.rejectionReason&&(
-                            <Alert message={`${lang==="bn"?"কারণ":"Reason"}: ${kyc.rejectionReason}`}
-                              type="error" showIcon style={{marginTop:10,padding:"4px 10px",fontSize:12}} />
+
+                          {/* Opening evidence needs a stated reason. It is asked
+                              for here, once, because the server refuses a read
+                              that does not carry one. */}
+                          {!kyc.docs && (
+                            <div style={{marginTop:12}}>
+                              <Input.Search
+                                size="small"
+                                allowClear
+                                enterButton={kyc.docsLoading
+                                  ? (lang==="bn"?"খোলা হচ্ছে…":"Opening…")
+                                  : (lang==="bn"?"নথি খুলুন":"Open documents")}
+                                loading={!!kyc.docsLoading}
+                                placeholder={lang==="bn"?"কেন দেখছেন? (রেকর্ড হবে)":"Why are you opening this? (recorded)"}
+                                onSearch={(v)=>loadKycImages(kyc.id, v)}
+                              />
+                            </div>
                           )}
-                          <Row gutter={8} style={{marginTop:12}}>
-                            {[
-                              {label:lang==="bn"?"সামনে":"Front",  src:kyc.frontImg},
-                              {label:lang==="bn"?"পেছনে":"Back",   src:kyc.backImg},
-                              {label:lang==="bn"?"সেলফি":"Selfie", src:kyc.selfieImg},
-                            ].map((img,i)=>(
-                              <Col span={8} key={i}>
-                                <Card bodyStyle={{padding:8,textAlign:"center"}} size="small">
-                                  {img.src
-                                    ? <img src={img.src.startsWith("http")||img.src.startsWith("data:")?img.src:`data:image/jpeg;base64,${img.src}`}
-                                        style={{width:"100%",height:60,objectFit:"cover",borderRadius:6,cursor:"pointer"}}
-                                        alt={img.label}
-                                        onClick={()=>window.open(img.src.startsWith("http")||img.src.startsWith("data:")?img.src:`data:image/jpeg;base64,${img.src}`,"_blank")}/>
-                                    : <div style={{fontSize:22,lineHeight:"60px"}}>🖼️</div>
-                                  }
-                                  <Text type="secondary" style={{fontSize:10}}>{img.label}</Text>
-                                </Card>
-                              </Col>
-                            ))}
-                          </Row>
+
+                          {kyc.docs && kyc.docs.length>0 && (
+                            <>
+                              <Row gutter={8} style={{marginTop:12}}>
+                                {kyc.docs.map((d,i)=>(
+                                  <Col span={8} key={i}>
+                                    <Card bodyStyle={{padding:8,textAlign:"center"}} size="small">
+                                      <img src={d.src} alt={d.kind}
+                                        style={{width:"100%",height:78,objectFit:"cover",borderRadius:6,cursor:"zoom-in"}}
+                                        onClick={()=>window.open(d.src,"_blank","noopener,noreferrer")}/>
+                                      <Text type="secondary" style={{fontSize:10}}>
+                                        {({id_front:lang==="bn"?"সামনে":"Front",
+                                           id_back:lang==="bn"?"পেছনে":"Back",
+                                           selfie:lang==="bn"?"সেলফি":"Selfie",
+                                           certificate:lang==="bn"?"সনদ":"Certificate"})[d.kind] || d.kind}
+                                      </Text>
+                                    </Card>
+                                  </Col>
+                                ))}
+                              </Row>
+                              {/* The link is a five-minute capability, not a
+                                  location. Saying so stops a reviewer pasting
+                                  it somewhere and wondering why it died. */}
+                              <Text type="secondary" style={{fontSize:11,display:"block",marginTop:6}}>
+                                {lang==="bn"
+                                  ? "🔒 লিঙ্কগুলো ৫ মিনিট পরে কাজ করবে না। শেয়ার করবেন না।"
+                                  : "🔒 These links stop working in five minutes. Do not share them."}
+                              </Text>
+                            </>
+                          )}
+
+                          {decidable && (
+                            <Space style={{marginTop:14}} wrap>
+                              <Button size="small" type="primary" icon={<CheckOutlined/>}
+                                loading={kycBusy===kyc.id}
+                                disabled={!kyc.docs}
+                                onClick={()=>kycApprove(kyc.id)}>
+                                {lang==="bn"?"যাচাই সম্পন্ন":"Verify"}
+                              </Button>
+                              <Button size="small" danger icon={<CloseOutlined/>}
+                                disabled={kycBusy===kyc.id}
+                                onClick={()=>{setKycRejectModal({open:true,id:kyc.id,mode:"reject"});setKycRejectReason("");}}>
+                                {lang==="bn"?"প্রত্যাখ্যান":"Reject"}
+                              </Button>
+                              <Button size="small"
+                                disabled={kycBusy===kyc.id}
+                                onClick={()=>{setKycRejectModal({open:true,id:kyc.id,mode:"info"});setKycRejectReason("");}}>
+                                {lang==="bn"?"আরও তথ্য চান":"Ask for more"}
+                              </Button>
+                            </Space>
+                          )}
+                          {decidable && !kyc.docs && (
+                            <Text type="secondary" style={{fontSize:11,display:"block",marginTop:6}}>
+                              {lang==="bn"
+                                ? "নথি না দেখে অনুমোদন করা যাবে না।"
+                                : "You cannot verify somebody without looking at their documents."}
+                            </Text>
+                          )}
+
+                          {kyc.status==="verified" && (
+                            <Button size="small" danger ghost style={{marginTop:12}}
+                              disabled={kycBusy===kyc.id}
+                              onClick={()=>{setKycRejectModal({open:true,id:kyc.id,mode:"revoke"});setKycRejectReason("");}}>
+                              {lang==="bn"?"যাচাই বাতিল":"Revoke verification"}
+                            </Button>
+                          )}
                         </Card>
                       </Col>
                     );
                   })}
                 </Row>
-                <Modal title={lang==="bn"?"প্রত্যাখ্যানের কারণ":"Rejection Reason"}
-                  open={kycRejectModal.open} onOk={kycReject}
+
+                {/* One modal for the three decisions that need a reason. The
+                    reason is what the applicant is shown, so the copy says so
+                    — a reviewer typing "no" should know who reads it. */}
+                <Modal
+                  title={kycRejectModal.mode==="info"
+                    ? (lang==="bn"?"কী দরকার তা লিখুন":"What do you need?")
+                    : kycRejectModal.mode==="revoke"
+                    ? (lang==="bn"?"যাচাই বাতিলের কারণ":"Why revoke this verification?")
+                    : (lang==="bn"?"প্রত্যাখ্যানের কারণ":"Why are you rejecting this?")}
+                  open={kycRejectModal.open}
+                  confirmLoading={!!kycBusy}
+                  onOk={kycRejectModal.mode==="info" ? kycRequestInfo
+                       : kycRejectModal.mode==="revoke" ? kycRevoke : kycReject}
                   onCancel={()=>setKycRejectModal({open:false,id:null})}
-                  okText={lang==="bn"?"নিশ্চিত":"Confirm"} okButtonProps={{danger:true}}>
-                  <Input.TextArea rows={3} value={kycRejectReason} onChange={e=>setKycRejectReason(e.target.value)}
-                    placeholder={lang==="bn"?"যেমন: ছবি অস্পষ্ট, নথি মেয়াদোত্তীর্ণ...":"e.g. Image blurry, expired..."} />
+                  okText={lang==="bn"?"পাঠান":"Send"}
+                  okButtonProps={{danger:kycRejectModal.mode!=="info"}}>
+                  <Paragraph type="secondary" style={{fontSize:13}}>
+                    {lang==="bn"
+                      ? "আবেদনকারী হুবহু এই লেখাটি দেখবেন। স্পষ্ট করে লিখুন যাতে তিনি ঠিক করতে পারেন।"
+                      : "The applicant sees exactly this text. Write it so they can act on it."}
+                  </Paragraph>
+                  <Input.TextArea rows={3} value={kycRejectReason} maxLength={500} showCount
+                    onChange={e=>setKycRejectReason(e.target.value)}
+                    placeholder={lang==="bn"
+                      ? "যেমন: পরিচয়পত্রের ছবিটি ঝাপসা, লেখা পড়া যাচ্ছে না। আবার তুলে পাঠান।"
+                      : "e.g. The photo of your ID is blurred and the text cannot be read. Please take it again."} />
                 </Modal>
               </>
             )}

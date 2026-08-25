@@ -2,41 +2,23 @@
 const router = require("express").Router();
 const pool   = require("../db");
 const { authMiddleware } = require("../middleware/auth");
+// I-04: both handlers ran their own copy of the participation query — a
+// fourth authorization implementation, and one that had already drifted
+// from utils/bookingAccess.js. The kernel loads the booking once and hands
+// it over, so the query below is gone rather than deduplicated.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const { sendPush } = require("../utils/push");
 
-// Ensure chat_messages table exists
-const initTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      booking_id  VARCHAR(36) NOT NULL,
-      sender_id   VARCHAR(36) NOT NULL,
-      sender_role ENUM('customer','provider','admin') DEFAULT 'customer',
-      message     TEXT NOT NULL,
-      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_booking (booking_id)
-    ) ENGINE=InnoDB
-  `);
-};
-initTable().catch(e => logger.warn("chat table init:", e.message));
+// I-01: initTable() used to CREATE TABLE chat_messages on import.
+// The table is migration 003; the function is gone with it.
 
 // GET /api/chat/:bookingId  — fetch messages (polling)
-router.get("/:bookingId", authMiddleware, async (req, res) => {
+router.get("/:bookingId", authMiddleware,
+  requireAuthorization(ACTION.MESSAGE_READ, { resource: (req) => req.params.bookingId }),
+  async (req, res) => {
   try {
     const { bookingId } = req.params;
-
-    // Verify requester is a participant of this booking
-    const [bCheck] = await pool.query(
-      `SELECT b.customer_id, p.user_id AS provider_user_id
-       FROM bookings b LEFT JOIN providers p ON p.id = b.provider_id
-       WHERE b.id = ? LIMIT 1`,
-      [bookingId]
-    );
-    if (!bCheck.length) return res.status(404).json({ error: "Booking not found" });
-    const { customer_id, provider_user_id } = bCheck[0];
-    const isAdmin = req.user.role === "admin";
-    const isParticipant = String(req.user.id) === String(customer_id) || String(req.user.id) === String(provider_user_id);
-    if (!isParticipant && !isAdmin) return res.status(403).json({ error: "Access denied" });
 
     const { after } = req.query; // optional: return only messages after given id
     let sql = "SELECT * FROM chat_messages WHERE booking_id = ?";
@@ -52,7 +34,9 @@ router.get("/:bookingId", authMiddleware, async (req, res) => {
 });
 
 // POST /api/chat/:bookingId  — send message
-router.post("/:bookingId", authMiddleware, async (req, res) => {
+router.post("/:bookingId", authMiddleware,
+  requireAuthorization(ACTION.MESSAGE_SEND, { resource: (req) => req.params.bookingId }),
+  async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { message } = req.body;
@@ -61,18 +45,8 @@ router.post("/:bookingId", authMiddleware, async (req, res) => {
     const user = req.user;
     const role = user.role || "customer";
 
-    // Verify sender is a participant (customer or provider) of this booking
-    const [bCheck] = await pool.query(
-      `SELECT b.customer_id, p.user_id AS provider_user_id
-       FROM bookings b LEFT JOIN providers p ON p.id = b.provider_id
-       WHERE b.id = ? LIMIT 1`,
-      [bookingId]
-    );
-    if (!bCheck.length) return res.status(404).json({ error: "Booking not found" });
-    const { customer_id, provider_user_id } = bCheck[0];
-    const isAdmin = user.role === "admin";
-    const isParticipant = String(user.id) === String(customer_id) || String(user.id) === String(provider_user_id);
-    if (!isParticipant && !isAdmin) return res.status(403).json({ error: "Access denied" });
+    // Loaded once, by the kernel, from the database.
+    const { customerId: customer_id, providerUserId: provider_user_id } = req.authorization.resource;
 
     const [result] = await pool.query(
       "INSERT INTO chat_messages (booking_id,sender_id,sender_role,message) VALUES (?,?,?,?)",

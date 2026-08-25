@@ -1,121 +1,107 @@
-// ─────────────────────────────────────────────────────────────
-//  IMAP – Server-side price authority
-//
-//  The client NEVER sets the price. The server derives it from the
-//  provider's rate / category base price, duration, urgency and any
-//  server-validated promo. priceFromInputs() is pure (unit-testable);
-//  computeBookingPrice() resolves the inputs from the DB.
-// ─────────────────────────────────────────────────────────────
+/**
+ * Server-authoritative pricing — IMAP
+ *
+ * Phase 0.5 containment for P0-3.
+ *
+ * The audited failure: `POST /api/bookings` read `amount`, `total_amount`
+ * and `platform_fee` straight from the request body, so the client chose
+ * what it paid and what the provider earned.
+ *
+ * The rule from here on: the client may express *what* it wants to book.
+ * It may never express *what it costs*.
+ *
+ *   provider.hourly_rate  →  category.base_price  →  FAIL CLOSED
+ *
+ * There is deliberately no client-supplied override and no fallback
+ * constant: if the server cannot determine a price it refuses the
+ * booking rather than accepting an attacker's number.
+ */
+const { round2, MAX_AMOUNT } = require("./money");
 
-const PLATFORM_FEE_PCT    = clampPct(process.env.PLATFORM_FEE_PCT, 0.10); // commission on service amount
-const URGENT_SURCHARGE_PCT = 0.20; // +20% for urgent dispatch
-const MIN_AMOUNT          = 50;    // floor service amount (৳)
-const DEFAULT_RATE        = 400;   // fallback hourly rate when none known
-const MAX_HOURS           = 24;
+class PricingError extends Error {
+  constructor(message, status = 409) {
+    super(message);
+    this.name = "PricingError";
+    this.status = status;
+  }
+}
 
-function clampPct(v, dflt) {
-  const n = parseFloat(v);
-  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : dflt;
+/** Platform commission, percent of the service amount. Server-controlled. */
+function feePercent() {
+  const raw = process.env.PLATFORM_FEE_PCT;
+  if (raw === undefined || raw === "") return 0;   // preserves current economics
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 100) {
+    throw new PricingError("PLATFORM_FEE_PCT is misconfigured", 500);
+  }
+  return n;
 }
 
 /**
- * Pure pricing math. No client-supplied amount is accepted here by design.
- * @param {object} i
- * @param {number} i.baseRate   server-known hourly/base rate
- * @param {number} [i.hours]    requested duration (clamped 1..24)
- * @param {boolean}[i.isUrgent] urgent dispatch surcharge
- * @param {number} [i.discount] server-validated discount amount (>=0)
- * @returns {{amount:number, platform_fee:number, total:number, base_rate:number, hours:number, discount:number}}
+ * Resolve the authoritative price for a booking.
+ *
+ * @param {import('mysql2/promise').Pool|object} db  pool or transaction connection
+ * @param {{ providerId: string, categoryId?: number|null }} input
+ * @returns {Promise<{amount:number, platform_fee:number, total:number,
+ *                    category_id:number|null, provider_row_id:string,
+ *                    provider_user_id:string, source:string}>}
+ * @throws {PricingError} when the provider is unusable or no price exists
  */
-function priceFromInputs({ baseRate, hours = 1, isUrgent = false, discount = 0 }) {
-  const rate = Number.isFinite(baseRate) && baseRate > 0 ? baseRate : DEFAULT_RATE;
-  let h = parseFloat(hours);
-  if (!Number.isFinite(h) || h < 1) h = 1;
-  if (h > MAX_HOURS) h = MAX_HOURS;
+async function quoteBooking(db, { providerId, categoryId = null }) {
+  if (!providerId || typeof providerId !== "string") {
+    throw new PricingError("provider_id is required", 400);
+  }
 
-  let subtotal = rate * h;
-  if (isUrgent) subtotal *= (1 + URGENT_SURCHARGE_PCT);
-  subtotal = Math.round(subtotal);
+  const [rows] = await db.query(
+    `SELECT p.id, p.user_id, p.hourly_rate, p.category_id, p.is_available,
+            p.is_approved, u.is_active,
+            c.base_price
+       FROM providers p
+       LEFT JOIN users u      ON u.id = p.user_id
+       LEFT JOIN categories c ON c.id = COALESCE(?, p.category_id)
+      WHERE p.id = ?
+      LIMIT 1`,
+    [categoryId, providerId]
+  );
+  if (!rows.length) throw new PricingError("Provider not found", 404);
 
-  const safeDiscount = Math.max(0, Math.min(Number(discount) || 0, subtotal));
-  const amount = Math.max(MIN_AMOUNT, subtotal - safeDiscount);
-  const platform_fee = Math.round(amount * PLATFORM_FEE_PCT);
+  const p = rows[0];
+  if (!p.is_active)    throw new PricingError("Provider account is inactive", 409);
+  if (!p.is_available) throw new PricingError("Provider is not currently available", 409);
+  if (!p.is_approved)  throw new PricingError("Provider is not approved for bookings", 409);
+
+  // Price source, in order. No client input participates.
+  let amount = null;
+  let source = null;
+  const rate = Number(p.hourly_rate);
+  const base = Number(p.base_price);
+
+  if (Number.isFinite(rate) && rate > 0)      { amount = rate; source = "provider.hourly_rate"; }
+  else if (Number.isFinite(base) && base > 0) { amount = base; source = "category.base_price"; }
+
+  if (amount === null) {
+    // Fail closed. Historically this is where a client value was accepted.
+    throw new PricingError(
+      "No server-side price is configured for this provider or category. Booking refused.",
+      409
+    );
+  }
+
+  amount = round2(amount);
+  if (amount > MAX_AMOUNT) throw new PricingError("Configured price exceeds the platform maximum", 409);
+
+  const platform_fee = round2(amount * (feePercent() / 100));
+  const total = round2(amount + platform_fee);
 
   return {
     amount,
     platform_fee,
-    total: amount + platform_fee,
-    base_rate: rate,
-    hours: h,
-    discount: safeDiscount,
+    total,
+    category_id: categoryId ?? p.category_id ?? null,
+    provider_row_id: p.id,
+    provider_user_id: p.user_id,
+    source,
   };
 }
 
-/**
- * Resolve a server-validated promo discount. Returns 0 on any miss so a
- * forged/expired code can never increase value or error the booking.
- * @param {import('mysql2/promise').PoolConnection} conn
- */
-async function resolvePromoDiscount(conn, code, subtotal) {
-  if (!code) return 0;
-  try {
-    const [[promo]] = await conn.query(
-      `SELECT discount_pct, discount_amt, min_order, max_uses, used_count
-       FROM promos
-       WHERE code = ? AND is_active = 1
-         AND (valid_from  IS NULL OR valid_from  <= CURDATE())
-         AND (valid_until IS NULL OR valid_until >= CURDATE())
-       LIMIT 1`,
-      [String(code).toUpperCase()]
-    );
-    if (!promo) return 0;
-    if (promo.max_uses != null && promo.used_count >= promo.max_uses) return 0;
-    if (promo.min_order != null && subtotal < parseFloat(promo.min_order)) return 0;
-    let d = 0;
-    if (promo.discount_pct) d += Math.round(subtotal * (parseFloat(promo.discount_pct) / 100));
-    if (promo.discount_amt) d += parseFloat(promo.discount_amt);
-    return Math.max(0, Math.min(d, subtotal));
-  } catch {
-    return 0; // promos table absent / malformed → no discount, never throw
-  }
-}
-
-/**
- * Compute the authoritative booking price from trusted DB state.
- * Throws a 404-tagged error if the provider does not exist.
- * @param {import('mysql2/promise').PoolConnection} conn  (use inside the booking txn)
- */
-async function computeBookingPrice(conn, { provider_id, category_id, duration_hours, is_urgent, promo_code }) {
-  const [[prov]] = await conn.query(
-    "SELECT hourly_rate, category_id FROM providers p WHERE p.id = ?",
-    [provider_id]
-  );
-  if (!prov) { const e = new Error("Provider not found"); e.status = 404; throw e; }
-
-  let baseRate = parseFloat(prov.hourly_rate) || 0;
-  const catId = category_id || prov.category_id;
-  if (!baseRate && catId) {
-    const [[cat]] = await conn.query("SELECT base_price FROM categories WHERE id = ?", [catId]);
-    if (cat) baseRate = parseFloat(cat.base_price) || 0;
-  }
-
-  const isUrgent = Boolean(is_urgent && Number(is_urgent) !== 0);
-  let h = parseFloat(duration_hours);
-  if (!Number.isFinite(h) || h < 1) h = 1;
-  if (h > MAX_HOURS) h = MAX_HOURS;
-
-  const rate = baseRate > 0 ? baseRate : DEFAULT_RATE;
-  let subtotal = Math.round((isUrgent ? rate * (1 + URGENT_SURCHARGE_PCT) : rate) * h);
-  const discount = await resolvePromoDiscount(conn, promo_code, subtotal);
-
-  return priceFromInputs({ baseRate: rate, hours: h, isUrgent, discount });
-}
-
-module.exports = {
-  priceFromInputs,
-  computeBookingPrice,
-  resolvePromoDiscount,
-  PLATFORM_FEE_PCT,
-  URGENT_SURCHARGE_PCT,
-  MIN_AMOUNT,
-};
+module.exports = { quoteBooking, feePercent, PricingError };

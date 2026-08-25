@@ -1,57 +1,44 @@
-// ─────────────────────────────────────────────────────────────
-//  IMAP – Socket.io enterprise security helpers
-//
-//  - authenticateSocket: strict JWT verification at connection time.
-//    Rejects missing / invalid / expired tokens and inactive users.
-//  - canAccessBooking: a user may only touch a booking room if they are
-//    the booking's customer, its assigned provider, or an admin.
-//  - createRateLimiter: simple fixed-window per-socket event limiter.
-// ─────────────────────────────────────────────────────────────
-const jwt = require("jsonwebtoken");
-
 /**
- * Connection middleware. Verifies the JWT, loads the (active) user, and
- * attaches { id, role, name } to socket.user. Calls next(err) to reject.
- * @param {import('mysql2/promise').Pool} pool
+ * Socket helpers — what is left after the duplicates were removed
+ *
+ * WHY THIS FILE SHRANK
+ * ────────────────────
+ * It used to carry its own `authenticateSocket` and its own
+ * `canAccessBooking`, and neither was the one the server ran. `server.js`
+ * authenticates in its own `io.use`, and `realtime.js` decides room access
+ * through `utils/bookingAccess.getParticipation`. So there were two
+ * implementations of each question, one of them live.
+ *
+ * The unused copy of `canAccessBooking` still contained the line I-04 was
+ * written to remove:
+ *
+ *     if (user.role === "admin") return true;
+ *
+ * — an authorization decision taken from a JWT role claim, outside the
+ * kernel, in a file whose tests passed because they tested the copy nobody
+ * called. `realtime.js:24` records that the live path stopped doing this.
+ * The architecture test in `test/i04-authorization-boundary.test.js` is what
+ * caught it.
+ *
+ * `canAccessBooking` now delegates rather than deciding, so there is one
+ * answer to "may this user touch this booking" and the kernel gives it.
+ * `authenticateSocket` is gone entirely: `server.js` pins the algorithm
+ * (I-03 §16) and this copy did not.
  */
-async function authenticateSocket(pool, socket, next) {
-  try {
-    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-    if (!token) return next(new Error("Authentication required"));
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const [rows] = await pool.query(
-      "SELECT id, name, role, is_active FROM users WHERE id = ?",
-      [decoded.id]
-    );
-    if (!rows.length || !rows[0].is_active) {
-      return next(new Error("User not found or inactive"));
-    }
-    socket.user = { id: rows[0].id, role: rows[0].role, name: rows[0].name };
-    return next();
-  } catch {
-    return next(new Error("Invalid or expired token"));
-  }
-}
+const { getParticipation } = require("./bookingAccess");
 
 /**
- * True only if `user` may access booking `bookingId`
- * (customer, assigned provider, or admin).
+ * True only if `user` may access booking `bookingId`.
+ *
+ * The relationship — customer, assigned provider, or someone the kernel's
+ * `booking.observe` policy admits — is resolved in exactly one place.
+ *
  * @param {import('mysql2/promise').Pool} pool
  */
 async function canAccessBooking(pool, user, bookingId) {
   if (!user || !bookingId) return false;
-  if (user.role === "admin") return true;
-  const [rows] = await pool.query(
-    `SELECT b.customer_id, p.user_id AS provider_user_id
-       FROM bookings b
-       LEFT JOIN providers p ON p.id = b.provider_id
-      WHERE b.id = ? LIMIT 1`,
-    [bookingId]
-  );
-  if (!rows.length) return false;
-  const { customer_id, provider_user_id } = rows[0];
-  return String(user.id) === String(customer_id) ||
-         String(user.id) === String(provider_user_id);
+  const part = await getParticipation(bookingId, user, { db: pool });
+  return part.allowed;
 }
 
 /**
@@ -74,4 +61,4 @@ function isValidBookingId(v) {
   return typeof v === "string" && v.length > 0 && v.length <= 64;
 }
 
-module.exports = { authenticateSocket, canAccessBooking, createRateLimiter, isValidBookingId };
+module.exports = { canAccessBooking, createRateLimiter, isValidBookingId };

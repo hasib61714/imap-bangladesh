@@ -4,35 +4,58 @@
 //  Dev fallback: http://localhost:5000/api (via VITE_API_URL)
 // ─────────────────────────────────────────────────────────────
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+/**
+ * Where the API lives.
+ *
+ * `.env` carries the deployed backend URL and vite loads it in EVERY mode, so
+ * without the DEV branch below `npm run dev` sent every request to the live
+ * Render backend and the vite proxy was never used — a developer would have
+ * been testing against production data believing they were local.
+ *
+ * In development the default is the relative `/api`, which the vite dev
+ * server proxies to whatever port the local backend is on (vite.config.js).
+ * Setting VITE_API_URL still overrides.
+ */
+const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api" : "http://localhost:5000/api");
 
 // ── Token helpers ─────────────────────────────────────────────
 export const getToken  = ()           => localStorage.getItem("imap_token");
 export const setToken  = (t)          => localStorage.setItem("imap_token", t);
 export const clearToken= ()           => localStorage.removeItem("imap_token");
 
-// Rotating refresh token — lets access tokens stay short-lived. Persisted so a
-// 401 (expired access token) is recovered silently instead of logging out.
-export const getRefresh   = ()  => localStorage.getItem("imap_refresh");
-export const setRefresh   = (t) => { if (t) localStorage.setItem("imap_refresh", t); };
-export const clearRefresh = ()  => localStorage.removeItem("imap_refresh");
-
-// Single-flight refresh: many concurrent 401s share one refresh round-trip.
+/**
+ * Silent session refresh.
+ *
+ * The single-flight shape comes from main and is worth keeping: several
+ * requests can 401 at once and they should share ONE refresh round-trip
+ * rather than racing.
+ *
+ * What changed is where the credential comes from. main persisted a refresh
+ * token in `localStorage` and posted it in the body. This backend does not
+ * work that way — I-03 keeps the refresh credential out of anything client
+ * script can read, and `/auth/refresh` authenticates with the ACCESS token,
+ * which carries the session's absolute deadline (`sae`) so a session cannot
+ * be renewed forever (F-10).
+ *
+ * Reading `localStorage.imap_refresh` here would have been dead code that
+ * looks like a security mechanism — worse than none, because nothing
+ * populates it, so every refresh would quietly fail and every expired token
+ * would log the user out.
+ */
 let _refreshing = null;
 function refreshSession() {
-  const rt = getRefresh();
-  if (!rt) return Promise.resolve(false);
+  const at = getToken();
+  if (!at) return Promise.resolve(false);
   if (_refreshing) return _refreshing;
   _refreshing = (async () => {
     try {
       const r = await fetch(`${BASE}/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: rt }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${at}` },
       });
-      if (!r.ok) return false;
+      if (!r.ok) return false;   // includes SESSION_EXPIRED, which must log out
       const d = await r.json().catch(() => ({}));
-      if (d.token) { setToken(d.token); setRefresh(d.refresh_token); return true; }
+      if (d.token) { setToken(d.token); return true; }
       return false;
     } catch { return false; }
     finally { _refreshing = null; }
@@ -46,9 +69,12 @@ export function wakeBackend() {
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────
-async function req(method, path, body = null, isForm = false, timeoutMs = 60000, _retry = false) {
+async function req(method, path, body = null, isForm = false, timeoutMs = 60000, _retry = false, extraHeaders = null) {
   const token = getToken();
-  const headers = {};
+  // `extraHeaders` exists for one reason: opening an identity document
+  // requires a stated reason, and the server takes it as `X-Reason` because
+  // the request is a GET. See `verification.documentUrl`.
+  const headers = { ...(extraHeaders || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
 
@@ -85,7 +111,6 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000,
   if (res.status === 401 && token && !_retry) {
     if (await refreshSession()) return req(method, path, body, isForm, timeoutMs, true);
     clearToken();
-    clearRefresh();
     localStorage.removeItem("imap_user");
     window.dispatchEvent(new Event("imap-unauthorized"));
   }
@@ -97,7 +122,7 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000,
   return data;
 }
 
-const get  = (p)    => req("GET",    p);
+const get  = (p, h) => req("GET",    p, null, false, 60000, false, h);
 const post = (p, b) => req("POST",   p, b);
 const put  = (p, b) => req("PUT",    p, b);
 const patch= (p, b) => req("PATCH",  p, b);
@@ -107,7 +132,10 @@ const del  = (p)    => req("DELETE", p);
 //  AUTH
 // ═══════════════════════════════════════════════════════════════
 // Persist the rotating refresh token whenever an auth response carries one.
-const persist = (d) => { if (d && d.refresh_token) setRefresh(d.refresh_token); return d; };
+// The refresh credential is not returned in the body on this backend, so
+// there is nothing to persist. Kept as a named seam: if body-based refresh
+// is ever introduced, this is the one place that has to change.
+const persist = (d) => d;
 
 export const auth = {
   /** Register a new account */
@@ -138,10 +166,10 @@ export const auth = {
   me: () => get("/auth/me"),
 
   /** Rotate the refresh token for a fresh access token */
-  refresh: () => post("/auth/refresh", { refresh_token: getRefresh() }).then(persist),
+  refresh: () => post("/auth/refresh", {}).then(persist),
 
   /** Revoke the refresh-token family server-side (best-effort). */
-  logout: () => post("/auth/logout", { refresh_token: getRefresh() }).catch(() => {}),
+  logout: () => post("/auth/logout", {}).catch(() => {}),
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -205,6 +233,65 @@ export const kyc = {
   submit: (data)       => post("/kyc", data),
   review: (id, status, rejection_reason) =>
     patch(`/kyc/${id}`, { status, rejection_reason }),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  VERIFICATION  (identity / KYC lifecycle)
+//
+//  The canonical surface. `kyc` is the legacy wire format kept for the
+//  existing submission form; everything a reviewer does, and everything a
+//  person can learn about their own case, is here.
+// ═══════════════════════════════════════════════════════════════
+export const verification = {
+  /** My own state: submitted / under_review / verified / rejected / more_info. */
+  mine: () => get("/verification/me"),
+
+  /** Submit identity evidence. `documents` is { id_front, id_back?, selfie }. */
+  submit: (documents) => post("/verification/identity", { documents }),
+
+  // ── reviewer ──────────────────────────────────────────────
+  /** The queue. Metadata only — it carries no document of any kind. */
+  queue: (state = "submitted", page = 1, limit = 30) =>
+    get(`/verification/queue?state=${encodeURIComponent(state)}&page=${page}&limit=${limit}`),
+
+  /** One case. Reading it is itself audited (V-07). */
+  case: (id) => get(`/verification/cases/${id}`),
+
+  /**
+   * A short-lived signed URL for one document.
+   *
+   * `reason` is REQUIRED and travels as a header: the server denies without
+   * it, because opening somebody's national identity card is recorded with
+   * the reason it was opened (R-1103, D-03).
+   */
+  documentUrl: (documentId, reason) =>
+    get(`/verification/documents/${documentId}`, { "X-Reason": reason }),
+
+  /** Evidence for a case migrated from the old kyc_docs table. */
+  legacyImage: (caseId, docType, reason) =>
+    get(`/verification/cases/${caseId}/legacy/${docType}`, { "X-Reason": reason }),
+
+  // ── the five transitions, each its own permission ─────────
+  claim:       (id)          => post(`/verification/cases/${id}/review`, {}),
+  approve:     (id, opts={}) => post(`/verification/cases/${id}/approve`, opts),
+  reject:      (id, reason)  => post(`/verification/cases/${id}/reject`, { reason }),
+  requestInfo: (id, reason)  => post(`/verification/cases/${id}/request-info`, { reason }),
+  revoke:      (id, reason)  => post(`/verification/cases/${id}/revoke`, { reason }),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PROVIDER LISTING  (the approval path F-12 recorded as missing)
+// ═══════════════════════════════════════════════════════════════
+export const listing = {
+  /**
+   * Why a provider is or is not listed, clause by clause. The subject may
+   * ask about themselves.
+   */
+  eligibility: (providerId) => get(`/providers/${providerId}/eligibility`),
+
+  approve: (providerId)         => post(`/providers/${providerId}/approve`, {}),
+  reject:  (providerId, reason) => post(`/providers/${providerId}/reject`, { reason }),
+  suspend: (providerId, reason) => post(`/providers/${providerId}/suspend`, { reason }),
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -395,6 +482,14 @@ export const payments = {
   list: (page = 1) => get(`/payments?page=${page}`),
   /** Get single payment detail */
   get: (id) => get(`/payments/${id}`),
+  /**
+   * Ask the gateway what happened and settle if it says the money moved.
+   *
+   * The IPN is the only other settlement path and it can be missed — a cold
+   * start, a deploy, a backend the public internet cannot reach. Then the
+   * customer has paid and the platform does not know.
+   */
+  reconcile: (id) => post(`/payments/${id}/reconcile`, {}),
   /** Admin: list all payments */
   adminList: (status, page = 1) =>
     get(`/payments/admin/all?page=${page}${status ? `&status=${status}` : ""}`),

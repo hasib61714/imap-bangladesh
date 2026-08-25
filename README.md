@@ -1,149 +1,262 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:6E40C9,50:A855F7,100:06B6D4&height=200&section=header&text=IMAP%20Bangladesh&fontSize=48&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=AI-Powered%20Multi-Service%20Marketplace%20for%20Bangladesh&descAlignY=58&descSize=18" width="100%" />
-</p>
+# IMAP Bangladesh – Intelligent Multi-Service Assistance Platform
 
-<p align="center">
-  <a href="https://github.com/hasib61714/imap-bangladesh/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT" />
-  </a>
-  <a href="https://github.com/hasib61714/imap-bangladesh/stargazers">
-    <img src="https://img.shields.io/github/stars/hasib61714/imap-bangladesh?style=for-the-badge&color=A855F7" alt="Stars" />
-  </a>
-  <a href="https://github.com/hasib61714/imap-bangladesh/network/members">
-    <img src="https://img.shields.io/github/forks/hasib61714/imap-bangladesh?style=for-the-badge&color=06B6D4" alt="Forks" />
-  </a>
-</p>
+> **Live:** https://hasib61714.github.io/imap-bangladesh/  |  **API:** https://imap-backend-mghb.onrender.com
+
+IMAP is an AI-powered multi-service marketplace designed to simplify daily life in Bangladesh by connecting users with verified service providers through a secure and intelligent platform.
+
+This platform integrates emergency support, household services, professional assistance, and smart AI-based provider matching.
 
 ---
 
-## About
+## 🌟 Key Features
 
-**IMAP Bangladesh** is an AI-powered multi-service marketplace that connects citizens across all **64 districts of Bangladesh** with verified local service providers. Whether you need emergency assistance, household repairs, or professional services, IMAP intelligently matches you with the right provider nearby. The platform features live GPS tracking, real-time chat, and AI-driven recommendations — all secured through phone OTP authentication.
+### 🔹 User Features
+- Phone OTP authentication
+- Smart service search & filtering
+- AI-based provider recommendations
+- Live provider tracking (GPS)
+- Real-time chat & communication
+- Secure online payments (bKash/Nagad/Card)
+- Digital receipts & service history
+- Ratings & reviews
+- Emergency service booking
+- Bengali-friendly interface
 
----
+### 🔹 Provider Features
+- Provider registration & document verification
+- Booking management (accept/reject)
+- Earnings dashboard & analytics
+- Service & pricing management
+- Real-time notifications
+- Verified provider badge
 
-## Features
+### 🔹 Admin Features
+- Provider approval & KYC verification
+- Platform monitoring & analytics
+- Dispute resolution system
+- Category & content management
 
-- **Multi-Category Services** — Emergency, household, and professional service categories under one roof
-- **Verified Provider Network** — All service providers go through a verification process before listing
-- **Phone OTP Authentication** — Frictionless, passwordless login via SMS one-time password
-- **Live GPS Tracking** — Real-time map view of service provider location while en route
-- **Real-Time Chat** — Instant messaging between users and providers powered by Socket.io
-- **AI Service Recommendations** — Smart suggestions based on location, history, and service type
-- **Nationwide Coverage** — Supports all 64 districts of Bangladesh
-- **Provider Dashboard** — Providers can manage availability, bookings, and earnings
-
----
-
-## Tech Stack
-
-<p align="center">
-  <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=javascript,nodejs,express,mysql,react,redis&theme=dark" />
-  </a>
-</p>
-
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js |
-| Framework | Express.js |
-| Database | MySQL 8 / TiDB Cloud (mysql2) |
-| Cache / Scaling | Redis (ioredis) — optional, in-memory fallback |
-| Real-Time | Socket.io |
-| Frontend | React 18 + Vite + Ant Design |
-| Maps & GPS | Leaflet + OpenStreetMap |
-| Payments | SSLCommerz |
-| Storage | Cloudflare R2 / AWS S3 |
-| Auth | JWT + refresh rotation, Phone OTP, Google |
-| Language | JavaScript (ES2022) |
+### 🔹 Emergency Services
+- Ambulance & medical assistance
+- Emergency electrician & plumbing
+- Oxygen & blood donor support
+- 🚗 Emergency car mechanic & roadside assistance
 
 ---
 
-## Getting Started
+## 🧠 AI & Smart Modules
+- Intelligent provider ranking
+- Smart suggestions & recommendations
+- Emergency priority dispatch
+- Disaster & blood donor support
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+- React.js + Vite
+- Progressive Web App (PWA)
+- Responsive mobile-first UI (Bengali + English)
+- Ant Design (Admin Panel)
+
+### Backend
+- Node.js + Express.js
+- REST API + Socket.io (real-time chat & tracking)
+- JWT Authentication
+- Helmet (security headers) + express-rate-limit
+
+### Database
+- MySQL 8+ / TiDB Serverless (InnoDB, utf8mb4)
+- Forward-only migrations in `backend/migrations/`, applied with `npm run db:migrate`
+
+---
+
+## 📁 Project Structure
+```
+imap-app/
+├── backend/
+│   ├── routes/          # All API route files
+│   ├── middleware/       # auth.js JWT middleware
+│   ├── scripts/          # initDb.js, checkLogin.js
+│   ├── server.js         # Express + Socket.io entry
+│   ├── db.js             # MySQL pool
+│   ├── schema.sql        # Full database schema
+│   └── .env.example      # Environment template
+└── frontend/
+    ├── src/
+    │   ├── App.jsx        # Main app (all user pages)
+    │   ├── api.js         # API client
+    │   ├── pages/         # AdminPanel, ProviderPortal, KYCPage, AuthPage
+    │   └── constants/     # theme, translations, data
+    ├── public/            # PWA manifest, service worker, icons
+    └── .env.example       # Frontend environment template
+```
+
+---
+
+## ⚙️ Local Development Setup
 
 ### Prerequisites
+- Node.js 18+
+- MySQL 8+
+- XAMPP / MySQL server running
 
-- Node.js >= 18 & npm
-- MySQL 8 (local) or a TiDB Cloud cluster
-- Redis (optional — only needed for multi-instance scaling)
-- SMS gateway credentials (optional — OTP runs in mock mode by default)
-
-### Installation
-
+### 1. Database Setup
 ```bash
-# Clone the repository
-git clone https://github.com/hasib61714/imap-bangladesh.git
-cd imap-bangladesh
+mysql -u root -p < backend/schema.sql
+```
 
-# Install backend dependencies
-cd backend && npm install
-
-# Configure environment
+### 2. Backend Setup
+```bash
+cd backend
+npm install
 cp .env.example .env
-# Fill in: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET (see .env.example)
-
-# Create the schema, then start
-npm run migrate
-npm run dev
+# Edit .env — set DB_PASSWORD, JWT_SECRET, etc.
+npm run dev       # nodemon (hot reload)
+# or
+npm start         # plain node
 ```
 
-### Usage
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:5173
+```
+
+### 4. Apply Migrations
+```bash
+cd backend
+npm run db:migrate          # apply pending migrations
+npm run db:migrate:status   # show applied / pending
+```
+
+### Create the Administrator Account
+No administrator is seeded any more — the previous `admin123` default was a
+published credential (see `docs/audit/SECURITY-GAPS.md` P0-9).
 
 ```bash
-# Run in development mode
-npm run dev
-
-# Run in production mode
-npm start
+cd backend
+ADMIN_BOOTSTRAP_EMAIL=you@example.com npm run admin:reset
+# prints a generated password once, or set ADMIN_BOOTSTRAP_PASSWORD yourself
 ```
 
-Server starts at [http://localhost:5000](http://localhost:5000). Socket.io connects on the same port.
-
----
-
-## Project Structure
-
-```
-imap-bangladesh/
-├── controllers/
-│   ├── authController.js
-│   ├── serviceController.js
-│   └── chatController.js
-├── models/
-│   ├── User.js
-│   ├── Provider.js
-│   └── Booking.js
-├── routes/
-├── socket/
-│   └── chatHandler.js
-├── middleware/
-└── server.js
+### Run the Tests
+```bash
+cd backend
+npm test        # P0 security regression suite (node:test, no extra deps)
 ```
 
 ---
 
-## Contributing
+## 🚀 Production Deployment
 
-Contributions are welcome! Please follow these steps:
+### 1. Set Environment Variables
+Edit `backend/.env`:
+```env
+NODE_ENV=production
+PORT=5000
+DB_HOST=localhost
+DB_USER=your_db_user
+DB_PASSWORD=your_strong_password
+DB_NAME=imap_db
+JWT_SECRET=<64-char random hex — run: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=https://yourdomain.com
+GEMINI_API_KEY=optional
+```
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'feat: add your feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
+### 2. Build Frontend
+```bash
+cd frontend
+cp .env.example .env.production
+# Edit .env.production — set VITE_API_URL=https://api.yourdomain.com/api
+npm run build     # outputs to frontend/dist/
+```
+
+### 3. Serve with Nginx (recommended)
+```nginx
+# Backend API
+server {
+    listen 443 ssl;
+    server_name api.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+# Frontend static files
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+    root /var/www/imap/frontend/dist;
+    index index.html;
+    location / { try_files $uri $uri/ /index.html; }
+}
+```
+
+### 4. Run Backend with PM2
+```bash
+npm install -g pm2
+cd backend
+pm2 start server.js --name imap-backend
+pm2 save
+pm2 startup
+```
+
+### 5. SSL/HTTPS
+```bash
+# Free SSL with Certbot
+sudo certbot --nginx -d yourdomain.com -d api.yourdomain.com
+```
 
 ---
 
-## License
+## 🔐 Security
 
-This project is licensed under the [MIT License](LICENSE).
+**Do not treat this section as an assurance.** A full audit is in
+[`docs/audit/`](docs/audit/). The previous version of this checklist implied a
+posture the code did not have — it claimed "JWT authentication on all protected
+routes" while several endpoints were unauthenticated, and while a password-less
+account accepted any password.
+
+**Current state:** Phase 0 found 12 P0 and 18 P1 findings. Phase 0.5 contained
+the P0 set — see
+[`docs/audit/PHASE-0.5-SECURITY-REGRESSION.md`](docs/audit/PHASE-0.5-SECURITY-REGRESSION.md)
+for what was fixed, how it was verified, and what risk remains.
+
+Controls that are in place and verified by `npm test`:
+
+- Password login fails closed when no password hash is stored
+- Unverified social login is disabled (410); Google sign-in verifies the ID token and audience
+- Booking prices, fees and totals are computed server-side — client values are ignored
+- Negative / `NaN` / `Infinity` money values are rejected at every financial entry point
+- Booking and loan state transitions are guarded, so financial side effects run once
+- Money paths run inside database transactions with unique ledger references
+- An unconfigured payment gateway returns 503 in production; it never credits a wallet
+- Socket booking rooms require verified participation; SOS alerts go to a DB-verified admin room
+- No administrator or demo credential is seeded — see "Create the Administrator Account"
+
+Standing controls (present before this phase): bcrypt hashing, Helmet headers,
+rate limiting, parameterised queries, CORS allow-list, `express-validator`,
+TLS in production.
+
+**Known open items** are listed in the regression report — the largest are
+Content-Security-Policy (disabled), in-process OTP/cache state (blocks
+horizontal scaling), and KYC images stored as base64 in the primary database.
 
 ---
 
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:06B6D4,50:A855F7,100:6E40C9&height=120&section=footer" width="100%" />
-</p>
+## 🌐 Deployed Infrastructure
 
-<p align="center">
-  Made with dedication by <a href="https://github.com/hasib61714">Md. Hasibul Hasan</a>
-</p>
+| Layer | Platform | URL |
+|-------|----------|-----|
+| Frontend | GitHub Pages | https://hasib61714.github.io/imap-bangladesh/ |
+| Backend API | Render (Node.js) | https://imap-backend-mghb.onrender.com |
+| Database | TiDB Serverless (MySQL-compatible) | Render env vars |
+
+> **Note:** The Render free tier spins down after inactivity. The frontend automatically wakes the backend on first load (`wakeBackend()` in `main.jsx`).

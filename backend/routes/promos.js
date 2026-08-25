@@ -6,9 +6,7 @@ const cache  = require("../utils/cache");
 // Seed default promos if table is empty
 const seed = async () => {
   // Add missing columns if they don't exist (safe migration)
-  try { await pool.query("ALTER TABLE promos ADD COLUMN category VARCHAR(50) DEFAULT 'all'"); } catch{}
-  try { await pool.query("ALTER TABLE promos ADD COLUMN tag VARCHAR(20) DEFAULT ''"); } catch{}
-  try { await pool.query("ALTER TABLE promos ADD COLUMN max_discount DECIMAL(10,2)"); } catch{}
+  // I-01: these three ALTERs are migration 004.
 
   const [[{ cnt }]] = await pool.query("SELECT COUNT(*) cnt FROM promos");
   if (cnt === 0) {

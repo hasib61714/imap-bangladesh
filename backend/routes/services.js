@@ -1,7 +1,12 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
 const pool   = require("../db");
-const { authMiddleware, requireRole } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
+// I-04: catalogue editing is `operations`, not "admin". /api/services reads
+// and writes `categories`; the loader follows the table, because that is what
+// the decision has to be true about.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const cache  = require("../utils/cache");
 
 // ── GET /api/services ─────────────────────────────────────
@@ -26,7 +31,7 @@ router.get("/", async (req, res) => {
 });
 
 // ── POST /api/services  (admin) ───────────────────────────
-router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
+router.post("/", authMiddleware, requireAuthorization(ACTION.SERVICE_CREATE), async (req, res) => {
   try {
     const { slug, name_bn, name_en, icon, color, base_price, sort_order } = req.body;
     if (!slug || !name_bn || !name_en) return res.status(400).json({ error: "slug, name_bn, name_en required" });
@@ -48,7 +53,8 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
 });
 
 // ── PUT /api/services/:id  (admin) ────────────────────────
-router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.put("/:id", authMiddleware,
+  requireAuthorization(ACTION.SERVICE_UPDATE, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     const { name_bn, name_en, icon, color, base_price, is_active, sort_order } = req.body;
     await pool.query(
@@ -73,7 +79,8 @@ router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
 });
 
 // ── DELETE /api/services/:id  (admin) ────────────────────────
-router.delete("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.delete("/:id", authMiddleware,
+  requireAuthorization(ACTION.SERVICE_DELETE, { resource: (req) => req.params.id }), async (req, res) => {
   try {
     await pool.query("UPDATE categories SET is_active = 0 WHERE id = ?", [req.params.id]);
     cache.del("services:active"); cache.del("services:all");

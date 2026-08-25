@@ -215,6 +215,8 @@ input:focus,textarea:focus,select:focus{
     background:rgba(255,255,255,.98);
     backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
     border-top:1px solid rgba(214,236,227,.8);z-index:800;
+    /* From main: a fixed 62px bar sits UNDER the iPhone home indicator, so
+       the last row of the nav is unreachable on those devices. */
     min-height:62px;padding-bottom:env(safe-area-inset-bottom,0px);
     box-shadow:0 -8px 32px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
   }
@@ -233,7 +235,9 @@ input:focus,textarea:focus,select:focus{
   .wp{padding:0 10px;}.modal{max-height:96vh;}
   .btn-g,.btn-o{padding:10px 14px!important;font-size:13px!important;}
   .hs{padding:36px 10px 52px!important;}
-}`;
+}
+
+`;
 
 export const CSS_DARK = `
   html,body{background:#0A100E;color:#D4EDE4;}

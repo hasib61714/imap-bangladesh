@@ -31,7 +31,16 @@ function buildClient() {
 }
 
 const client = buildClient();
-const BUCKET = process.env.R2_BUCKET_NAME || process.env.S3_BUCKET_NAME || "imap-media";
+// P1-17: render.yaml provisions R2_BUCKET / AWS_S3_BUCKET, but this only
+// read R2_BUCKET_NAME / S3_BUCKET_NAME — so the bucket silently fell back
+// to "imap-media" and uploads went somewhere nobody was looking. All four
+// spellings are accepted.
+const BUCKET =
+  process.env.R2_BUCKET_NAME ||
+  process.env.R2_BUCKET ||
+  process.env.S3_BUCKET_NAME ||
+  process.env.AWS_S3_BUCKET ||
+  "imap-media";
 
 function generateKey(folder, originalName) {
   const ext  = path.extname(originalName || ".jpg").toLowerCase();

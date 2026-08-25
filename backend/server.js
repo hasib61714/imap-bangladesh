@@ -10,38 +10,33 @@ const { ipKeyGenerator } = require("express-rate-limit");
 const compression  = require("compression");
 const logger       = require("./utils/logger");
 const requestLogger = require("./middleware/requestLogger");
-const redis        = require("./utils/redis");
+const env          = require("./config/environment");
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = env.isProduction();
 
 // ── Rate limiters ─────────────────────────────────────────
-// Backed by Redis when available (shared across instances); otherwise the
-// default in-process memory store (identical single-instance behavior).
-const rlStore = redis.createRateLimitStore();
-const withStore = (cfg) => (rlStore ? { ...cfg, store: rlStore } : cfg);
-
-const generalLimiter = rateLimit(withStore({
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,   // 15 minutes
   max: isProd ? 200 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
-}));
-const authLimiter = rateLimit(withStore({
+});
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 20 : 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please wait." },
-}));
-const aiLimiter = rateLimit(withStore({
+});
+const aiLimiter = rateLimit({
   windowMs: 60 * 1000,           // 1-minute sliding window
   max: isProd ? 20 : 200,        // 20 AI calls / minute in prod
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests, please wait a moment." },
   keyGenerator: (req) => req.headers["authorization"] || ipKeyGenerator(req),
-}));
+});
 
 const app    = express();
 const server = http.createServer(app);
@@ -60,79 +55,34 @@ const io = new Server(server, {
   },
 });
 
-// Multi-instance fan-out via Redis adapter (no-op single-instance / no Redis)
-redis.attachSocketAdapter(io).catch(() => {});
+// JWT auth middleware for Socket.io.
+// Tokenless connections are still permitted so the client can connect
+// before sign-in, but such a socket can no longer join any room or emit
+// any event that carries data (see the handlers below).
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!token) { socket.user = null; return next(); }
+    // I-03 (§16): the socket handshake pins the algorithm too.
+    socket.user = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    next();
+  } catch {
+    socket.user = null;
+    next();
+  }
+});
 
-// ── Socket.io authentication (strict) ─────────────────────
-// Reject missing / invalid / expired tokens and inactive users at connect time.
-const socketPool = require("./db");
-const { authenticateSocket, canAccessBooking, createRateLimiter, isValidBookingId } = require("./utils/socketSecurity");
-const socketEventLimiter = createRateLimiter({ points: 40, windowMs: 10_000 });
-
-io.use((socket, next) => authenticateSocket(socketPool, socket, next));
+// Socket handlers live in ./realtime.js so their authorization rules can
+// be unit-tested (P0-7, P0-8).
+const { registerHandlers, ADMIN_ROOM } = require("./realtime");
 
 io.on("connection", (socket) => {
-  const uid = socket.user.id; // guaranteed by io.use
-  logger.debug(`Socket connected: ${uid}`);
-
-  // Join a booking room — ONLY the booking's customer, assigned provider, or admin.
-  socket.on("join_room", async (bookingId, ack) => {
-    const reply = (o) => { if (typeof ack === "function") ack(o); };
-    if (!isValidBookingId(bookingId))   return reply({ ok: false, error: "invalid_booking" });
-    if (!socketEventLimiter(socket))    return reply({ ok: false, error: "rate_limited" });
-    try {
-      if (!(await canAccessBooking(socketPool, socket.user, bookingId))) {
-        logger.warn(`Socket ${uid} denied join booking_${bookingId}`);
-        return reply({ ok: false, error: "forbidden" });
-      }
-      socket.join(`booking_${bookingId}`);
-      logger.debug(`${uid} joined room: booking_${bookingId}`);
-      reply({ ok: true });
-    } catch (e) {
-      logger.error("join_room error", { err: e.message });
-      reply({ ok: false, error: "server_error" });
-    }
-  });
-
-  socket.on("leave_room", (bookingId) => {
-    if (isValidBookingId(bookingId)) socket.leave(`booking_${bookingId}`);
-  });
-
-  // An event is only honoured if the socket has JOINED (=was authorized for) the room.
-  // This binds every realtime action to the booking-access check above (spoof prevention).
-  const inRoom = (bookingId) => isValidBookingId(bookingId) && socket.rooms.has(`booking_${bookingId}`);
-
-  // Typing — server-supplied name, never client-supplied
-  socket.on("typing", ({ bookingId } = {}) => {
-    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
-    socket.to(`booking_${bookingId}`).emit("user_typing", { name: socket.user.name || "User" });
-  });
-  socket.on("stop_typing", ({ bookingId } = {}) => {
-    if (!inRoom(bookingId)) return;
-    socket.to(`booking_${bookingId}`).emit("user_stop_typing");
-  });
-
-  // Live location — participant-only, validated coordinates
-  socket.on("location_update", ({ bookingId, lat, lng } = {}) => {
-    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
-    const safeLat = parseFloat(lat), safeLng = parseFloat(lng);
-    if (Number.isNaN(safeLat) || Number.isNaN(safeLng) ||
-        safeLat < -90 || safeLat > 90 || safeLng < -180 || safeLng > 180) return;
-    io.to(`booking_${bookingId}`).emit("provider_location", { lat: safeLat, lng: safeLng });
-  });
-
-  // Booking status broadcast — participant-only, validated status
-  const VALID_BOOKING_STATUSES = ["pending", "confirmed", "active", "ongoing", "completed", "cancelled"];
-  socket.on("booking_status", ({ bookingId, status } = {}) => {
-    if (!inRoom(bookingId) || !socketEventLimiter(socket)) return;
-    if (!VALID_BOOKING_STATUSES.includes(status)) return;
-    io.to(`booking_${bookingId}`).emit("booking_updated", { bookingId, status });
-  });
-
-  socket.on("disconnect", () => {
-    logger.debug(`Socket disconnected: ${uid}`);
-  });
+  logger.debug(`Socket connected: ${socket.user?.id || "guest"}`);
+  registerHandlers(io, socket);
 });
+
+// Expose the admin room name to routes that need to reach administrators.
+app.set("adminRoom", ADMIN_ROOM);
 
 // Export io so routes can use it
 app.set("io", io);
@@ -163,6 +113,37 @@ const allowedOrigins = [
   "https://hasib61714.github.io",  // gh-pages (always allowed)
 ].filter(Boolean);
 
+/**
+ * Payment gateway redirect targets are exempt from the origin allowlist.
+ *
+ * WHY, AND WHAT BREAKS WITHOUT IT
+ * ───────────────────────────────
+ * SSLCommerz returns the customer by POSTING a form to `success_url` from
+ * ITS OWN origin. That request carries `Origin: https://sandbox.sslcommerz.com`
+ * (or securepay in live), which is not on the allowlist, so cors() rejected
+ * it — and the customer, having just paid, landed on
+ *
+ *     {"error":"Not allowed by CORS"}
+ *
+ * instead of the app. Found by completing a real sandbox payment; it would
+ * have done exactly the same thing in production to every single customer.
+ *
+ * Exempting these three is safe because of what they are and are not. They
+ * are browser NAVIGATIONS whose entire response is a redirect back to the
+ * frontend — no data is returned for a foreign origin to read, so there is
+ * nothing for CORS to protect. And they move no money: P1-3 made the IPN the
+ * only settlement path precisely because anyone can POST here with any
+ * tran_id.
+ *
+ * The IPN itself needs no exemption — it is server-to-server and carries no
+ * Origin header at all, which the `!origin` branch already allows.
+ */
+const GATEWAY_REDIRECT_PATHS = new Set([
+  "/api/payments/success",
+  "/api/payments/fail",
+  "/api/payments/cancel",
+]);
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // same-origin / server-to-server / curl
@@ -174,6 +155,18 @@ app.use(cors({
   credentials: true,
 }));
 
+/**
+ * Runs AFTER cors() so a rejected gateway redirect is rescued rather than
+ * the allowlist being widened. Only the three redirect paths, only when the
+ * failure was the CORS check, and the handler beneath still only redirects.
+ */
+app.use((err, req, res, next) => {
+  if (err && err.message === "Not allowed by CORS" && GATEWAY_REDIRECT_PATHS.has(req.path)) {
+    return next();
+  }
+  return next(err);
+});
+
 app.use(compression());
 app.use(requestLogger);
 app.use(express.json({ limit: "10mb" }));
@@ -183,9 +176,17 @@ app.use("/api", generalLimiter);
 // ── Routes ────────────────────────────────────────────────
 app.use("/api/auth",      authLimiter, require("./routes/auth"));
 app.use("/api/users",     require("./routes/users"));
-app.use("/api/providers", require("./routes/providers"));
+// I-06: the marketplace module's own transport. routes/providers.js is
+// deleted in the same commit that mounts this, so there is never a moment
+// with two implementations of one endpoint.
+app.use("/api/providers", require("./src/modules/marketplace/transport/routes"));
 app.use("/api/bookings",  require("./routes/bookings"));
+// I-07: `/api/kyc` keeps the wire format the current frontend sends and is
+// now an adapter over the same use cases mounted below. `/api/verification`
+// is the canonical surface — the review queue, the audited document reads and
+// the five state transitions.
 app.use("/api/kyc",       require("./routes/kyc"));
+app.use("/api/verification", require("./src/modules/identity/transport/routes"));
 app.use("/api/reviews",   require("./routes/reviews"));
 app.use("/api/services",  require("./routes/services"));
 app.use("/api/admin",     require("./routes/admin"));
@@ -200,7 +201,14 @@ app.use("/api/payments",  require("./routes/payments"));
 app.use("/api/upload",    require("./routes/upload"));
 app.use("/api/loans",     require("./routes/loans"));
 
-// (Removed: public /api/admin/seed-demo backdoor — use scripts/seedDemo.js via CLI instead.)
+// ── Demo seed endpoint — REMOVED in Phase 0.5 (P0-9) ──────
+// GET /api/admin/seed-demo used to run without any secret whenever fewer
+// than four providers had a service type — i.e. on a fresh database. It
+// created six provider accounts sharing the password `demo1234` and it
+// was reachable by anyone on the internet.
+//
+// Seeding now lives only in `scripts/seedDemo.js`, which refuses to run
+// when NODE_ENV=production and must be invoked deliberately from a shell.
 
 // ── Health check ──────────────────────────────────────────
 app.get("/api/health", async (_req, res) => {
@@ -225,71 +233,49 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
-// ── Metrics (non-sensitive aggregate counters) ────────────
-const metrics = require("./utils/metrics");
-app.get("/api/metrics", (_req, res) => res.json(metrics.snapshot()));
-
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
 
+// ── Error boundary ────────────────────────────────────────
+// I-06 (§23): an AppError becomes its status and its envelope here, and
+// nowhere else. Anything that is not one falls through to the handler below,
+// which is what the routes that have not migrated still rely on.
+app.use(require("./src/transport/http/errorBoundary").errorBoundary);
+
 // ── Global error handler ──────────────────────────────────
-const errorTracker = require("./utils/errorTracker");
 app.use((err, req, res, _next) => {
-  // Report to the error tracker (Sentry if configured) + structured log.
-  // Response shape is unchanged.
-  errorTracker.captureException(err, { method: req.method, url: req.originalUrl, requestId: req.requestId });
+  logger.error("Unhandled error", { method: req.method, url: req.originalUrl, err: err.message, stack: err.stack });
   res.status(err.status || 500).json({ success: false, error: isProd ? "Internal server error" : err.message });
 });
 
 // ── Start ─────────────────────────────────────────────────
-// Enforce Redis only when explicitly required (REQUIRE_REDIS=true); otherwise
-// the in-memory fallback keeps single-instance deployments working unchanged.
-try { redis.assertReady(); }
-catch (e) { logger.error(e.message); process.exit(1); }
+// I-01: the composition root gates startup. A process that cannot satisfy
+// these checks refuses to listen rather than accepting requests and failing
+// on each one. I-03 registers "every use case has an authorization policy"
+// here, and I-05 registers "every job declares idempotency".
+// I-05/I-06: composing the modules is what registers their startup checks —
+// see src/composition/modules.js.
+require("./src/composition/modules").composeModules();
+const { runStartupChecks } = require("./src/composition/startup-checks");
+
+let startup;
+try {
+  startup = runStartupChecks();
+} catch (err) {
+  // Not logger.error: winston may buffer, and this must reach the operator
+  // before the process leaves.
+  console.error(`\n❌ ${err.message}\n`);
+  process.exit(1);
+}
+for (const w of startup.warnings) logger.warn(`config not set — ${w}`);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, "0.0.0.0", async () => {
-  logger.info(`IMAP Backend started`, { port: PORT, env: process.env.NODE_ENV || "development" });
+server.listen(PORT, "0.0.0.0", () => {
+  logger.info(`IMAP Backend started`, { port: PORT, ...startup.environment });
   logger.info(`Health check: http://localhost:${PORT}/api/health`);
-
-  // Payment gateway posture (logs without leaking secrets; warns on prod misconfig)
-  require("./config/payment").logStartup(logger);
-
-  // ── Schema migrations ─────────────────────────────────────
-  // Single source of truth = database/migrations/*.sql, applied by the shared
-  // migrator (idempotent; safe on a fresh DB and on the existing prod DB).
-  // Best-effort: a migration failure is logged but never blocks startup.
-  try {
-    const { runMigrations } = require("./database/migrator");
-    const { applied } = await runMigrations({ log: (m) => logger.info(`[migrate] ${m}`) });
-    if (applied.length) logger.info("Migrations applied", { count: applied.length });
-  } catch (e) {
-    logger.error("Startup migrations failed (continuing on existing schema):", e.message);
-  }
-
-  // Validate Web-Push (VAPID) configuration — warn if partially/incorrectly set
-  const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    logger.warn("Web-Push disabled: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set");
-  } else {
-    try {
-      require("web-push").setVapidDetails(
-        process.env.VAPID_MAILTO || "mailto:admin@imap.com.bd",
-        VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
-      );
-      logger.info("Web-Push configured", { publicKeyPresent: true });
-    } catch (e) {
-      logger.warn("Web-Push VAPID config invalid:", e.message);
-    }
-  }
-
-  // ── Background workers ────────────────────────────────────
-  const jobs = require("./jobs");
-  jobs.startWorkers();
-  // Periodic housekeeping (expired tokens, old notifications)
-  jobs.enqueue("cleanup", {});
-  setInterval(() => jobs.enqueue("cleanup", {}), 6 * 60 * 60 * 1000).unref();
-  logger.info("Background workers started");
+  // I-01: this callback used to CREATE TABLE loyalty_log and referrals on
+  // every startup, with both errors logged and swallowed. `referrals` was
+  // declared nowhere else in the repository. Both are migration 003 now.
 });
 
 // ── Graceful shutdown ─────────────────────────────────────
@@ -316,7 +302,7 @@ const shutdown = async (signal) => {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("uncaughtException", (err) => {
-  errorTracker.captureException(err, { source: "uncaughtException" });
+  logger.error("Uncaught exception", { err: err.message, stack: err.stack });
   shutdown("uncaughtException");
 });
 process.on("unhandledRejection", (reason) => {

@@ -4,8 +4,7 @@
 //  Mount BEFORE routes in server.js:
 //    app.use(require('./middleware/requestLogger'));
 // ─────────────────────────────────────────────────────────────
-const logger  = require("../utils/logger");
-const metrics = require("../utils/metrics");
+const logger = require("../utils/logger");
 
 const requestLogger = (req, res, next) => {
   const start = Date.now();
@@ -18,14 +17,13 @@ const requestLogger = (req, res, next) => {
     const method  = req.method;
     const url     = req.originalUrl;
 
-    metrics.record({ status, ms });
-
     const level = status >= 500 ? "error"
                 : status >= 400 ? "warn"
                 : "info";
 
-    // requestId ties this log line to the X-Request-ID response header (tracing)
-    logger[level](`${method} ${url}`, { status, ms, ip, userId, requestId: req.requestId });
+    // I-03: the correlation id was generated per request in server.js and
+    // read by nothing. It is what ties a log line to its audit record.
+    logger[level](`${method} ${url}`, { status, ms, ip, userId, correlationId: req.requestId });
   });
 
   next();

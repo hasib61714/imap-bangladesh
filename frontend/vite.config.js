@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { bundleBudgetPlugin } from './vite-plugins/bundle-budget.js'
 
 export default defineConfig({
-  plugins: [react()],
+  // I-01: the budget is enforced at build time. UX-CONSTITUTION §7 —
+  // "a route that exceeds its budget does not ship".
+  plugins: [react(), bundleBudgetPlugin()],
 
   // GitHub Pages base path (only in production build)
   base: process.env.NODE_ENV === 'production' ? '/imap-bangladesh/' : '/',
@@ -14,10 +17,22 @@ export default defineConfig({
     strictPort: false,        // try next port if 5173 is busy
     proxy: {
       // All /api/* requests are forwarded to the backend in dev mode
+      // The port comes from the environment so a developer whose 5000 is
+      // taken by another service — Windows reserves it often enough — can
+      // move the backend without editing tracked config.
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_DEV_API_ORIGIN || 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
+      },
+      // Realtime goes through the same origin in development, so the client
+      // needs no second URL to get wrong. `ws: true` is what makes the
+      // upgrade handshake pass through rather than 404.
+      '/socket.io': {
+        target: process.env.VITE_DEV_API_ORIGIN || 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       },
     },
   },

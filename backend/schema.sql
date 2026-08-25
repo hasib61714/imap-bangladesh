@@ -1,14 +1,23 @@
 -- ═══════════════════════════════════════════════════════════
---  IMAP Bangladesh — Full schema SNAPSHOT (convenience only)
+--  IMAP Bangladesh — LEGACY SCHEMA  ·  ARCHIVED, NOT APPLIED
 --
---  SOURCE OF TRUTH = database/migrations/*.sql, applied by `npm run migrate`
---  (also run automatically at server startup). This file is a flat snapshot
---  for quick local/docker bootstrap and must be kept in sync with migrations.
---  Requires MariaDB/TiDB (uses ADD COLUMN IF NOT EXISTS).
+--  ⚠ THIS FILE IS NO LONGER EXECUTED BY ANYTHING.
+--
+--  As of I-02 the migration chain is the single authoritative schema
+--  mechanism. migrations/001_baseline.sql carries this content and is what
+--  actually builds the database. This file is retained only as the record
+--  of where that baseline came from.
+--
+--  Do not edit it to change the schema — a change here has no effect.
+--  Write a migration.
+--
+--  It also contains two MariaDB-only statements
+--  (ALTER TABLE ... ADD COLUMN IF NOT EXISTS) which MySQL 8 rejects, so it
+--  cannot be applied to the CI service container even if someone tried.
+--  001_baseline.sql uses the portable form.
+--
+--  Disposition: docs/implementation/LEGACY-SCHEMA-DISPOSITION.md
 -- ═══════════════════════════════════════════════════════════
-
-CREATE DATABASE IF NOT EXISTS imap_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE imap_db;
 
 -- ── USERS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
@@ -23,7 +32,9 @@ CREATE TABLE IF NOT EXISTS users (
   social_id     VARCHAR(120),
   kyc_status    ENUM('not_submitted','pending','verified','rejected') DEFAULT 'not_submitted',
   verified      TINYINT(1) DEFAULT 0,
-  balance       DECIMAL(12,2) DEFAULT 500.00,
+  -- Phase 0.5: was DEFAULT 500.00 — every new account was created with
+  -- spendable money and no corresponding ledger entry.
+  balance       DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   points        INT DEFAULT 0,
   referral_code VARCHAR(12) UNIQUE,
   referred_by   VARCHAR(36),
@@ -140,7 +151,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS kyc_docs (
   id               VARCHAR(36) PRIMARY KEY,
   user_id          VARCHAR(36) NOT NULL,
-  doc_type         VARCHAR(30) NOT NULL,  -- canonical: nid, passport, birth_certificate, driving_license (config/kyc.js)
+  doc_type         ENUM('nid','driving','passport','birth') NOT NULL,
   doc_number       VARCHAR(80) NOT NULL,
   front_image      LONGTEXT,
   back_image       LONGTEXT,
@@ -254,48 +265,13 @@ CREATE TABLE IF NOT EXISTS complaints (
 
 -- ── REFRESH TOKENS ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS refresh_tokens (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  user_id     VARCHAR(36) NOT NULL,
-  token       VARCHAR(512) NULL,          -- legacy column (unused; hash is canonical)
-  token_hash  VARCHAR(64),               -- SHA-256 of the opaque token (only this is stored)
-  family_id   VARCHAR(36),               -- rotation family (reuse → revoke whole family)
-  revoked     TINYINT(1) DEFAULT 0,
-  replaced_by VARCHAR(64),               -- token_hash that superseded this one
-  used_at     TIMESTAMP NULL,
-  expires_at  TIMESTAMP NOT NULL,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user (user_id),
-  INDEX idx_rt_token_hash (token_hash),
-  INDEX idx_rt_family (family_id)
-) ENGINE=InnoDB;
-
--- ── PUSH SUBSCRIPTIONS (Web-Push) ─────────────────────────
--- user_id is a UUID (VARCHAR) to match users.id — an earlier INT definition
--- silently broke delivery.
-CREATE TABLE IF NOT EXISTS push_subscriptions (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id    VARCHAR(36) NOT NULL,
-  endpoint   VARCHAR(600) NOT NULL,
-  `keys`     JSON,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_ep (endpoint(255)),
-  INDEX idx_ps_user (user_id)
-) ENGINE=InnoDB;
-
--- ── MEDIA ASSETS (object-storage metadata) ───────────────
--- New uploads store object_key + cdn_url here instead of base64 in-row.
-CREATE TABLE IF NOT EXISTS media_assets (
-  id         VARCHAR(36) PRIMARY KEY,
-  owner_id   VARCHAR(36) NOT NULL,
-  kind       VARCHAR(30) NOT NULL,   -- avatar | kyc | proof
-  object_key VARCHAR(512) NOT NULL,
-  cdn_url    VARCHAR(800),
-  mime_type  VARCHAR(100),
-  size       INT,
+  token      VARCHAR(512) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_ma_owner (owner_id),
-  INDEX idx_ma_kind (kind)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user (user_id)
 ) ENGINE=InnoDB;
 
 -- ══════════════════════════════════════════════════════════
@@ -384,39 +360,23 @@ CREATE TABLE IF NOT EXISTS microloans (
   INDEX idx_status (status)
 ) ENGINE=InnoDB;
 
--- ── AUDIT LOG (admin actions, analytics access, money movement) ──
-CREATE TABLE IF NOT EXISTS audit_log (
-  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-  actor_id    VARCHAR(36),
-  actor_role  VARCHAR(20),
-  action      VARCHAR(60) NOT NULL,
-  target_type VARCHAR(40),
-  target_id   VARCHAR(80),
-  ip          VARCHAR(60),
-  meta        JSON,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_action (action),
-  INDEX idx_actor  (actor_id),
-  INDEX idx_created (created_at)
-) ENGINE=InnoDB;
-
 -- ── ALTER existing tables (safe, idempotent) ─────────────
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completion_proof TEXT NULL AFTER note;
 ALTER TABLE kyc_docs ADD COLUMN IF NOT EXISTS certificate_image LONGTEXT NULL AFTER selfie_image;
--- Distinguishes booking payments from wallet top-ups (server-authoritative crediting)
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'booking' AFTER method;
 
--- Referral tracking (see migration 005_referrals.sql)
-CREATE TABLE IF NOT EXISTS referrals (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  referrer_id VARCHAR(36) NOT NULL,
-  referred_id VARCHAR(36) NOT NULL,
-  status      ENUM('pending','active') DEFAULT 'pending',
-  bonus_paid  DECIMAL(10,2) DEFAULT 0,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_ref (referrer_id, referred_id)
-) ENGINE=InnoDB;
-
--- No default admin is seeded (removed admin123 backdoor).
--- Create the first admin securely with:  npm run create-admin
---   (requires ADMIN_EMAIL and ADMIN_PASSWORD env vars; see scripts/createAdmin.js)
+-- ── ADMIN BOOTSTRAP ──────────────────────────────────────
+-- REMOVED in Phase 0.5 (P0-9).
+--
+-- This file used to seed an administrator with the password `admin123`.
+-- Both the plaintext and its bcrypt hash were committed to this
+-- repository, so any deployment created from it shipped with a publicly
+-- known administrator credential.
+--
+-- Create the first administrator explicitly instead:
+--
+--     cd backend
+--     node scripts/resetAdmin.js
+--
+-- It requires ADMIN_BOOTSTRAP_EMAIL (or _PHONE) and will either use
+-- ADMIN_BOOTSTRAP_PASSWORD or generate a strong password and print it
+-- once. Nothing is hardcoded.

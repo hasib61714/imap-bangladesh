@@ -182,6 +182,18 @@ export default function IMAP() {
   const [onboard,setOnboard]  = useState(()=>!localStorage.getItem("imap_ob"));
   // Persist theme + language so they survive reloads (were resetting every time)
   useEffect(()=>{ localStorage.setItem("imap_dark", dark ? "1" : "0"); }, [dark]);
+
+  /**
+   * Mirror the theme onto the document element.
+   *
+   * `styles/modern.css` is a real stylesheet, so its dark rules cannot read
+   * React state — they key off `html[data-theme="dark"]`. Setting the
+   * attribute here keeps one source of truth for the theme while letting the
+   * rules that must apply before first paint live outside the bundle.
+   */
+  useEffect(()=>{
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  },[dark]);
   useEffect(()=>{ localStorage.setItem("imap_lang", lang); }, [lang]);
   const [favs,setFavs]        = useState(()=>JSON.parse(localStorage.getItem("imap_favs")||"[]"));
   const [chatWith,setChatWith] = useState(null);
@@ -298,6 +310,20 @@ export default function IMAP() {
       setPayResultTranId(tranId);
       setShowPayment(true);
       window.history.replaceState({},"",window.location.pathname+window.location.hash);
+      /**
+       * The redirect is not proof of payment — anyone can construct this URL,
+       * which is why the redirect handlers do nothing but redirect (P1-3). So
+       * we do not trust it; we ask the gateway.
+       *
+       * Without this a payment settles only when the IPN arrives, and an IPN
+       * can be missed. Locally it can never arrive at all, because
+       * SSLCommerz cannot reach localhost.
+       */
+      if(payStatus==="success"&&tranId&&getToken()){
+        paymentsApi.reconcile(tranId)
+          .then(r=>{ if(r&&r.settled) setPayResult("success"); })
+          .catch(()=>{ /* the result screen already reads the real status */ });
+      }
     }
     return()=>window.removeEventListener("resize",check);
   },[])
@@ -391,8 +417,15 @@ export default function IMAP() {
   if(!authUser) return <Suspense fallback={<PageLoader/>}><AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
     onBack={()=>setShowLanding(true)}/></Suspense>;
   if(authUser.role==="admin") return <Suspense fallback={<PageLoader/>}><AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
-  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
+  // KYC is checked BEFORE the role screens, not after.
+  //
+  // The provider branch returned first, so `showKyc` was unreachable for a
+  // provider — and a provider is exactly who needs it. There was no route
+  // from the portal to identity verification at all: the person whose
+  // listing depends on being verified could not open the page that verifies
+  // them.
   if(showKyc) return <Suspense fallback={<PageLoader/>}><KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/></Suspense>;
+  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang} onOpenKyc={()=>setShowKyc(true)}/></Suspense>;
 
   const tr = T[lang];
   const C  = dark ? C_DARK : C_LIGHT;
@@ -1223,7 +1256,7 @@ export default function IMAP() {
           {page==="loyalty"   && <div className="wp" style={{padding:"28px 0 80px"}}><LoyaltyPage/></div>}
           {page==="referral"  && <div className="wp" style={{padding:"28px 0 80px"}}><ReferralPage/></div>}
           {page==="portfolio" && <div className="wp" style={{padding:"28px 0 80px"}}><PortfolioPage/></div>}
-          {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage/></div>}
+          {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="panalytics"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderAnalyticsPage/></div>}
           {page==="skillcert" && <div className="wp" style={{padding:"28px 0 80px"}}><SkillCertPage/></div>}
          </Suspense>

@@ -9,11 +9,24 @@ async function authMiddleware(req, res, next) {
   }
   const token = header.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // I-03 (§16): never accept an arbitrary algorithm. Without this list,
+    // any HS* variant verifies against a service that only issues HS256.
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    // I-05 (§19): the verified claims, so /auth/refresh can read the session's
+    // absolute deadline. Attached only after jwt.verify has succeeded — an
+    // unverified payload on the request object is an invitation to read it as
+    // though it meant something.
+    req.tokenClaims = decoded;
     // Fetch fresh user from DB.
-    // NOTE: `avatar` is intentionally NOT selected here — it can be a large
-    // base64 LONGTEXT blob and this runs on EVERY authenticated request.
-    // Consumers that need the avatar fetch it explicitly (e.g. /users/profile).
+    //
+    // `avatar` is deliberately NOT in this list. It is a LONGTEXT holding a
+    // base64 data URL, and this query runs on EVERY authenticated request —
+    // so every list, every poll and every socket-adjacent call was dragging a
+    // user's profile image through the connection to populate a field that
+    // nothing reads. `req.user.avatar` has no consumers; the one place that
+    // needs it (Google sign-in, routes/auth.js) selects it itself.
+    //
+    // Guarded by tests/storage-auth.test.js.
     const [rows] = await pool.query(
       "SELECT id, name, email, phone, role, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
       [decoded.id]
@@ -28,14 +41,21 @@ async function authMiddleware(req, res, next) {
   }
 }
 
-// Role guard — use after authMiddleware
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-    next();
-  };
-}
+// I-04: `requireRole(...roles)` is DELETED, not deprecated.
+//
+// It was the mechanism behind the audited defect: a role check with no
+// resource, so `/api/admin/users/:id` and `/api/admin/stats` required exactly
+// the same thing, and nothing anywhere asked whether the caller had any
+// relationship to what they were acting on.
+//
+// Its replacement is middleware/authorize.js#requireAuthorization, which
+// takes an ACTION rather than a role and hands the decision to the kernel. A
+// boundary rule (scripts/check-boundaries.js, no-adhoc-authorization) fails
+// the build if this function — or an inline comparison against a role string
+// — reappears anywhere outside the authorization module.
+//
+// Keeping it exported "just in case" would have left the old path available
+// and made the migration reversible one route at a time, which is how three
+// authorization implementations came to exist in the first place.
 
-module.exports = { authMiddleware, requireRole };
+module.exports = { authMiddleware };

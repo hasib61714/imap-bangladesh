@@ -1,7 +1,11 @@
 ﻿const logger = require('../utils/logger');
 const router  = require("express").Router();
 const pool    = require("../db");
-const { authMiddleware, requireRole } = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
+// I-04: the emergency queue is `emergency_responder` — a role that reaches
+// nothing in marketplace or finance, and that nothing there reaches.
+const { requireAuthorization } = require("../middleware/authorize");
+const { ACTION } = require("../src/modules/platform/authorization");
 const cache = require('../utils/cache');
 
 /* ── POST /api/sos  — Submit an SOS alert (auth required) ── */
@@ -25,14 +29,24 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const alertId = result.insertId;
 
-    // Emit to admin room via socket.io
+    // ── P0-8: this used io.emit(), which delivers to EVERY connected
+    // socket — including unauthenticated guests. The victim's name, phone
+    // number, GPS position and the nature of their emergency were
+    // broadcast to anyone with the page open. It now goes to the verified
+    // administrator room only.
     const io = req.app.get("io");
+    const adminRoom = req.app.get("adminRoom") || "role:admin";
+    let notifiedAdmins = 0;
     if (io) {
-      io.emit("sos_alert", {
+      try {
+        const room = io.sockets.adapter.rooms.get(adminRoom);
+        notifiedAdmins = room ? room.size : 0;
+      } catch { notifiedAdmins = 0; }
+      io.to(adminRoom).emit("sos_alert", {
         id: alertId,
-        user_id:   req.user.id,
-        user_name: req.user.name,
-        user_phone:req.user.phone,
+        user_id:    req.user.id,
+        user_name:  req.user.name,
+        user_phone: req.user.phone,
         type,
         description: description || "",
         booking_id: booking_id || null,
@@ -41,7 +55,23 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    res.json({ ok: true, alert_id: alertId, message: "SOS alert sent to admin & call center." });
+    // ── P0-10 / truthfulness: the response used to claim the alert had
+    // been "sent to admin & call center". No call-centre integration
+    // exists. The response now states exactly what happened.
+    const dispatchConfigured = false; // no emergency dispatch integration exists yet
+    res.json({
+      ok: true,
+      alert_id: alertId,
+      recorded: true,
+      admins_online: notifiedAdmins,
+      dispatch: dispatchConfigured ? "dispatched" : "unavailable",
+      message: notifiedAdmins > 0
+        ? "Emergency request recorded and sent to the on-duty admin team."
+        : "Emergency request recorded. No admin is currently online — if you are in immediate danger call 999.",
+      message_bn: notifiedAdmins > 0
+        ? "জরুরি অনুরোধ রেকর্ড করা হয়েছে এবং দায়িত্বরত অ্যাডমিন টিমকে পাঠানো হয়েছে।"
+        : "জরুরি অনুরোধ রেকর্ড করা হয়েছে। এই মুহূর্তে কোনো অ্যাডমিন অনলাইনে নেই — তাৎক্ষণিক বিপদে ৯৯৯ নম্বরে কল করুন।",
+    });
   } catch (err) {
     logger.error("SOS error:", err);
     res.status(500).json({ error: "Failed to send SOS alert" });
@@ -49,7 +79,7 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 /* ── GET /api/sos  — List alerts (admin only) ── */
-router.get("/", authMiddleware, requireRole("admin"), async (req, res) => {
+router.get("/", authMiddleware, requireAuthorization(ACTION.EMERGENCY_LIST), async (req, res) => {
   const { status, limit = 50 } = req.query;
   try {
     const cacheKey = `sos:admin:${status || 'all'}`;
@@ -75,7 +105,8 @@ router.get("/", authMiddleware, requireRole("admin"), async (req, res) => {
 });
 
 /* ── PATCH /api/sos/:id  — Update status (admin only) ── */
-router.patch("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.patch("/:id", authMiddleware,
+  requireAuthorization(ACTION.EMERGENCY_UPDATE, { resource: (req) => req.params.id }), async (req, res) => {
   const { status, admin_note } = req.body;
   const validStatus = ["open","in_progress","resolved","dismissed"];
   if (!validStatus.includes(status)) {

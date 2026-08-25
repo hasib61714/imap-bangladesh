@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { useC, useTr, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
-import { users as usersApi } from "../api";
+import { users as usersApi, providers as providersApi } from "../api";
+
+const ProviderStanding = lazy(() => import("../components/ProviderStanding"));
 
 export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
   const C=useC();
@@ -15,6 +17,22 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
   const statusLabel=lang==="bn"?{completed:"সম্পন্ন",cancelled:"বাতিল",pending:"অপেক্ষায়"}:{completed:"Completed",cancelled:"Cancelled",pending:"Pending"};
 
   const [referralCount,setReferralCount]=useState(0);
+  /**
+   * A customer who is also a provider sees the same standing panel here that
+   * the portal shows. Verifying identity is done from the customer profile —
+   * so this is where "I did the KYC, why am I still not listed?" gets asked,
+   * and it should be answered on the page where it is asked.
+   *
+   * 404 is the ordinary answer for a customer who is not a provider.
+   */
+  const [providerId,setProviderId]=useState(null);
+  useEffect(()=>{
+    let alive=true;
+    providersApi.getMe()
+      .then(pr=>{ if(alive && pr && pr.id) setProviderId(pr.id); })
+      .catch(()=>{});
+    return ()=>{ alive=false; };
+  },[]);
 
   // Derive recent bookings from live context — no extra API call
   const recentBookings = ctxBookings.slice(0,3).map(b=>({
@@ -90,6 +108,13 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
       </div>
 
       <div style={{padding:"0 16px",maxWidth:600,margin:"0 auto"}}>
+        {providerId && (
+          <Suspense fallback={null}>
+            <ProviderStanding C={C} lang={lang} providerId={providerId}
+              onOpenKyc={()=>onNavigate&&onNavigate("_kyc")} />
+          </Suspense>
+        )}
+
         {/* Stats row */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8,margin:"18px 0"}}>
           {stats.map((s,i)=>(

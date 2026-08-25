@@ -1,11 +1,11 @@
 ﻿const logger = require('../utils/logger');
 const router = require("express").Router();
-const { v4: uuidv4 } = require("uuid");
 const pool   = require("../db");
+const { withTransaction } = require("../db");
 const cache  = require("../utils/cache");
 const { authMiddleware } = require("../middleware/auth");
-const payment = require("../utils/payment");
-const { finalizePayment } = require("../utils/ledger");
+const { parseAmount, MoneyError } = require("../utils/money");
+const env    = require("../config/environment");
 
 // ── GET /api/users/profile ────────────────────────────────
 router.get("/profile", authMiddleware, async (req, res) => {
@@ -37,15 +37,29 @@ router.get("/profile", authMiddleware, async (req, res) => {
 });
 
 // ── PUT /api/users/profile ────────────────────────────────
+// P1-15: `phone` and `email` are login identifiers. This endpoint used to
+// change them with no proof that the user controls the new address or
+// number — so an account could be silently re-pointed at an attacker's
+// contact details. Identity changes now require a verified flow, which
+// does not exist yet, so they are refused here rather than accepted
+// unverified. Display name remains editable.
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const { name, phone, email } = req.body;
-    if (name   && name.length   > 120) return res.status(400).json({ error: "Name too long (max 120)" });
-    if (email  && email.length  > 200) return res.status(400).json({ error: "Email too long (max 200)" });
-    if (phone  && phone.length  > 20)  return res.status(400).json({ error: "Phone too long (max 20)" });
+    if (name && name.length > 120) return res.status(400).json({ error: "Name too long (max 120)" });
+
+    const wantsPhoneChange = phone !== undefined && phone !== null && String(phone) !== String(req.user.phone ?? "");
+    const wantsEmailChange = email !== undefined && email !== null && String(email) !== String(req.user.email ?? "");
+    if (wantsPhoneChange || wantsEmailChange) {
+      return res.status(400).json({
+        error: "Phone and email cannot be changed here. Contact support to update your login details.",
+        code: "IDENTITY_CHANGE_REQUIRES_VERIFICATION",
+      });
+    }
+
     await pool.query(
-      "UPDATE users SET name = COALESCE(?, name), phone = COALESCE(?, phone), email = COALESCE(?, email) WHERE id = ?",
-      [name || null, phone || null, email || null, req.user.id]
+      "UPDATE users SET name = COALESCE(?, name) WHERE id = ?",
+      [name || null, req.user.id]
     );
     // Return updated user so frontend can refresh auth state
     const [[user]] = await pool.query(
@@ -92,98 +106,84 @@ router.get("/wallet", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/users/wallet/topup ──────────────────────────
-// SECURITY: this endpoint NEVER credits the wallet directly. It creates a
-// pending wallet-topup payment request; the balance is credited only after a
-// verified SSLCommerz callback settles the payment (see utils/ledger.js).
-// When a gateway is configured it returns the hosted payment URL; in
-// development (no gateway) a clearly-labelled mock settlement is allowed; in
-// production a missing gateway fails safely so no API call can mint money.
-// (A gateway-routed top-up is also available via POST /api/payments/initiate
-//  with { type: "wallet_topup", topup_amount }.)
+// NOTE: In production (payment gateway configured) wallet top-up must go through
+// POST /api/payments/initiate with { type: "wallet_topup", topup_amount }.
+// This endpoint is only allowed in dev/mock mode.
+const paymentGateway = require("../utils/payment");
 router.post("/wallet/topup", authMiddleware, async (req, res) => {
+  // P0-12 (related): this credits a balance with no payment behind it.
+  // It is now refused in production regardless of gateway configuration —
+  // previously an unconfigured gateway was enough to unlock free money.
+  if (env.isProduction()) {
+    return res.status(403).json({
+      error: "Use the payment gateway for wallet top-up.",
+      useGateway: true,
+      hint: "POST /api/payments/initiate with { type: 'wallet_topup', topup_amount }",
+    });
+  }
+  if (paymentGateway.isConfigured()) {
+    return res.status(400).json({
+      error: "Use the payment gateway for wallet top-up.",
+      useGateway: true,
+      hint: "POST /api/payments/initiate with { type: 'wallet_topup', topup_amount }",
+    });
+  }
   try {
-    const { method = "bKash" } = req.body;
-    const amt = parseFloat(req.body.amount);
-    if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (amt < 10)      return res.status(400).json({ error: "Minimum top-up is ৳10" });
-    if (amt > 100000)  return res.status(400).json({ error: "Maximum top-up is ৳1,00,000" });
+    const amt = parseAmount(req.body.amount, "amount", { min: 1, max: 100000 });
+    const method = String(req.body.method || "bKash").slice(0, 30);
 
-    const payId = uuidv4();
-    await pool.query(
-      "INSERT INTO payments (id, booking_id, user_id, amount, method, purpose, status, gateway_tran_id) VALUES (?,?,?,?,?,'wallet_topup','pending',?)",
-      [payId, null, req.user.id, amt, method, payId]
-    );
+    const balance = await withTransaction(async (conn) => {
+      await conn.query("UPDATE users SET balance = balance + ? WHERE id = ?", [amt, req.user.id]);
+      const [[b]] = await conn.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+      await conn.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [req.user.id, "topup", amt, "টপআপ (dev)", "Top-up (dev)", method, b.balance]
+      );
+      return b.balance;
+    });
 
-    // Real gateway → return hosted payment URL; credit happens on callback
-    if (payment.isConfigured()) {
-      const [[u]] = await pool.query("SELECT name, email, phone FROM users WHERE id = ?", [req.user.id]);
-      const resp = await payment.initiatePayment({
-        orderId: payId, amount: amt,
-        customer: { name: u?.name, email: u?.email, phone: u?.phone, address: "Dhaka, Bangladesh" },
-        product:  { name: "Wallet Top-up", category: "Wallet" },
-      });
-      if (resp?.GatewayPageURL) {
-        await pool.query("UPDATE payments SET gateway_session_key = ? WHERE id = ?", [resp.sessionkey, payId]);
-        return res.json({ url: resp.GatewayPageURL, paymentId: payId });
-      }
-      await pool.query("UPDATE payments SET status='failed' WHERE id=?", [payId]).catch(() => {});
-      return res.status(502).json({ error: "Payment gateway error. Try again." });
-    }
-
-    // No gateway configured — production must not mint money
-    if (!payment.allowMock()) {
-      await pool.query("UPDATE payments SET status='failed' WHERE id=?", [payId]).catch(() => {});
-      logger.error("wallet-topup: gateway not configured in production", { payId, user: req.user.id });
-      return res.status(503).json({ error: "Wallet top-up is temporarily unavailable." });
-    }
-
-    // Dev-only mock: settle via the idempotent ledger (credits wallet + writes tx)
-    await finalizePayment(payId, "MOCK-" + payId);
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    const [[b]] = await pool.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
-    res.json({ success: true, mock: true, paymentId: payId, balance: b.balance, note: "DEV mock top-up — no gateway configured" });
+    res.json({ success: true, balance, devMode: true });
   } catch (err) {
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
     logger.error("topup:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ── POST /api/users/wallet/withdraw ───────────────────────
-// Atomic: locks the balance row, verifies funds, debits and records the
-// transaction in a single committed unit.
 router.post("/wallet/withdraw", authMiddleware, async (req, res) => {
-  const { method = "bKash" } = req.body;
-  const amt = parseFloat(req.body.amount);
-  if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "Invalid amount" });
-  if (amt < 50)     return res.status(400).json({ error: "Minimum withdrawal is ৳50" });
-  if (amt > 100000) return res.status(400).json({ error: "Maximum withdrawal is ৳1,00,000" });
-
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
-    const [[u]] = await conn.query("SELECT balance FROM users WHERE id = ? FOR UPDATE", [req.user.id]);
-    if (!u) { await conn.rollback(); return res.status(404).json({ error: "User not found" }); }
-    if (parseFloat(u.balance) < amt) {
-      await conn.rollback();
-      return res.status(400).json({ error: "Insufficient balance" });
-    }
-    const newBal = parseFloat(u.balance) - amt;
-    await conn.query("UPDATE users SET balance = ? WHERE id = ?", [newBal, req.user.id]);
-    await conn.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
-      [req.user.id, "debit", amt, "উত্তোলন", "Withdrawal", method, newBal]
-    );
-    await conn.commit();
+    // P0-4: rejects negative / NaN / Infinity before it can reach a balance.
+    const amt = parseAmount(req.body.amount, "amount", { min: 50, max: 100000 });
+    const method = String(req.body.method || "bKash").slice(0, 30);
+
+    // P0-11: the debit and its ledger row are now one atomic unit.
+    const balance = await withTransaction(async (conn) => {
+      const [result] = await conn.query(
+        "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+        [amt, req.user.id, amt]
+      );
+      if (result.affectedRows === 0) {
+        const e = new Error("Insufficient balance"); e.status = 400; throw e;
+      }
+      const [[nb]] = await conn.query("SELECT balance FROM users WHERE id = ?", [req.user.id]);
+      await conn.query(
+        "INSERT INTO wallet_transactions (user_id, type, amount, description_bn, description_en, method, balance_after) VALUES (?,?,?,?,?,?,?)",
+        [req.user.id, "withdrawal", amt, "উত্তোলন", "Withdrawal", method, nb.balance]
+      );
+      return nb.balance;
+    });
+
     cache.del(`user:wallet:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
-    res.json({ success: true, balance: newBal });
+    res.json({ success: true, balance });
   } catch (err) {
-    await conn.rollback().catch(() => {});
+    if (err instanceof MoneyError) return res.status(400).json({ error: err.message, field: err.field });
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("withdraw:", err);
     res.status(500).json({ error: "Server error" });
-  } finally {
-    conn.release();
   }
 });
 
@@ -327,26 +327,36 @@ router.patch("/notifications/:id/read", authMiddleware, async (req, res) => {
 // ── POST /api/users/loyalty/redeem — redeem points ───────
 router.post("/loyalty/redeem", authMiddleware, async (req, res) => {
   try {
-    const { pts, code } = req.body;
-    if (!pts || pts <= 0) return res.status(400).json({ error: "Invalid points" });
+    const { code } = req.body;
+    const pts = parseInt(req.body.pts, 10);
+    if (!Number.isSafeInteger(pts) || pts <= 0 || pts > 1_000_000) {
+      return res.status(400).json({ error: "Invalid points" });
+    }
+    const safeCode = String(code || "").slice(0, 40);
 
-    // Deduct points atomically — prevents concurrent double-spend
+    // P0-11: the points debit, the wallet credit and the log entry are one unit.
     const walletCredit = Math.round(pts * 0.5);
-    const [redeemResult] = await pool.query(
-      "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ? AND points >= ?",
-      [pts, walletCredit, req.user.id, pts]
-    );
-    if (redeemResult.affectedRows === 0) return res.status(400).json({ error: "Insufficient points" });
-    await pool.query(
-      "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en) VALUES (?,?,?,?)",
-      [req.user.id, -pts, `রিডিম করা হয়েছে (${code})`, `Redeemed (${code})`]
-    );
-    const [[b]] = await pool.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
+    const b = await withTransaction(async (conn) => {
+      const [redeem] = await conn.query(
+        "UPDATE users SET points = points - ?, balance = balance + ? WHERE id = ? AND points >= ?",
+        [pts, walletCredit, req.user.id, pts]
+      );
+      if (redeem.affectedRows === 0) {
+        const e = new Error("Insufficient points"); e.status = 400; throw e;
+      }
+      await conn.query(
+        "INSERT INTO loyalty_log (user_id, points, reason_bn, reason_en) VALUES (?,?,?,?)",
+        [req.user.id, -pts, `রিডিম করা হয়েছে (${safeCode})`, `Redeemed (${safeCode})`]
+      );
+      const [[row]] = await conn.query("SELECT points, balance FROM users WHERE id=?", [req.user.id]);
+      return row;
+    });
     cache.del(`user:loyalty:${req.user.id}`);
     cache.del(`user:profile:${req.user.id}`);
     cache.del(`user:wallet:${req.user.id}`);
-    res.json({ success: true, points: b[0].points, balance: b[0].balance, walletCredit });
+    res.json({ success: true, points: b.points, balance: b.balance, walletCredit });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     logger.error("loyalty redeem:", err);
     res.status(500).json({ error: "Server error" });
   }
@@ -380,34 +390,23 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
-// Ensure push_subscriptions table exists (called once on first use)
-let pushTableReady = false;
-async function ensurePushTable() {
-  if (pushTableReady) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id VARCHAR(36) NOT NULL,
-      endpoint VARCHAR(600) NOT NULL,
-      \`keys\` JSON,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_ep (endpoint(255)),
-      INDEX idx_ps_user (user_id)
-    )
-  `);
-  pushTableReady = true;
-}
+// I-01: ensurePushTable() used to create push_subscriptions lazily with
+// `user_id INT NOT NULL` and an unquoted `keys` column — the exact P1
+// defect migration 002 corrected, which meant every subscription was
+// stored against user 0 and push never delivered. Because it ran on first
+// use rather than on import, it would have recreated the broken shape on
+// any database where the table did not yet exist. The table is now
+// migration 003, with the corrected VARCHAR(36) user_id.
 
 // POST /api/users/push-subscribe — save browser push subscription
 router.post("/push-subscribe", authMiddleware, async (req, res) => {
   try {
     const { subscription } = req.body;
     if (!subscription?.endpoint) return res.status(400).json({ error: "Invalid subscription" });
-    await ensurePushTable();
     await pool.query(
-      "INSERT INTO push_subscriptions (user_id, endpoint, `keys`) " +
-      "VALUES (?,?,?) " +
-      "ON DUPLICATE KEY UPDATE user_id=?, `keys`=?",
+      `INSERT INTO push_subscriptions (user_id, endpoint, keys)
+       VALUES (?,?,?)
+       ON DUPLICATE KEY UPDATE user_id=?, keys=?`,
       [req.user.id, subscription.endpoint, JSON.stringify(subscription.keys),
        req.user.id, JSON.stringify(subscription.keys)]
     );
@@ -418,37 +417,10 @@ router.post("/push-subscribe", authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /api/users/push-subscribe — unsubscribe (own subscriptions only)
-// Body { endpoint } removes that one; with no endpoint, removes all of the user's.
-router.delete("/push-subscribe", authMiddleware, async (req, res) => {
-  try {
-    await ensurePushTable();
-    const { endpoint } = req.body || {};
-    let result;
-    if (endpoint) {
-      // Own-only: scoped by user_id so a user can never delete another's subscription
-      [result] = await pool.query(
-        "DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?",
-        [req.user.id, endpoint]
-      );
-    } else {
-      [result] = await pool.query(
-        "DELETE FROM push_subscriptions WHERE user_id = ?",
-        [req.user.id]
-      );
-    }
-    res.json({ success: true, removed: result.affectedRows });
-  } catch (err) {
-    logger.error("push-unsubscribe:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 // POST /api/users/test-push — send test push notification to self
 router.post("/test-push", authMiddleware, async (req, res) => {
   try {
     if (!process.env.VAPID_PUBLIC_KEY) return res.status(501).json({ error: "Push not configured on server" });
-    await ensurePushTable();
     const [subs] = await pool.query(
       "SELECT * FROM push_subscriptions WHERE user_id=? LIMIT 5",
       [req.user.id]

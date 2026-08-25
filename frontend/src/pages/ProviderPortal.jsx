@@ -3,10 +3,11 @@ import { C_LIGHT, C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { users as usersApi, providers as providersApi, reviews as reviewsApi, bookings as bookingsApi, schedule as scheduleApi, chat as chatApi } from "../api";
 import { connectSocket, joinRoom, leaveRoom, getSocket } from "../socket";
+import ProviderStanding from "../components/ProviderStanding";
 
 const escHtml = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
-export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}){
+export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang,onOpenKyc}){
   const C  = dark ? C_DARK : C_LIGHT;
   const tr = T[lang]||T.bn;
   const [isMobile,setIsMobile]=useState(window.innerWidth<=640);
@@ -16,6 +17,10 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
     return ()=>window.removeEventListener("resize",onResize);
   },[]);
   const [tab,setTab]=useState("dash");
+
+  /** The provider's own row id, needed by the eligibility surface. */
+  const [providerId,setProviderId]=useState(null);
+
   const [available,setAvailable]=useState(true);
   const [toast,setToast]=useState("");
   const [editMode,setEditMode]=useState(false);
@@ -126,6 +131,9 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         rate:     data.hourly_rate||p.rate,
         phone:    data.phone||p.phone,
       }));
+      // The provider's own id is only known once the profile loads, and the
+      // eligibility endpoint needs it.
+      setProviderId(data.id || null);
       }
     }).catch(()=>{});
   },[]);
@@ -372,6 +380,9 @@ export default function ProviderPortal({user,onLogout,dark,setDark,lang,setLang}
         {tab==="dash"&&(
           <>
             <div style={{fontWeight:800,fontSize:18,marginBottom:16,animation:"pp-fadeUp .35s ease both"}}>{lang==="bn"?`🙏 শুভেচ্ছা, ${user.name}!`:`👋 Welcome, ${user.name}!`}</div>
+            <ProviderStanding C={C} lang={lang} providerId={providerId}
+              onOpenKyc={onOpenKyc} />
+
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:22}}>
               {statCards.map((s,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:14,padding:16,border:`1px solid ${C.bdr}`,borderTop:`3px solid ${s.col}`,textAlign:"center",animation:`pp-fadeUp .4s ease ${i*.08}s both`}}>

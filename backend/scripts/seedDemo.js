@@ -1,14 +1,43 @@
 /**
- * seedDemo.js  –  Populates the database with realistic demo providers/users
+ * seedDemo.js  –  Populates the database with demo providers/users
  * Safe to run multiple times (idempotent – uses INSERT IGNORE / ON DUPLICATE KEY)
  * Run: node scripts/seedDemo.js
+ *
+ * ⚠ DEVELOPMENT ONLY (Phase 0.5, P0-9).
+ * This seeder creates accounts that share a single known password and
+ * providers with fabricated ratings and job counts. It refuses to run
+ * when NODE_ENV=production, and the HTTP endpoint that used to invoke
+ * it (GET /api/admin/seed-demo) has been removed.
+ *
+ * The demo password is read from DEMO_SEED_PASSWORD so that no literal
+ * credential lives in this repository; if unset, a random one is
+ * generated and printed once.
  */
 require("dotenv").config();
 const mysql  = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 
 const sslConfig = process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : false;
+
+// Phase 2.75 (V-01): NODE_ENV alone was an insufficient discriminator —
+// `.env` declared development while pointing at the production cluster,
+// so this refusal never fired where it mattered. The guard now considers
+// the database target as well, and has no override.
+const env = require("../config/environment");
+try {
+  env.forbidInProduction("demo data seeding");
+} catch (err) {
+  console.error(`❌ ${err.message}`);
+  console.error("\n   Demo providers use a shared password and fabricated statistics.");
+  process.exit(1);
+}
+
+// Never a literal credential in the repository.
+const DEMO_PASSWORD = process.env.DEMO_SEED_PASSWORD ||
+  crypto.randomBytes(12).toString("base64url");
+const DEMO_PASSWORD_GENERATED = !process.env.DEMO_SEED_PASSWORD;
 
 async function seed() {
   const conn = await mysql.createConnection({
@@ -16,7 +45,7 @@ async function seed() {
     port:     parseInt(process.env.DB_PORT) || 3306,
     user:     process.env.DB_USER     || "root",
     password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME     || "imap_db",
+    database: process.env.DB_NAME,
     charset:  "utf8mb4",
     ssl:      sslConfig || undefined,
     multipleStatements: false,
@@ -45,7 +74,11 @@ async function seed() {
   console.log("✅ Categories seeded");
 
   // ── 2. DEMO PROVIDER DEFINITIONS ────────────────────────────────
-  const hash = await bcrypt.hash("demo1234", 10);
+  const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  if (DEMO_PASSWORD_GENERATED) {
+    console.log("🔑 Generated demo account password (shown once):", DEMO_PASSWORD);
+    console.log("   Set DEMO_SEED_PASSWORD to choose your own.");
+  }
   const providers = [
     {
       phone: "01700000001", name: "মো. রাকিব হোসেন",
@@ -137,6 +170,7 @@ async function seed() {
           hourly_rate=?, experience_yrs=?,
           rating=?, total_jobs=?,
           is_available=1, nid_verified=1, trust_score=90,
+          is_approved=1, listing_state='approved',
           category_id=?
          WHERE user_id=?`,
         [p.service_type_bn, p.service_type_en,
@@ -155,8 +189,8 @@ async function seed() {
            area_bn, area_en, bio_bn, bio_en,
            hourly_rate, experience_yrs,
            rating, total_jobs,
-           is_available, nid_verified, trust_score, category_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,?)`,
+           is_available, nid_verified, trust_score, is_approved, listing_state, category_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,1,'approved',?)`,
         [pid, userId,
          p.service_type_bn, p.service_type_en,
          p.area_bn, p.area_en,
@@ -170,6 +204,36 @@ async function seed() {
 
     console.log(`  ✓ ${p.name} (${p.service_type_en})`);
   }
+
+  // ── 2b. DEMO PROVIDERS NEED A VERIFIED IDENTITY CASE ───────────
+  //
+  // I-07 made listing eligibility a conjunction: `listing_state = 'approved'`
+  // is one clause and a VERIFIED IDENTITY CASE is another
+  // (TRUST-ARCHITECTURE §5). Setting `is_approved = 1` alone no longer lists
+  // anybody, so a seed that stopped there produced an empty marketplace and
+  // a demo that looked broken on first run.
+  //
+  // These cases are marked as what they are. `decision_reason` says "demo
+  // seed" in plain words, so nobody reviewing the audit trail later mistakes
+  // a seeded row for a human decision, and `decided_by` is NULL because no
+  // human decided it.
+  //
+  // Guarded by the same environment rule as the rest of this script: it
+  // refuses to run against production data (see the header), so this cannot
+  // manufacture verification for a real person.
+  for (const p of providers) {
+    const [u] = await conn.query("SELECT id FROM users WHERE phone = ?", [p.phone]);
+    if (!u.length) continue;
+    await conn.query(
+      `INSERT INTO verification_case
+         (id, principal_id, kind, state, submitted_at, decided_at, decision_reason, created_at, updated_at)
+       VALUES (?,?,'identity','verified',NOW(3),NOW(3),?,NOW(3),NOW(3))
+       ON DUPLICATE KEY UPDATE state = 'verified', decided_at = NOW(3), updated_at = NOW(3)`,
+      [uuidv4(), u[0].id, "demo seed — not a human verification decision"]
+    );
+    await conn.query("UPDATE users SET kyc_status = 'verified', verified = 1 WHERE id = ?", [u[0].id]);
+  }
+  console.log("✅ Demo providers given verified identity cases (marked as seeded)");
 
   // ── 3. FIX EXISTING PROVIDERS that have empty service/area ─────
   const fixes = [

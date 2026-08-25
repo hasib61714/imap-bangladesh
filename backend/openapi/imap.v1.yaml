@@ -1,0 +1,299 @@
+openapi: 3.1.0
+
+# ══════════════════════════════════════════════════════════════
+#  IMAP 2.0 — API contract  (Gate 1)
+#
+#  THIS FILE IS THE ARTEFACT. Types, request validators, the frontend
+#  client and the contract tests are generated FROM it; a handler whose
+#  response does not match it fails CI.
+#
+#  It is the structural answer to the audit finding that
+#  frontend/src/api.js JSDoc was the only endpoint documentation, and the
+#  server accepted more field-name variants than the client ever sent.
+#
+#  Governed by docs/implementation/API-CONTRACT-BLUEPRINT.md.
+#
+#  I-01 STATE: skeleton. It carries the conventions every later operation
+#  inherits — the single error envelope, Money, cursor pagination, the
+#  security scheme, and the two custom extensions below — plus the one
+#  endpoint that exists today, so the contract is anchored to something
+#  real rather than entirely to intent. Operations arrive with their
+#  modules: identity at I-06, marketplace at I-09, booking at I-11.
+#
+#  TWO REQUIRED EXTENSIONS, checked by scripts/check-openapi.js:
+#
+#    x-imap-action       every operation names the authorization action it
+#                        maps to. An endpoint with no action cannot be
+#                        wired to the kernel, and "a use case with no
+#                        policy throws at startup" needs something to
+#                        check against.
+#
+#    x-imap-idempotency  every mutating operation declares its behaviour:
+#                        required | optional | none | provider. Undeclared
+#                        does not ship (API-ARCHITECTURE §1 rule 5).
+# ══════════════════════════════════════════════════════════════
+
+info:
+  title: IMAP API
+  version: 1.0.0-gate1
+  summary: Bangladesh-first service marketplace — Gate 1 core loop
+  description: |
+    Named command endpoints, not CRUD. A booking transition is a domain
+    operation with rules, not a field assignment, so it is
+    `POST /bookings/{id}/confirm-completion` and never
+    `PATCH {"state": "completed"}`.
+
+    **The client never sends a price.** It sends a `quote_id`. That is where
+    the client-authoritative-amount defect becomes structurally impossible.
+
+    Money is always `{amount_minor, currency}`. A bare number is never a
+    money value.
+  contact:
+    name: IMAP
+  license:
+    name: UNLICENSED
+
+servers:
+  - url: /api/v1
+    description: |
+      Current deployments serve the legacy unversioned surface at `/api`.
+      `/api/v1` is mounted alongside it and `/api` is retired on the
+      schedule in API-CONTRACT-BLUEPRINT.md §6.1 — not at cutover, because
+      a network-first service worker can serve a cached bundle pointing at
+      the old paths for days after a deploy.
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: platform
+    description: Health, jobs, feature availability
+  - name: identity
+    description: Principals, sessions, accounts, verification  (I-06, I-07)
+  - name: marketplace
+    description: Services, providers, coverage, availability   (I-09, I-10)
+  - name: booking
+    description: Booking lifecycle, messaging, reviews, emergency (I-11…I-13)
+  - name: finance
+    description: Quotes, payments, ledger, payouts             (I-08, I-14, I-15)
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [platform]
+      summary: Liveness and dependency status
+      description: |
+        Public and unauthenticated by design — a health check that requires a
+        credential cannot report that credentials are broken.
+      security: []
+      x-imap-action: platform.health
+      responses:
+        "200":
+          description: Service is reachable. `db.status` may still report a fault.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          $ref: "#/components/responses/CapabilityUnavailable"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Short-lived access token. The refresh token is delivered in an
+        httpOnly cookie and is never readable by client script.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+      description: |
+        Scoped per (key, endpoint, principal). Replay with the same body
+        returns the stored response and repeats no side effect; replay with a
+        different body is 409. TTL 24 h general, 7 days financial.
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+      description: Opaque. Offset pagination on a growing table produces duplicates and skips.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  schemas:
+    Money:
+      type: object
+      description: |
+        Integer minor units plus an explicit currency. Never a bare number,
+        never a formatted string from the server — the client formats, so the
+        currency assumption cannot creep back in.
+      required: [amount_minor, currency]
+      additionalProperties: false
+      properties:
+        amount_minor:
+          type: integer
+          description: Poisha for BDT. Always an integer; never a float.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples: [BDT]
+
+    Status:
+      type: string
+      description: |
+        The truthfulness vocabulary. All user-facing state copy uses exactly
+        one of these, and a claim carries its evidence. `Completed` is never
+        asserted without a committed server event.
+      enum:
+        - Suggested
+        - Available
+        - Requested
+        - Pending
+        - Confirmed
+        - Completed
+        - Failed
+        - Unavailable
+        - Unknown
+
+    LocalisedText:
+      type: object
+      description: Bangla is authored first; English alongside it, never machine-translated.
+      required: [bn, en]
+      additionalProperties: false
+      properties:
+        bn: { type: string }
+        en: { type: string }
+
+    Page:
+      type: object
+      required: [next_cursor, has_more]
+      additionalProperties: false
+      properties:
+        next_cursor: { type: [string, "null"] }
+        has_more: { type: boolean }
+
+    Error:
+      type: object
+      description: |
+        One envelope everywhere; four shapes exist in the legacy surface.
+        Never carries a stack trace, SQL, an internal id, a secret or an
+        upstream error body.
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [code, message, retryable, correlation_id]
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+              description: Stable and machine-readable. Clients switch on this, never on `message`.
+              examples: [BOOKING_SLOT_UNAVAILABLE]
+            message:
+              type: string
+              description: Developer-facing English. Never displayed to a user.
+            user_message:
+              oneOf:
+                - $ref: "#/components/schemas/LocalisedText"
+                - type: "null"
+              description: Safe to display. Maps to the Status vocabulary.
+            retryable: { type: boolean }
+            correlation_id:
+              type: [string, "null"]
+              description: Present on every response; appears in logs, events, jobs and support tickets.
+            fields:
+              type: array
+              items:
+                type: object
+                required: [field, code]
+                additionalProperties: false
+                properties:
+                  field: { type: string }
+                  code: { type: string }
+                  message: { type: string }
+            details:
+              type: object
+              description: Actionable extras — alternative slots, the refund consequence, what was and was not done.
+              additionalProperties: true
+
+    JobAccepted:
+      type: object
+      description: |
+        An asynchronous command returns the accepted state and a handle. It
+        must not return a result implying the effect happened — `effect` may
+        be Requested or Pending, never Confirmed or Completed, until the
+        server has observed the effect.
+      required: [status, job_id, effect]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [accepted] }
+        job_id: { type: string }
+        effect:
+          $ref: "#/components/schemas/Status"
+
+    Health:
+      type: object
+      required: [status, db, uptime, time]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        db:
+          type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [ok, error] }
+            latencyMs: { type: integer }
+            error: { type: string }
+        uptime: { type: integer, description: Seconds since process start. }
+        time: { type: string, format: date-time }
+        memory:
+          type: object
+          properties:
+            heapUsedMB: { type: integer }
+            rssMB: { type: integer }
+        socketio:
+          type: object
+          properties:
+            status: { type: string }
+            clients: { type: integer }
+
+  responses:
+    BadRequest:
+      description: Malformed request.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthenticated:
+      description: Missing or expired session.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NotFound:
+      description: |
+        Not found, **or** not visible to this actor. Deliberately
+        indistinguishable from 403 so the API cannot be used to enumerate ids.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Conflict:
+      description: State conflict — already completed, slot taken, idempotency key reused.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unprocessable:
+      description: Semantically invalid — negative amount, expired quote.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    RateLimited:
+      description: Too many requests.
+      headers:
+        Retry-After: { schema: { type: integer }, required: true }
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    CapabilityUnavailable:
+      description: |
+        A capability the platform has but cannot currently provide — for
+        example the payment gateway unconfigured in production, which is a
+        503 and never a mock settlement.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }

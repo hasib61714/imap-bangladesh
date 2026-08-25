@@ -1,10 +1,12 @@
-import { useContext, useState } from "react";
+import { useContext, useState, Suspense, lazy } from "react";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { REG_SERVICES } from "../constants/data";
 import { users as usersApi, providers as providersApi } from "../api";
 
-export default function ProviderRegPage(){
+const ProviderStanding = lazy(() => import("../components/ProviderStanding"));
+
+export default function ProviderRegPage({onNavigate}){
   const C=useC();const tr=useTr();const lang=useContext(LangCtx)===T.en?"en":"bn";
   const [step,setStep]=useState(1);
   const [name,setName]=useState("");
@@ -15,13 +17,33 @@ export default function ProviderRegPage(){
   const [exp,setExp]=useState("1");
   const [done,setDone]=useState(false);
   const [regSubmitting,setRegSubmitting]=useState(false);
+  const [newProviderId,setNewProviderId]=useState(null);
 
   if(done) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",textAlign:"center"}}>
       <div style={{fontSize:64,marginBottom:16}}>🎉</div>
       <div style={{fontSize:20,fontWeight:800,color:C.p,marginBottom:8}}>{tr.prRegDone}</div>
-      <div style={{fontSize:13,color:C.sub,marginBottom:24}}>{lang==="en"?"Our team will review your application within 24–48 hours.":"আমাদের টিম ২৪–৪৮ ঘণ্টার মধ্যে আপনার আবেদন পর্যালোচনা করবে।"}</div>
-      <div style={{background:C.plt,borderRadius:14,padding:"12px 24px",fontSize:14,color:C.p,fontWeight:700}}>APP-{Date.now().toString().slice(-6)}</div>
+      {/*
+        This screen used to promise a review "within 24–48 hours" — an SLA
+        nobody has committed to — and print APP-{last 6 digits of the clock},
+        which is not a reference to anything. A provider who quoted it to
+        support would be quoting a timestamp.
+
+        What it shows instead is the real remaining work, read from the
+        server: TRUST-ARCHITECTURE §5 makes listing a conjunction, and until
+        every clause holds this application is not visible to a customer.
+      */}
+      <div style={{fontSize:13,color:C.sub,marginBottom:20,maxWidth:420}}>
+        {lang==="en"
+          ? "Your application is in. Here is what is still needed before customers can find you."
+          : "আপনার আবেদন জমা হয়েছে। গ্রাহকরা আপনাকে খুঁজে পাওয়ার আগে যা যা বাকি:"}
+      </div>
+      <div style={{width:"100%",maxWidth:460,textAlign:"left"}}>
+        <Suspense fallback={null}>
+          <ProviderStanding C={C} lang={lang} providerId={newProviderId}
+            onOpenKyc={()=>onNavigate&&onNavigate("_kyc")} />
+        </Suspense>
+      </div>
     </div>
   );
 
@@ -77,7 +99,12 @@ export default function ProviderRegPage(){
             <button onClick={async()=>{
               if(regSubmitting)return;
               setRegSubmitting(true);
-              try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});setDone(true);}
+              try{await usersApi.updateProfile({name,phone});await providersApi.apply({service_type_en:svc,area_en:area,experience_yrs:parseInt(exp)||1,bio_en:`${svc} provider with ${exp} years experience`});
+              // The apply response does not carry the id, and the done screen
+              // needs one to read the standing. A failure here costs the panel,
+              // not the registration — which already succeeded.
+              try{const me=await providersApi.getMe();if(me&&me.id)setNewProviderId(me.id);}catch{/* panel falls back to generic copy */}
+              setDone(true);}
               catch(e){console.error("provReg:",e);alert(lang==="en"?"Registration failed. Please try again.":"নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");}
               finally{setRegSubmitting(false);}
             }} disabled={regSubmitting} style={{flex:2,padding:"12px",borderRadius:12,background:regSubmitting?"#9ca3af":C.p,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:regSubmitting?"not-allowed":"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{regSubmitting?"⏳ অপেক্ষাকরুন...": tr.prRegSubmit}</button>

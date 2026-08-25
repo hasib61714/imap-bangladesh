@@ -4,6 +4,68 @@ frontend/node_modules/
 backend/node_modules/
 
 # Environment files - NEVER commit these!
+# Phase 2.75: the previous list enumerated three suffixes, so a file named
+# .env.development or backend/.env.production would have been committed.
+# Ignore every variant and allow back only the two documented templates.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+# frontend/.env.production is committed (contains only public VITE_API_URL)
+!frontend/.env.production
+
+# Keys, certificates and credential material - NEVER commit these!
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*service-account*.json
+*credentials*.json
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads / user files
+backend/uploads/
+
+# Coverage
+coverage/
+
+# Sealed identity documents written by the local storage driver. Never
+# committed, never served: see backend/src/modules/platform/storage/
+# localSealedDriver.js for why a local root is safe and where it is not.
+backend/.private/
+.private/
+.gstack/
+
+# Local development secrets. scripts/dev.sh sources this if it exists.
+# Never committed — see scripts/dev.secrets.env.example for the shape.
+scripts/dev.secrets.env
+# Environment files - NEVER commit these!
 .env
 .env.local
 .env.staging

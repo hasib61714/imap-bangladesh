@@ -36,7 +36,6 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("customer");
   const [avatarB64, setAvatarB64] = useState("");
-  const [logoTaps, setLogoTaps] = useState(0);
   const [msgApi, ctxHolder] = message.useMessage();
 
   useEffect(() => {
@@ -51,7 +50,6 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
     }
   }, [otpSent]);
 
-  const tapLogo = () => setLogoTaps(t => t >= 3 ? 3 : t + 1);
 
   const saveAndAuth = (token, user) => {
     setToken(token);
@@ -97,62 +95,31 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
       return;
     }
 
-    // Fallback: mock social login (dev mode — no VITE_GOOGLE_CLIENT_ID set)
-    const sidKey = "imap_sid_google";
-    let sid = localStorage.getItem(sidKey);
-    if (!sid) {
-      sid = "google_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
-      localStorage.setItem(sidKey, sid);
-    }
-    authApi.socialLogin("google", sid, "user@gmail.com", "Google User", null)
-      .then(res => {
-        setLoadingKey(null);
-        if (!res.isNew) { saveAndAuth(res.token, res.user); return; }
-        setSocialEmail("user@gmail.com");
-        setName("Google User");
-        setMethod("google");
-        setStep("profile");
-      })
-      .catch(e => {
-        setLoadingKey(null);
-        setErr(e.data?.error || (lang === "bn" ? "সংযোগ ব্যর্থ" : "Connection failed"));
-      });
+    // No VITE_GOOGLE_CLIENT_ID configured. This previously fell back to a
+    // fabricated social identity generated in the browser, which the server
+    // accepted as proof of identity (P0-2). That path is gone — without a
+    // configured client id there is no way to prove who the user is.
+    setLoadingKey(null);
+    setErr(lang === "bn"
+      ? "Google সাইন-ইন এই মুহূর্তে কনফিগার করা নেই। ফোন OTP বা ইমেইল ব্যবহার করুন।"
+      : "Google sign-in is not configured. Please use phone OTP or email instead.");
   };
 
-  // ── Facebook mock login ──────────────────────────────────
+  // ── Other social providers ───────────────────────────────
+  // Removed in Phase 0.5 (P0-2). The Facebook button generated its own
+  // "socialId" in the browser and the server issued a session for it —
+  // it was never a real OAuth flow. Restoring it requires a server-side
+  // token exchange with the provider.
   const doSocialLogin = async (provider) => {
-    setErr(""); setLoadingKey(provider);
-    const sidKey = "imap_sid_" + provider;
-    let sid = localStorage.getItem(sidKey);
-    if (!sid) {
-      sid = provider + "_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
-      localStorage.setItem(sidKey, sid);
-    }
-    const mockEmails = { facebook: "user@facebook.com" };
-    const mockNames  = { facebook: "Facebook User" };
-    try {
-      const res = await authApi.socialLogin(provider, sid, mockEmails[provider], mockNames[provider]);
-      setLoadingKey(null);
-      if (!res.isNew) { saveAndAuth(res.token, res.user); return; }
-      setSocialEmail(mockEmails[provider]);
-      setName(mockNames[provider]);
-      setMethod(provider);
-      setStep("profile");
-    } catch (e) {
-      setLoadingKey(null);
-      setErr(e.data?.error || (lang === "bn" ? "সংযোগ ব্যর্থ" : "Connection failed"));
-    }
+    setErr(lang === "bn"
+      ? "এই সাইন-ইন পদ্ধতি বর্তমানে উপলব্ধ নয়।"
+      : "This sign-in method is currently unavailable.");
+    setLoadingKey(null);
   };
 
   const doEmailAuth = async () => {
     if (!email.includes("@")) { setErr(lang === "bn" ? "সঠিক Email দিন" : "Enter valid email"); return; }
-    // Login keeps the legacy minimum (don't lock out existing users); new
-    // registrations must meet the strong policy the server enforces.
-    if (mode === "login") {
-      if (password.length < 6) { setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর" : "Password min 6 chars"); return; }
-    } else if (password.length < 12) {
-      setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ১২ অক্ষর — বড়/ছোট হাতের অক্ষর, সংখ্যা ও চিহ্ন সহ" : "Password: min 12 chars incl. upper, lower, number & symbol"); return;
-    }
+    if (password.length < 6)  { setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর" : "Password min 6 chars"); return; }
     setErr(""); setLoadingKey("email");
     try {
       if (mode === "login") {
@@ -243,18 +210,6 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
     }
   };
 
-  const doAdminLogin = async () => {
-    setErr(""); setLoadingKey("admin");
-    try {
-      const res = await authApi.login("01700000000", "admin123");
-      setLoadingKey(null);
-      if (res?.token) { setToken(res.token); localStorage.setItem("imap_user", JSON.stringify(res.user)); onAuth(res.user); }
-    } catch (e) {
-      setLoadingKey(null);
-      setErr(lang === "bn" ? "Admin login ব্যর্থ — backend চালু আছে?" : "Admin login failed");
-    }
-  };
-
   const antToken = { colorPrimary: "#006A4E", borderRadius: 12, fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" };
   const bg     = dark ? "#080F0B" : "#f0fdf4";
   const cardBg = dark ? "rgba(14,31,24,.92)" : "rgba(255,255,255,.98)";
@@ -290,36 +245,22 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
       <div className="auth-page">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #00C17088)` }} onClick={tapLogo}>🌿</div>
+          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #00C17088)` }}>🌿</div>
           <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#006A4E,#00C170)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>🇧🇩 {lang === "bn" ? "বাংলাদেশের এআই-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম" : "Bangladesh"}</div>
-          {logoTaps >= 3 && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 5, fontWeight: 700 }}>🔓 {lang === "bn" ? "গোপন মোড সক্রিয়" : "Secret mode active"}</div>}
         </div>
 
         <Card className="auth-card" style={{ width: "100%", maxWidth: 420, background: cardBg, borderRadius: 22, boxShadow: dark?"0 24px 64px rgba(0,0,0,.35),0 0 0 1px rgba(34,212,127,.08),inset 0 1px 0 rgba(255,255,255,.06)":"0 20px 56px rgba(21,163,96,.1),0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.9)" }} bordered={false}>
 
-          {/* ── ADMIN SECRET ─────────────────────────────── */}
-          {logoTaps >= 3 ? (
-            <div style={{ textAlign: "center", padding: "10px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 8 }}>🔐</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#4338CA", marginBottom: 4 }}>
-                {lang === "bn" ? "প্রশাসক প্রবেশ" : "Admin Access"}
-              </div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 24 }}>
-                {lang === "bn" ? "গোপন অ্যাক্সেস সক্রিয় হয়েছে" : "Secret access activated"}
-              </div>
-              {err && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{err}</div>}
-              <Button type="primary" loading={loadingKey === "admin"} block size="large"
-                style={{ borderRadius: 14, background: "#4338CA", borderColor: "#4338CA", fontWeight: 700, fontSize: 16, height: 52, marginBottom: 14 }}
-                onClick={doAdminLogin}>
-                🔑 {lang === "bn" ? "অ্যাডমিন লগইন" : "Admin Login"}
-              </Button>
-              <Button block style={{ borderRadius: 12 }} icon={<ArrowLeftOutlined />} onClick={() => setLogoTaps(0)}>
-                {lang === "bn" ? "ফিরে যান" : "Back"}
-              </Button>
-            </div>
+          {/* ── ADMIN SECRET — REMOVED in Phase 0.5 (P0-9) ──
+              A hidden panel (tap the logo three times) called
+              authApi.login("01700000000", "admin123"). That credential was
+              seeded by schema.sql and published in this repository, and the
+              call shipped inside the production JavaScript bundle. Both the
+              panel and the credential are gone; administrators sign in
+              through the normal form. */}
+          {step === "method" ? (
 
-          ) : step === "method" ? (
             /* ── LOGIN/REGISTER ─────────────────────────── */
             <>
               <Tabs centered activeKey={mode} onChange={k => { setMode(k); setErr(""); setMethod(null); setOtpSent(false); }}
@@ -329,16 +270,18 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                 ]}
               />
 
-              {/* Social */}
-              <Button className="s-btn" onClick={doGoogleLogin} loading={loadingKey === "google"} disabled={!!loadingKey && loadingKey !== "google"}
+              {/* Social — Google only. Every other provider was removed in
+                  Phase 0.5 (P0-2): the client generated its own identity and
+                  the server accepted it as proof. Google is disabled unless a
+                  real client id is configured, because without one there is
+                  nothing to verify against. */}
+              <Button className="s-btn" onClick={doGoogleLogin}
+                loading={loadingKey === "google"}
+                disabled={!GOOGLE_CLIENT_ID || (!!loadingKey && loadingKey !== "google")}
+                title={GOOGLE_CLIENT_ID ? undefined : (lang === "bn" ? "Google সাইন-ইন কনফিগার করা নেই" : "Google sign-in is not configured")}
                 style={{ border: "1.5px solid #e5e7eb", background: dark ? "#1e293b" : "#fff", color: dark ? "#fff" : "#374151" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                {tr.authGoogle}{GOOGLE_CLIENT_ID ? " ✓" : " (dev)"}
-              </Button>
-              <Button className="s-btn" onClick={() => doSocialLogin("facebook")} loading={loadingKey === "facebook"} disabled={!!loadingKey && loadingKey !== "facebook"}
-                style={{ background: "#1877F2", borderColor: "#1877F2", color: "#fff" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                {tr.authFacebook}
+                {tr.authGoogle}
               </Button>
 
               <Divider style={{ margin: "12px 0", fontSize: 12, color: "#9ca3af" }}>{tr.authOr}</Divider>
@@ -509,7 +452,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
           )}
         </Card>
 
-        {logoTaps < 3 && (
+        {(
           <div style={{ display: "flex", gap: 8, marginTop: 20, alignItems: "center" }}>
             {["method", "profile"].map(s => (
               <div key={s} style={{ width: step === s ? 28 : 8, height: 8, borderRadius: 4, background: step === s ? "#006A4E" : "#d1d5db", transition: "all .3s" }} />

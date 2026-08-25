@@ -3,20 +3,26 @@ import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
 import { Av, Stars } from "../components/ui";
-import { ai, bookings as bookingsApi, users as usersApi } from "../api";
+import { ai, bookings as bookingsApi, users as usersApi, payments as paymentsApi } from "../api";
 
 export default function BookModal({p,onClose,onSuccess}) {
   const C=useC();
   const dark=C===C_DARK;
   const tr=useTr();
   const lang=useContext(LangCtx)===T.en?"en":"bn";
-  const {setBalance}=useLiveData();
+  const {balance,setBalance}=useLiveData();
   const name=lang==="en"?p.nameEn:p.name;
   const svc=lang==="en"?p.svcEn:p.svc;
   const eta=lang==="en"?p.etaEn:p.eta;
   const [step,setStep]=useState(0);
   const [time,setTime]=useState(null);
-  const [pay,setPay]=useState("bKash");
+  // Cash by default, matching the server. The old default was bKash, which
+  // the server treated as a WALLET method — so the default both charged the
+  // customer and, for anyone who had not topped up, failed with "Insufficient
+  // wallet balance" and no way forward from that screen.
+  const [pay,setPay]=useState("cash");
+  const [paymentNext,setPaymentNext]=useState(null);
+  const [payNotice,setPayNotice]=useState(null);
   const [done,setDone]=useState(false);
   const [fraudWarn,setFraudWarn]=useState(null);
   const [bundles,setBundles]=useState([]);
@@ -69,11 +75,52 @@ export default function BookModal({p,onClose,onSuccess}) {
         service_type:   p.svcEn||p.svc||p.service_category||"",
         scheduled_at:   time,
         payment_method: pay,
-        total_amount:   dynPrice?.dynamicPrice||baseAmount,
+        // P0-3: the price is NOT sent. The server derives amount and platform
+        // fee from the provider and category; a client-supplied total is the
+        // defect that let a booking be priced by whoever called the API.
         notes:          "",
       });
       setBookingRef(resp?.id || null);
-    } catch(e){ setLoadingConfirm(false); setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")); return; }
+      setPaymentNext(resp?.payment?.next || null);
+
+      /**
+       * A gateway method means the booking is UNPAID and the customer has to
+       * finish paying. The server says so in `payment.next`; before this the
+       * client had to infer it from the method name, and inferred wrong —
+       * bKash was treated as an in-app wallet debit.
+       */
+      if (resp?.payment?.next === "initiate" && resp?.id) {
+        try {
+          const session = await paymentsApi.initiate(resp.id);
+          if (session?.url) { window.location.href = session.url; return; }
+          if (session?.devMode) { setPaymentNext("none"); }
+          else setPayNotice(lang==="en"
+            ? "Your booking is confirmed but not paid yet. Open it from Bookings to pay."
+            : "বুকিং নিশ্চিত হয়েছে কিন্তু পেমেন্ট বাকি। বুকিং থেকে খুলে পেমেন্ট করুন।");
+        } catch (err) {
+          setPayNotice(err?.data?.code === "PAYMENT_GATEWAY_UNAVAILABLE"
+            ? (lang==="en"
+                ? "Your booking is confirmed. Online payment is unavailable right now — you can pay the provider in cash."
+                : "বুকিং নিশ্চিত হয়েছে। এখন অনলাইন পেমেন্ট বন্ধ আছে — প্রদানকারীকে নগদে দিতে পারেন।")
+            : (lang==="en"
+                ? "Your booking is confirmed but payment did not start. Open it from Bookings to try again."
+                : "বুকিং নিশ্চিত হয়েছে কিন্তু পেমেন্ট শুরু হয়নি। বুকিং থেকে আবার চেষ্টা করুন।"));
+        }
+      }
+    } catch(e){
+      setLoadingConfirm(false);
+      // The old copy was the server's raw "Insufficient wallet balance.
+      // Please top up first." on a screen with nothing to press.
+      if (/balance|ব্যালেন্স/i.test(e.data?.error || "")) {
+        setBookErr(lang==="en"
+          ? "Not enough balance in your IMAP wallet. Choose Cash, or top up and try again."
+          : "IMAP ওয়ালেটে যথেষ্ট ব্যালেন্স নেই। নগদ বেছে নিন, অথবা টপ-আপ করে আবার চেষ্টা করুন।");
+        setStep(2);
+        return;
+      }
+      setBookErr(e.data?.error||e.message||(lang==="en"?"Booking failed. Please try again.":"বুকিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"));
+      return;
+    }
     // Refresh wallet balance in context
     usersApi.getWallet().then(d=>{if(d.balance!=null)setBalance(d.balance);}).catch(()=>{});
     // Bundle suggestions
