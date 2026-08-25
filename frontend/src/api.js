@@ -4,7 +4,20 @@
 //  Dev fallback: http://localhost:5000/api (via VITE_API_URL)
 // ─────────────────────────────────────────────────────────────
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+/**
+ * Where the API lives.
+ *
+ * `.env` carries the deployed backend URL and vite loads it in EVERY mode,
+ * so without the DEV branch below `npm run dev` sent every request to the
+ * live Render backend and the vite proxy was never used — a developer would
+ * have been testing against production data believing they were local.
+ *
+ * In development the default is the relative `/api`, which the vite dev
+ * server proxies to whatever port the local backend is on (vite.config.js).
+ * Setting VITE_API_URL still overrides, for the case where someone
+ * deliberately wants to point a local UI at a deployed backend.
+ */
+const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api" : "http://localhost:5000/api");
 
 // ── Token helpers ─────────────────────────────────────────────
 export const getToken  = ()           => localStorage.getItem("imap_token");
@@ -17,9 +30,12 @@ export function wakeBackend() {
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────
-async function req(method, path, body = null, isForm = false, timeoutMs = 60000) {
+async function req(method, path, body = null, isForm = false, timeoutMs = 60000, extraHeaders = null) {
   const token = getToken();
-  const headers = {};
+  // `extraHeaders` exists for one reason: opening an identity document
+  // requires a stated reason, and the server sends it as `X-Reason` rather
+  // than in a body because the request is a GET. See `verification.documentUrl`.
+  const headers = { ...(extraHeaders || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
 
@@ -66,7 +82,7 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000)
   return data;
 }
 
-const get  = (p)    => req("GET",    p);
+const get  = (p, h) => req("GET",    p, null, false, 60000, h);
 const post = (p, b) => req("POST",   p, b);
 const put  = (p, b) => req("PUT",    p, b);
 const patch= (p, b) => req("PATCH",  p, b);
@@ -171,6 +187,68 @@ export const kyc = {
   submit: (data)       => post("/kyc", data),
   review: (id, status, rejection_reason) =>
     patch(`/kyc/${id}`, { status, rejection_reason }),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  VERIFICATION  (identity / KYC lifecycle)
+//
+//  The canonical surface. `kyc` above is the legacy wire format kept for
+//  the existing submission form; everything a reviewer does, and everything
+//  a person can learn about their own case, is here.
+// ═══════════════════════════════════════════════════════════════
+export const verification = {
+  /** My own state: submitted / under_review / verified / rejected / more_info. */
+  mine: () => get("/verification/me"),
+
+  /** Submit identity evidence. `documents` is { id_front, id_back?, selfie }. */
+  submit: (documents) => post("/verification/identity", { documents }),
+
+  // ── reviewer ──────────────────────────────────────────────
+  /** The queue. Metadata only — it carries no document of any kind. */
+  queue: (state = "submitted", page = 1, limit = 30) =>
+    get(`/verification/queue?state=${encodeURIComponent(state)}&page=${page}&limit=${limit}`),
+
+  /** One case. Reading it is itself audited (V-07). */
+  case: (id) => get(`/verification/cases/${id}`),
+
+  /**
+   * A short-lived signed URL for one document.
+   *
+   * `reason` is REQUIRED and travels as a header: the server denies without
+   * it, because opening somebody's national identity card is recorded with
+   * the reason it was opened (R-1103, D-03). This client sends it rather
+   * than letting the call fail, so the reviewer is asked once in the UI.
+   */
+  documentUrl: (documentId, reason) =>
+    get(`/verification/documents/${documentId}`, { "X-Reason": reason }),
+
+  /** Evidence for a case migrated from the old kyc_docs table. */
+  legacyImage: (caseId, docType, reason) =>
+    get(`/verification/cases/${caseId}/legacy/${docType}`, { "X-Reason": reason }),
+
+  // ── the five transitions, each its own permission ─────────
+  claim:       (id)         => post(`/verification/cases/${id}/review`, {}),
+  approve:     (id, opts={}) => post(`/verification/cases/${id}/approve`, opts),
+  reject:      (id, reason) => post(`/verification/cases/${id}/reject`, { reason }),
+  requestInfo: (id, reason) => post(`/verification/cases/${id}/request-info`, { reason }),
+  revoke:      (id, reason) => post(`/verification/cases/${id}/revoke`, { reason }),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PROVIDER LISTING  (the approval path F-12 recorded as missing)
+// ═══════════════════════════════════════════════════════════════
+export const listing = {
+  /**
+   * Why a provider is or is not listed, clause by clause.
+   *
+   * The subject may ask about themselves, so this is the provider's own
+   * "why am I not showing up" screen as well as an operator tool.
+   */
+  eligibility: (providerId) => get(`/providers/${providerId}/eligibility`),
+
+  approve: (providerId)         => post(`/providers/${providerId}/approve`, {}),
+  reject:  (providerId, reason) => post(`/providers/${providerId}/reject`, { reason }),
+  suspend: (providerId, reason) => post(`/providers/${providerId}/suspend`, { reason }),
 };
 
 // ═══════════════════════════════════════════════════════════════
