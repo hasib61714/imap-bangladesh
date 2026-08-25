@@ -142,6 +142,56 @@ router.get("/cases/:id/legacy/:docType", authMiddleware, handle(async (req, res)
   res.json({ case_id: out.caseId, doc_type: out.docType, legacy: true, image: out.image });
 }));
 
+/**
+ * GET /api/verification/blob/:token — the local driver's signed read.
+ *
+ * DELIBERATELY UNAUTHENTICATED, for the same reason an S3 presigned URL is:
+ * the token IS the capability. A browser does not attach an Authorization
+ * header to an `<img src>`, so a route that demanded one could not display
+ * the document it exists to display — the reviewer would be sent a link
+ * their own browser could not open.
+ *
+ * What guards it instead:
+ *
+ *   · an HMAC over (object key, expiry) using a key derived from the server
+ *     secret, compared in constant time
+ *   · a five-minute expiry, checked on every request
+ *   · a key that names no person, so a leaked URL identifies nobody
+ *   · minting is the audited, authorised, reason-carrying step — this is
+ *     only the delivery of a decision already recorded (V-07)
+ *
+ * Every failure answers 404. "Expired", "forged" and "no such object" are
+ * indistinguishable, so the endpoint cannot be probed.
+ */
+router.get("/blob/:token", handle(async (req, res) => {
+  const store = platform.sealedStorage;
+  const objectKey = store.local.verifyToken(req.params.token);
+  if (!objectKey) return res.status(404).json({ error: "Not found" });
+
+  let bytes;
+  try {
+    bytes = await store.local.read(objectKey);
+  } catch {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  const ext = objectKey.slice(objectKey.lastIndexOf("."));
+  const type = { ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".pdf": "application/pdf" }[ext]
+    || "application/octet-stream";
+
+  res.set({
+    "Content-Type": type,
+    // Never cached anywhere but this browser's memory, and not for long: a
+    // shared cache holding a national identity card is the whole problem.
+    "Cache-Control": "no-store, private, max-age=0",
+    "X-Content-Type-Options": "nosniff",
+    // A document is displayed, never executed, and never framed by anyone.
+    "Content-Security-Policy": "default-src 'none'; img-src 'self'; sandbox",
+    "Content-Disposition": "inline",
+  });
+  res.send(bytes);
+}));
+
 // ══════════════════════════════════════════════════════════
 //  decisions — one route, one use case, one policy each (§21)
 // ══════════════════════════════════════════════════════════

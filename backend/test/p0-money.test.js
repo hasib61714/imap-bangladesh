@@ -114,6 +114,12 @@ test("P0-4: a negative platform_fee cannot inflate the wallet", async (t) => {
     provider_id: "prov-1",
     amount: 1,
     platform_fee: -100000,   // the original exploit
+    // Named explicitly. This used to be the DEFAULT, which meant a booking
+    // that mentioned no payment method silently spent the in-app balance —
+    // and every new customer has none, so the commonest path in the product
+    // dead-ended on "Insufficient wallet balance". The default is now cash;
+    // the wallet path is still here and still has to be safe.
+    payment_method: "wallet",
   });
 
   assert.equal(res.status, 201);
@@ -124,6 +130,57 @@ test("P0-4: a negative platform_fee cannot inflate the wallet", async (t) => {
   assert.ok(debit, "a debit was issued");
   assert.ok(debit.params[0] > 0, `debit must be positive, got ${debit.params[0]}`);
   assert.equal(debit.params[0], 400);
+});
+
+/**
+ * The default must not spend money.
+ *
+ * A booking that names no payment method used to default to "bKash", which
+ * was in WALLET_METHODS, which debited the in-app balance — so the default
+ * both charged the customer and, for anyone who had not topped up, failed.
+ */
+test("a booking that names no payment method debits nothing", async (t) => {
+  const pool = makePool([
+    { match: "FROM providers p", rows: [providerRow] },
+    { match: "INSERT INTO bookings", rows: { affectedRows: 1 } },
+    { match: "UPDATE users SET points", rows: { affectedRows: 1 } },
+    { match: "INSERT INTO loyalty_log", rows: { affectedRows: 1 } },
+    { match: "INSERT INTO notifications", rows: { affectedRows: 1 } },
+  ]);
+  const srv = await bootBookings(pool);
+  t.after(() => srv.close());
+
+  const res = await call(srv.url, "POST", "/", { provider_id: "prov-1" });
+  assert.equal(res.status, 201);
+  assert.equal(pool.ran("UPDATE users SET balance = balance - ?"), false,
+    "the default payment method spent the customer's balance");
+  assert.equal(res.body.payment_status, "pending");
+  assert.equal(res.body.payment.next, "pay_on_completion");
+});
+
+/**
+ * A gateway method is not the wallet.
+ *
+ * Choosing bKash must open a payment session, not quietly spend an internal
+ * balance the customer never funded through bKash.
+ */
+test("choosing a gateway method creates an unpaid booking and asks for payment", async (t) => {
+  const pool = makePool([
+    { match: "FROM providers p", rows: [providerRow] },
+    { match: "INSERT INTO bookings", rows: { affectedRows: 1 } },
+    { match: "UPDATE users SET points", rows: { affectedRows: 1 } },
+    { match: "INSERT INTO loyalty_log", rows: { affectedRows: 1 } },
+    { match: "INSERT INTO notifications", rows: { affectedRows: 1 } },
+  ]);
+  const srv = await bootBookings(pool);
+  t.after(() => srv.close());
+
+  const res = await call(srv.url, "POST", "/", { provider_id: "prov-1", payment_method: "bKash" });
+  assert.equal(res.status, 201);
+  assert.equal(pool.ran("UPDATE users SET balance = balance - ?"), false,
+    "bKash debited the in-app wallet instead of reaching a gateway");
+  assert.equal(res.body.payment_status, "pending");
+  assert.equal(res.body.payment.next, "initiate", "the client is not told to pay");
 });
 
 test("P0-4: the money validator rejects every unsafe numeric input", () => {
@@ -245,7 +302,10 @@ test("P0-11: insufficient balance blocks the booking before anything is written"
   const srv = await bootBookings(pool);
   t.after(() => srv.close());
 
-  const res = await call(srv.url, "POST", "/", { provider_id: "prov-1" });
+  // The wallet path, named. It is no longer the default — see "a booking
+  // that names no payment method debits nothing" — but when a customer does
+  // choose it, an empty balance must still stop everything.
+  const res = await call(srv.url, "POST", "/", { provider_id: "prov-1", payment_method: "wallet" });
 
   assert.equal(res.status, 400);
   assert.ok(/balance/i.test(res.body.error));

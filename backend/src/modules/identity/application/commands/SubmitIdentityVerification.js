@@ -65,7 +65,14 @@ function readSubmission(input) {
   for (const docType of ACCEPTED) {
     const entry = documents[docType];
     if (!entry) continue;
-    const buffer = store.decodeDocument(entry.data, { field: docType });
+    // A multipart upload already has the bytes; the legacy JSON route has
+    // base64. Both arrive here rather than one re-encoding to satisfy the
+    // other, because base64-encoding a buffer only to decode it wastes a
+    // third of a megabyte per document and can fail on the size ceiling for
+    // a document that was within it.
+    const buffer = Buffer.isBuffer(entry.buffer)
+      ? store.checkDocumentSize(entry.buffer, { field: docType })
+      : store.decodeDocument(entry.data, { field: docType });
     // A declared type is compared against the magic bytes; an undeclared one
     // is read from them and refused if it is not on the allow-list. The
     // legacy wire format has no MIME field, which is why the second path

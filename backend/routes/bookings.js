@@ -33,8 +33,37 @@ const createBookingRules = validate([
   body("category_id").optional({ checkFalsy: true }).isInt({ min: 1 }).withMessage("category_id must be a positive integer"),
 ]);
 
-/** Methods that settle immediately against the in-app wallet balance. */
-const WALLET_METHODS = new Set(["bKash", "Nagad", "Rocket", "card", "wallet"]);
+/**
+ * How a booking is paid for. Three kinds, and they are not the same thing.
+ *
+ * WHAT WAS WRONG
+ * ──────────────
+ * `WALLET_METHODS` used to be {bKash, Nagad, Rocket, card, wallet}, so
+ * choosing "bKash" DEBITED THE IN-APP WALLET. It did not open bKash and it
+ * did not reach a gateway — it spent an internal balance the customer had
+ * never funded, and a customer with an empty wallet (which is every new
+ * customer, because P0-6 stopped accounts being created with money) got
+ *
+ *     400 "Insufficient wallet balance. Please top up first."
+ *
+ * with no way forward from that screen. The most common way to pay in
+ * Bangladesh was a dead end.
+ *
+ * WHAT IT IS NOW
+ * ──────────────
+ *   wallet   settles immediately against the in-app balance
+ *   cash     pay the provider on completion; the booking is unpaid
+ *   gateway  bKash / Nagad / Rocket / card — the booking is created UNPAID
+ *            and the customer is sent to POST /api/payments/initiate, which
+ *            already exists, already derives the amount server-side, already
+ *            refuses to charge twice (P1-5) and already fails closed when
+ *            the gateway is unconfigured in production (P0-12).
+ *
+ * The response says which of the three happened, so the client never has to
+ * infer it from the method name.
+ */
+const WALLET_METHODS = new Set(["wallet"]);
+const GATEWAY_METHODS = new Set(["bKash", "Nagad", "Rocket", "card"]);
 const isCash = (m) => String(m || "").toLowerCase() === "cash";
 
 /** Map a thrown domain error onto an HTTP response; returns true if handled. */
@@ -54,7 +83,10 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
       service_type,                       // legacy field name from some pages
       address,
       scheduled_time, scheduled_at,
-      payment_method = "bKash",
+      // Cash by default. A default that silently spends a balance is the
+      // wrong kind of convenient; cash on completion is both the safest
+      // default and the most common arrangement in this market.
+      payment_method = "cash",
       is_urgent = 0, note = ""
     } = req.body;
 
@@ -76,6 +108,7 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
     const id  = uuidv4();
     const otp = String(require("crypto").randomInt(100000, 1000000));
     const settleFromWallet = !isCash(payment_method) && WALLET_METHODS.has(payment_method);
+    const needsGateway = GATEWAY_METHODS.has(payment_method);
 
     // ── P0-11: one transaction covers the debit, the booking row, the
     // ledger entry and the loyalty award. Previously these were four
@@ -161,6 +194,19 @@ router.post("/", authMiddleware, createBookingRules, async (req, res) => {
       platform_fee: quote.platform_fee,
       total: quote.total,
       payment_status: settleFromWallet ? "paid" : "pending",
+      /**
+       * What the customer has to do next, said plainly rather than implied.
+       *
+       * The client used to have to know which method names meant "already
+       * paid" — the same knowledge that was wrong on the server. Now the
+       * server says it.
+       */
+      payment: {
+        method: payment_method,
+        settled: settleFromWallet,
+        // `initiate` is the only one of the three that needs another call.
+        next: settleFromWallet ? "none" : (needsGateway ? "initiate" : "pay_on_completion"),
+      },
       points_awarded: result.pts,
       message: "Booking created",
     });

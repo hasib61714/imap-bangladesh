@@ -14,6 +14,12 @@ const { authMiddleware } = require("../middleware/auth");
 const { requireAuthorization } = require("../middleware/authorize");
 const { ACTION } = require("../src/modules/platform/authorization");
 const storage = require("../utils/storage");
+const cache = require("../utils/cache");
+// I-07: KYC submission is a use case, not a route. This file supplies the
+// multipart wire format and nothing else.
+const { execute } = require("../src/application/execute");
+const identity = require("../src/modules/identity");
+const { legacyActorFromUser } = require("../src/modules/platform/authorization").legacy;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -55,62 +61,89 @@ router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) =
 });
 
 /* ── KYC document upload ── */
+/**
+ * POST /api/upload/kyc — the path the UI actually uses.
+ *
+ * WHAT IT USED TO DO, AND WHY THAT WAS THE WHOLE PROBLEM
+ * ─────────────────────────────────────────────────────
+ * It uploaded each file through `utils/storage.js`, which returns a
+ * PERMANENT PUBLIC URL, and wrote that URL into `kyc_docs.front_image`.
+ * Where storage was unconfigured it fell back to a `data:` URI — the same
+ * multi-megabyte base64 in the primary database that Phase 0 named. Either
+ * way it created no verification case, so a person who submitted through
+ * the app could never be reviewed: the whole I-07 lifecycle was reachable
+ * only from the JSON fallback the UI uses when this one fails.
+ *
+ * It now calls the same use case `/api/verification/identity` calls, so
+ * there is ONE submission path with one set of controls — the sealed store,
+ * the state machine, the audit record — and the wire format is the only
+ * thing that differs between them.
+ *
+ * The response shape is unchanged, so the existing client is unaffected.
+ */
 router.post("/kyc", authMiddleware, upload.fields([
   { name: "nid_front", maxCount: 1 }, { name: "nid_back", maxCount: 1 },
   { name: "selfie", maxCount: 1 },    { name: "certificate", maxCount: 1 },
-]), async (req, res) => {
+]), async (req, res, next) => {
   try {
-    const files  = req.files || {};
-    const colMap = { nid_front: "front_image", nid_back: "back_image", selfie: "selfie_image", certificate: "certificate_image" };
-    const results = {};
+    const files = req.files || {};
+    // The field names the client sends, mapped to the document kinds the
+    // domain knows. `certificate` is accepted by multer and deliberately not
+    // forwarded: capability verification has no Gate-1 surface, and silently
+    // filing a skill certificate under an identity case would be claiming a
+    // review that nobody performs.
+    const FIELDS = { nid_front: "id_front", nid_back: "id_back", selfie: "selfie" };
 
-    for (const [field, col] of Object.entries(colMap)) {
-      if (!files[field]?.[0]) continue;
-      const f = files[field][0];
-      let url;
-      if (storage.isConfigured()) {
-        const up = await storage.uploadFile({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname, folder: `kyc/${req.user.id}` });
-        url = up.url;
-      } else {
-        url = `data:${f.mimetype};base64,${f.buffer.toString("base64")}`;
-      }
-      results[col] = url;
+    const documents = {};
+    for (const [field, docType] of Object.entries(FIELDS)) {
+      const f = files[field] && files[field][0];
+      if (!f) continue;
+      documents[docType] = { buffer: f.buffer, mime: f.mimetype };
     }
 
-    if (!Object.keys(results).length) return res.status(400).json({ error: "কোনো ফাইল পাওয়া যায়নি।" });
-
-    const VALID_DOC_TYPES = ["nid","passport","birth_cert","driving_license"];
-    const doc_type   = VALID_DOC_TYPES.includes(req.body?.doc_type) ? req.body.doc_type : "nid";
-    const doc_number = (req.body?.doc_number || "").slice(0, 30);
-
-    const [existing] = await pool.query("SELECT id FROM kyc_docs WHERE user_id=?", [req.user.id]);
-    if (existing.length) {
-      const set = [...Object.keys(results).map(k => `${k}=?`), "doc_type=?", "doc_number=?", "status='pending'"].join(", ");
-      await pool.query(
-        `UPDATE kyc_docs SET ${set}, submitted_at=NOW() WHERE user_id=?`,
-        [...Object.values(results), doc_type, doc_number, req.user.id]
-      );
-    } else {
-      const cols = ["id","user_id","doc_type","doc_number",...Object.keys(results),"status"];
-      const vals = [uuidv4(), req.user.id, doc_type, doc_number, ...Object.values(results), "pending"];
-      await pool.query(`INSERT INTO kyc_docs (${cols.join(",")}) VALUES (${cols.map(()=>"?").join(",")})`, vals);
+    if (!Object.keys(documents).length) {
+      return res.status(400).json({ error: "কোনো ফাইল পাওয়া যায়নি।" });
     }
 
-    // Update user kyc_status and notify admin
-    await pool.query("UPDATE users SET kyc_status='pending' WHERE id=? AND kyc_status='not_submitted'", [req.user.id]);
-    try {
+    const out = await execute("identity.SubmitIdentityVerification", { documents }, {
+      actor: legacyActorFromUser(req.user, { correlationId: req.requestId || null }),
+      db: pool,
+      repositories: identity.repositories,
+      correlationId: req.requestId || null,
+      ip: req.ip || null,
+      userAgent: req.headers["user-agent"] || null,
+    });
+
+    cache.del(`kyc:user:${req.user.id}`);
+    cache.del(`user:profile:${req.user.id}`);
+
+    // Best-effort and outside the use case: a notification that fails must
+    // not roll back a submission the applicant was told succeeded.
+    (async () => {
       const [admins] = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
-      if (admins.length) {
-        await pool.query(
-          "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
-          [admins[0].id,"🛡️","alert","নতুন KYC আবেদন","New KYC Application",
-           `${req.user.name} নতুন KYC ফাইল আপলোড করেছে`,`${req.user.name} uploaded new KYC documents`]
-        );
-      }
-    } catch {}
+      if (!admins.length) return;
+      await pool.query(
+        "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
+        [admins[0].id, "🛡️", "alert", "নতুন KYC আবেদন", "New KYC Application",
+         `${req.user.name} নতুন KYC ফাইল আপলোড করেছে`, `${req.user.name} uploaded new KYC documents`]
+      );
+    })().catch((err) => logger.warn("kyc notify failed", { err: err.message }));
 
-    res.json({ uploaded: Object.keys(results), doc_type, doc_number, message: "KYC ডকুমেন্ট আপলোড হয়েছে।" });
+    res.json({
+      uploaded: out.documents,
+      case_id: out.caseId,
+      state: out.state,
+      // Echoed for wire compatibility. Neither is stored any more: the
+      // authoritative verification_case has no field for either, and a
+      // reviewer reads both off the image (I-07 §9).
+      doc_type: req.body && req.body.doc_type,
+      doc_number: undefined,
+      message: "KYC ডকুমেন্ট আপলোড হয়েছে।",
+    });
   } catch (err) {
+    // AppErrors carry their own status and user message; the transport error
+    // boundary maps them. Only a genuine failure becomes a 500.
+    if (err && typeof err.status === "number") return next(err);
     logger.error("upload-kyc:", err);
     res.status(500).json({ error: err.message || "Upload failed" });
   }

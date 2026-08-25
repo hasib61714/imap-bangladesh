@@ -17,8 +17,11 @@ export default defineConfig({
     strictPort: false,        // try next port if 5173 is busy
     proxy: {
       // All /api/* requests are forwarded to the backend in dev mode
+      // The port comes from the environment so a developer whose 5000 is
+      // taken by another service — Windows reserves it often enough — can
+      // move the backend without editing tracked config.
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_DEV_API_ORIGIN || 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
       },

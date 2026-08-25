@@ -170,7 +170,7 @@ async function seed() {
           hourly_rate=?, experience_yrs=?,
           rating=?, total_jobs=?,
           is_available=1, nid_verified=1, trust_score=90,
-          is_approved=1,
+          is_approved=1, listing_state='approved',
           category_id=?
          WHERE user_id=?`,
         [p.service_type_bn, p.service_type_en,
@@ -189,8 +189,8 @@ async function seed() {
            area_bn, area_en, bio_bn, bio_en,
            hourly_rate, experience_yrs,
            rating, total_jobs,
-           is_available, nid_verified, trust_score, is_approved, category_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,1,?)`,
+           is_available, nid_verified, trust_score, is_approved, listing_state, category_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,1,90,1,'approved',?)`,
         [pid, userId,
          p.service_type_bn, p.service_type_en,
          p.area_bn, p.area_en,
@@ -204,6 +204,36 @@ async function seed() {
 
     console.log(`  ✓ ${p.name} (${p.service_type_en})`);
   }
+
+  // ── 2b. DEMO PROVIDERS NEED A VERIFIED IDENTITY CASE ───────────
+  //
+  // I-07 made listing eligibility a conjunction: `listing_state = 'approved'`
+  // is one clause and a VERIFIED IDENTITY CASE is another
+  // (TRUST-ARCHITECTURE §5). Setting `is_approved = 1` alone no longer lists
+  // anybody, so a seed that stopped there produced an empty marketplace and
+  // a demo that looked broken on first run.
+  //
+  // These cases are marked as what they are. `decision_reason` says "demo
+  // seed" in plain words, so nobody reviewing the audit trail later mistakes
+  // a seeded row for a human decision, and `decided_by` is NULL because no
+  // human decided it.
+  //
+  // Guarded by the same environment rule as the rest of this script: it
+  // refuses to run against production data (see the header), so this cannot
+  // manufacture verification for a real person.
+  for (const p of providers) {
+    const [u] = await conn.query("SELECT id FROM users WHERE phone = ?", [p.phone]);
+    if (!u.length) continue;
+    await conn.query(
+      `INSERT INTO verification_case
+         (id, principal_id, kind, state, submitted_at, decided_at, decision_reason, created_at, updated_at)
+       VALUES (?,?,'identity','verified',NOW(3),NOW(3),?,NOW(3),NOW(3))
+       ON DUPLICATE KEY UPDATE state = 'verified', decided_at = NOW(3), updated_at = NOW(3)`,
+      [uuidv4(), u[0].id, "demo seed — not a human verification decision"]
+    );
+    await conn.query("UPDATE users SET kyc_status = 'verified', verified = 1 WHERE id = ?", [u[0].id]);
+  }
+  console.log("✅ Demo providers given verified identity cases (marked as seeded)");
 
   // ── 3. FIX EXISTING PROVIDERS that have empty service/area ─────
   const fixes = [

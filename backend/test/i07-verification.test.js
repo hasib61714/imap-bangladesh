@@ -168,18 +168,118 @@ test("§14, §32 identity documents are not public and cannot become public", as
       "a dedicated bucket is the configuration this is asking for");
   });
 
-  await t.test("an unconfigured store fails closed rather than pretending", async () => {
+  /**
+   * NEGATIVE CONTROL: delete the `local.available()` guard in `selectDriver`
+   * and the first of these passes — the store would report itself usable with
+   * no way to sign a read, so every minted URL would be unverifiable.
+   */
+  await t.test("with no credentials and no secret, it fails closed", async () => {
     for (const key of ["R2_ACCOUNT_ID", "AWS_ACCESS_KEY_ID", "R2_PUBLIC_URL",
                        "R2_SEALED_BUCKET", "S3_SEALED_BUCKET", "R2_BUCKET_NAME",
-                       "R2_BUCKET", "S3_BUCKET_NAME", "AWS_S3_BUCKET"]) {
+                       "R2_BUCKET", "S3_BUCKET_NAME", "AWS_S3_BUCKET",
+                       "JWT_SECRET", "SEALED_URL_SECRET", "SEALED_LOCAL_DIR"]) {
       delete process.env[key];
     }
-    assert.deepEqual(store.capability(), { available: false, reason: "no_credentials" });
-    await assert.rejects(() => store.putSealed({ caseId: "c", docType: "id_front", buffer: Buffer.from("x"), mime: "image/jpeg" }),
-      (err) => { assert.equal(err.code, "SEALED_STORAGE_UNAVAILABLE"); assert.equal(err.status, 503); return true; });
-    // P0-12's rule: a capability the platform cannot provide is a 503 and
-    // never a mock success.
-    await assert.rejects(() => store.signedReadUrl("sealed/x"), throwsCode("SEALED_STORAGE_UNAVAILABLE"));
+    const cap = store.capability();
+    assert.equal(cap.available, false);
+    // P0-12's rule: a capability the platform cannot provide is a 503, never
+    // a mock success.
+    await assert.rejects(
+      () => store.putSealed({ caseId: "c", docType: "id_front", buffer: Buffer.from("x"), mime: "image/jpeg" }),
+      (err) => { assert.equal(err.code, "SEALED_STORAGE_UNAVAILABLE"); assert.equal(err.status, 503); return true; }
+    );
+  });
+
+  /**
+   * The local driver exists because failing closed everywhere was not a safe
+   * default — it was a broken feature. Without object-storage credentials the
+   * whole verification lifecycle was unreachable for a developer, a CI run, a
+   * self-hosted deployment and a pilot without a cloud account.
+   */
+  await t.test("with a secret and no bucket, it stores locally rather than refusing", () => {
+    for (const key of ["R2_ACCOUNT_ID", "AWS_ACCESS_KEY_ID", "R2_PUBLIC_URL",
+                       "R2_SEALED_BUCKET", "S3_SEALED_BUCKET", "R2_BUCKET_NAME",
+                       "R2_BUCKET", "S3_BUCKET_NAME", "AWS_S3_BUCKET", "SEALED_LOCAL_DIR"]) {
+      delete process.env[key];
+    }
+    process.env.JWT_SECRET = "x".repeat(48);
+    const cap = store.capability();
+    assert.equal(cap.available, true);
+    assert.equal(cap.driver, "local");
+    assert.equal(cap.durable, false, "an unnamed local root must not claim durability");
+  });
+
+  /**
+   * NEGATIVE CONTROL: remove the `productionBehaviour` check in
+   * `selectDriver` and this passes — a production deployment would quietly
+   * write identity documents to a container filesystem that disappears on
+   * the next restart, losing evidence it had said it was keeping.
+   */
+  await t.test("a production process will not choose local storage by accident", () => {
+    const local = require("../src/modules/platform/storage/localSealedDriver");
+    const env = require("../config/environment");
+    const realDescribe = env.describe;
+    env.describe = () => ({ ...realDescribe.call(env), productionBehaviour: true });
+    try {
+      delete process.env.SEALED_LOCAL_DIR;
+      process.env.JWT_SECRET = "x".repeat(48);
+      assert.equal(local.available(), true, "the driver itself is usable — the refusal is a policy, not a capability");
+      assert.throws(() => store.selectDriver(), (err) => {
+        assert.equal(err.code, "SEALED_STORAGE_UNAVAILABLE");
+        assert.match(err.message, /SEALED_LOCAL_DIR/);
+        return true;
+      });
+      // Naming the directory is the operator saying the path is durable.
+      process.env.SEALED_LOCAL_DIR = require("node:path").join(require("node:os").tmpdir(), "imap-sealed-test");
+      assert.equal(store.selectDriver(), "local");
+    } finally {
+      env.describe = realDescribe;
+      delete process.env.SEALED_LOCAL_DIR;
+    }
+  });
+
+  /**
+   * The signed URL is the capability, so forging or ageing one must not work.
+   *
+   * NEGATIVE CONTROL: return `claims.k` from `verifyToken` before the
+   * `timingSafeEqual` check and the forged cases pass — the token becomes a
+   * suggestion rather than a signature.
+   */
+  await t.test("a local signed URL cannot be forged, altered or replayed after expiry", async () => {
+    process.env.JWT_SECRET = "x".repeat(48);
+    const local = require("../src/modules/platform/storage/localSealedDriver");
+    const key = "sealed/verification/case-1/id_front-" + "a".repeat(32) + ".jpg";
+
+    const url = local.signUrl(key, 300);
+    const token = url.slice(url.lastIndexOf("/") + 1);
+    assert.equal(local.verifyToken(token), key, "a freshly minted token must verify");
+
+    const [payload, sig] = token.split(".");
+    assert.equal(local.verifyToken(payload + ".") , null, "empty signature accepted");
+    assert.equal(local.verifyToken(payload + "." + "A".repeat(sig.length)), null, "forged signature accepted");
+    // Alter the key, keep the signature: the HMAC covers the payload.
+    const tampered = Buffer.from(JSON.stringify({ k: "sealed/verification/other/x.jpg", e: 9e9 }))
+      .toString("base64url");
+    assert.equal(local.verifyToken(tampered + "." + sig), null, "a swapped payload was accepted");
+    // Expired.
+    const stale = local.signUrl(key, -10);
+    assert.equal(local.verifyToken(stale.slice(stale.lastIndexOf("/") + 1)), null, "an expired token was accepted");
+  });
+
+  /**
+   * A key is not a path. This is the control that stops an object key
+   * reaching outside the private root.
+   */
+  await t.test("an object key cannot climb out of the storage root", () => {
+    const local = require("../src/modules/platform/storage/localSealedDriver");
+    const NUL = String.fromCharCode(0);
+    const BACKSLASH = String.fromCharCode(92);
+    for (const bad of ["../../../etc/passwd", "/etc/passwd", "C:/Windows/win.ini",
+                       "sealed/../../secret", "sealed" + BACKSLASH + "x",
+                       "sealed/x" + NUL + ".jpg", ""]) {
+      assert.throws(() => local.safePath(bad), /invalid object key/, JSON.stringify(bad) + " was accepted");
+    }
+    assert.ok(local.safePath("sealed/verification/c/id_front-ab.jpg"));
   });
 
   await t.test("an object key names no person", () => {

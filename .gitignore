@@ -54,3 +54,9 @@ backend/uploads/
 
 # Coverage
 coverage/
+
+# Sealed identity documents written by the local storage driver. Never
+# committed, never served: see backend/src/modules/platform/storage/
+# localSealedDriver.js for why a local root is safe and where it is not.
+backend/.private/
+.private/

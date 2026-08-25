@@ -47,6 +47,8 @@ const crypto = require("node:crypto");
 const { S3Client, DeleteObjectCommand, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { CapabilityUnavailableError, ValidationError } = require("../../../shared/errors");
+const local = require("./localSealedDriver");
+const environment = require("../../../../config/environment");
 
 /**
  * How long a minted URL lives.
@@ -146,24 +148,77 @@ function assertSealedBucketIsNotPublic() {
   }
 }
 
+/**
+ * Which driver, and why that one.
+ *
+ * Object storage wins whenever it is configured, because it is the only
+ * option that survives a host being replaced. The local driver is the
+ * fallback, and in a production-behaving process it is selected only when an
+ * operator has named the directory.
+ *
+ * Returns a driver name, or throws the reason there is none. Throwing rather
+ * than returning null is deliberate: every caller needs a driver, and the
+ * reason there is none is the thing the operator has to read.
+ */
+function selectDriver() {
+  const client = buildClient();
+  const bucket = resolveBucket();
+
+  if (client && bucket) {
+    // The one configuration this process can prove unsafe.
+    assertSealedBucketIsNotPublic();
+    return "s3";
+  }
+
+  if (!local.available()) {
+    // No credentials and no signing secret. There is nothing to fall back to,
+    // and pretending otherwise would be P0-12's mock settlement in a new hat.
+    throw new CapabilityUnavailableError(
+      "SEALED_STORAGE_UNAVAILABLE",
+      "no object-storage credentials and no signing secret; identity documents cannot be accepted",
+      { userMessage: { en: "Document upload is temporarily unavailable.",
+                       bn: "নথি আপলোড সাময়িকভাবে বন্ধ আছে।" } }
+    );
+  }
+
+  /**
+   * A production-behaving process must not choose local storage by accident.
+   *
+   * A container filesystem is usually ephemeral, so a deployment that quietly
+   * wrote identity documents there would lose evidence it had told people it
+   * was keeping — and it would do so silently, which is worse than refusing.
+   * Naming SEALED_LOCAL_DIR is the operator saying "this path is durable and
+   * I mean it".
+   */
+  if (environment.describe().productionBehaviour && !process.env.SEALED_LOCAL_DIR) {
+    throw new CapabilityUnavailableError(
+      "SEALED_STORAGE_UNAVAILABLE",
+      "object storage is not configured. Set R2_SEALED_BUCKET with credentials, or set " +
+      "SEALED_LOCAL_DIR to a DURABLE directory to accept local storage deliberately.",
+      { userMessage: { en: "Document upload is temporarily unavailable.",
+                       bn: "নথি আপলোড সাময়িকভাবে বন্ধ আছে।" } }
+    );
+  }
+
+  return "local";
+}
+
 /** Why the store is or is not usable. Safe to surface in an operator health check. */
 function capability() {
-  const bucket = resolveBucket();
-  const client = buildClient();
-  if (!client) return { available: false, reason: "no_credentials" };
-  if (!bucket) return { available: false, reason: "no_bucket" };
-  if (publicBaseConfigured() && !hasDedicatedBucket()) {
-    return { available: false, reason: "shared_bucket_is_public" };
+  try {
+    const driver = selectDriver();
+    return driver === "s3"
+      ? { available: true, driver: "s3", bucket: resolveBucket(), dedicated: hasDedicatedBucket() }
+      : { available: true, driver: "local", root: local.resolveRoot(), durable: Boolean(process.env.SEALED_LOCAL_DIR) };
+  } catch (err) {
+    return { available: false, reason: err.code || "unavailable", detail: err.message };
   }
-  return { available: true, bucket, dedicated: hasDedicatedBucket() };
 }
 
 function requireClient() {
   const client = buildClient();
   const bucket = resolveBucket();
   if (!client || !bucket) {
-    // P0-12's precedent: a capability the platform has but cannot currently
-    // provide is a 503 and never a pretend success.
     throw new CapabilityUnavailableError(
       "SEALED_STORAGE_UNAVAILABLE",
       "Object storage is not configured; identity documents cannot be accepted",
@@ -221,6 +276,26 @@ function decodeDocument(base64, { field = "document" } = {}) {
     throw new ValidationError(`${field} is not valid base64`, {
       fields: [{ field, code: "INVALID_ENCODING" }],
     });
+  }
+  if (buffer.length > MAX_DOCUMENT_BYTES) {
+    throw new ValidationError(`${field} exceeds ${MAX_DOCUMENT_BYTES} bytes`, {
+      fields: [{ field, code: "TOO_LARGE" }],
+    });
+  }
+  return buffer;
+}
+
+/**
+ * The size ceiling, for bytes that did not arrive as base64.
+ *
+ * `decodeDocument` applies this after decoding; a multipart upload skips
+ * that path entirely, and multer's own `fileSize` limit is a different
+ * number in a different file. One ceiling, applied wherever the bytes come
+ * from, is the only way the two cannot drift.
+ */
+function checkDocumentSize(buffer, { field = "document" } = {}) {
+  if (!Buffer.isBuffer(buffer) || !buffer.length) {
+    throw new ValidationError(`${field} is required`, { fields: [{ field, code: "REQUIRED" }] });
   }
   if (buffer.length > MAX_DOCUMENT_BYTES) {
     throw new ValidationError(`${field} exceeds ${MAX_DOCUMENT_BYTES} bytes`, {
@@ -297,9 +372,15 @@ function requireDetectedMime(buffer, { field = "document" } = {}) {
  * reachable only through an audited use case.
  */
 async function putSealed({ caseId, docType, buffer, mime }) {
-  const { client, bucket } = requireClient();
+  const driver = selectDriver();
   const objectKey = buildObjectKey({ caseId, docType, mime });
 
+  if (driver === "local") {
+    await local.put({ objectKey, buffer });
+    return Object.freeze({ objectKey, bytes: buffer.length, mime });
+  }
+
+  const { client, bucket } = requireClient();
   await client.send(new PutObjectCommand({
     Bucket: bucket,
     Key: objectKey,
@@ -323,6 +404,7 @@ async function putSealed({ caseId, docType, buffer, mime }) {
  * observe.
  */
 async function signedReadUrl(objectKey, { ttlSeconds = READ_URL_TTL_SECONDS } = {}) {
+  if (selectDriver() === "local") return local.signUrl(objectKey, ttlSeconds);
   const { client, bucket } = requireClient();
   return getSignedUrl(
     client,
@@ -333,13 +415,15 @@ async function signedReadUrl(objectKey, { ttlSeconds = READ_URL_TTL_SECONDS } = 
 
 /** Remove an object. The row survives; see migration 011's note on deleted_at. */
 async function deleteSealed(objectKey) {
+  if (selectDriver() === "local") return local.remove(objectKey);
   const { client, bucket } = requireClient();
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
 }
 
 module.exports = {
   READ_URL_TTL_SECONDS, ALLOWED_MIME, MAX_DOCUMENT_BYTES,
-  capability, putSealed, signedReadUrl, deleteSealed,
-  decodeDocument, sniffMime, detectMime, requireDetectedMime,
+  capability, selectDriver, putSealed, signedReadUrl, deleteSealed,
+  local,
+  decodeDocument, checkDocumentSize, sniffMime, detectMime, requireDetectedMime,
   buildObjectKey, assertSealedBucketIsNotPublic,
 };
