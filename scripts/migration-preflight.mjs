@@ -91,30 +91,30 @@ try {
 
   // ── 2. Is chk_reason ENFORCED, or only parsed? ────────────
   const e1 = await refuses(conn,
-    `INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('a','c1','rejected','1')`);
+    `INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('a','case-a','rejected','1')`);
   check(!!e1, "a refusal with no reason is REFUSED (chk_reason_when_refused)",
     "the row was ACCEPTED — this engine parses CHECK constraints and does not enforce them. " +
     "R-1103 then rests on the domain and the repository alone.");
 
   // ── 3. Is the null-safe slot constraint enforced? ─────────
   const e2 = await refuses(conn,
-    `INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('b','c1','submitted',NULL,NULL)`);
+    `INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('b','case-b','submitted',NULL,NULL)`);
   check(!!e2, "a live row with no slot is REFUSED (chk_live_slot, the <=> case)",
     "the row was ACCEPTED — two live documents of one kind could then coexist, " +
     "because the UNIQUE index does not collide on NULLs either.");
 
   // ── 4. Does the UNIQUE index behave the way 011 relies on? ─
-  await conn.query(`INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('c1','c1','submitted','1')`);
+  await refuses(conn, `INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('c1','case-c','submitted','1')`);
   // A DIFFERENT row claiming the same live slot on the same case.
   const dup = await refuses(conn,
-    `INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('c2','c1','submitted','1')`);
+    `INSERT INTO ${TABLE} (pk, case_id, state, live_slot) VALUES ('c2','case-c','submitted','1')`);
   check(!!dup && /duplicate/i.test(dup.message), "a duplicate live slot is REFUSED (uniq_live_document)",
     dup ? dup.message : "the duplicate was ACCEPTED");
 
   // NULLs must NOT collide — that is what lets many deleted rows coexist.
-  await conn.query(`INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('d1','c1','submitted',NOW(3),NULL)`);
+  await refuses(conn, `INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('d1','case-d','submitted',NOW(3),NULL)`);
   const nullDup = await refuses(conn,
-    `INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('d2','c1','submitted',NOW(3),NULL)`);
+    `INSERT INTO ${TABLE} (pk, case_id, state, deleted_at, live_slot) VALUES ('d2','case-d','submitted',NOW(3),NULL)`);
   check(!nullDup, "NULL slots do NOT collide (many retired rows per case)",
     nullDup && nullDup.message);
 

@@ -150,11 +150,18 @@ test("migration tool", { skip: configured ? false : "IMAP_TEST_DB_HOST not set" 
     assert.equal(await tableExists("blood_requests"), true);
     assert.equal(await tableExists("disaster_reports"), true);
 
+    // Aliased, deliberately. MySQL 8 returns information_schema column names
+    // in UPPERCASE and MariaDB in lowercase, so an unaliased `non_unique`
+    // reads as `undefined` on MySQL and the assertion compared undefined to
+    // 0 — a test that passed locally on MariaDB and failed in CI on MySQL 8.
+    // Nobody saw it because CI was billing-locked.
     const [idx] = await db.query(
-      "SELECT non_unique FROM information_schema.statistics WHERE table_schema=? AND table_name='wallet_transactions' AND index_name='uniq_wallet_ref'",
+      "SELECT non_unique AS nonUnique FROM information_schema.statistics " +
+      "WHERE table_schema=? AND table_name='wallet_transactions' AND index_name='uniq_wallet_ref'",
       [SUITE]
     );
-    assert.equal(idx[0]?.non_unique, 0, "ledger idempotency index must be UNIQUE");
+    assert.equal(idx.length, 1, "uniq_wallet_ref is missing entirely");
+    assert.equal(Number(idx[0].nonUnique), 0, "ledger idempotency index must be UNIQUE");
   });
 
   await t.test("re-running an already-applied migration is safe", async () => {
