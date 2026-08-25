@@ -23,7 +23,35 @@
  * they stay sharp on a phone.
  */
 
-const BASE = "/img";
+/**
+ * THIS MUST NOT BE THE LITERAL "/img".
+ *
+ * The site is served from a subpath — https://…github.io/imap-bangladesh/ —
+ * and `vite.config.js` sets `base` to match. Vite rewrites that base into
+ * anything it can see at build time: `<link href="/manifest.json">` in
+ * index.html comes out as `/imap-bangladesh/manifest.json`, and an imported
+ * asset gets the prefix too.
+ *
+ * It CANNOT rewrite a string built at runtime. `"/img" + "/category/x.webp"`
+ * stays `/img/category/x.webp`, the browser resolves that against the DOMAIN
+ * root rather than the app root, and every request 404s — while the files sit
+ * correctly deployed one directory along, answering 200 to anyone who types
+ * the right URL.
+ *
+ * That failed silently for a whole release. `AppImage` renders its brand tile
+ * whenever a file will not load, which is right for a missing photograph and
+ * an excellent disguise for twenty-seven broken URLs: the grid was intact, the
+ * tiles were the right colours, the build was green, and the tests do not
+ * fetch. Dev was fine too, because in dev the base IS "/" and the literal
+ * happens to be correct — the bug existed only in the artifact nobody runs
+ * locally. It was found by someone looking at the site and asking where the
+ * pictures were.
+ *
+ * `BASE_URL` is Vite's own value for the configured base: "/" in dev,
+ * "/imap-bangladesh/" in a production build, always ending in a slash.
+ * `vite-plugins/base-path.js` now fails the build if this regresses.
+ */
+const BASE = `${import.meta.env.BASE_URL}img`;
 
 /** One per service category, keyed by the same name the icon registry uses. */
 export const CATEGORY_IMAGE = {

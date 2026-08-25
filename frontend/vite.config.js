@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { bundleBudgetPlugin } from './vite-plugins/bundle-budget.js'
+import { basePathPlugin } from './vite-plugins/base-path.js'
 
 export default defineConfig({
   // I-01: the budget is enforced at build time. UX-CONSTITUTION §7 —
   // "a route that exceeds its budget does not ship".
-  plugins: [react(), bundleBudgetPlugin()],
+  plugins: [react(), bundleBudgetPlugin(), basePathPlugin()],
 
   // GitHub Pages base path (only in production build)
   base: process.env.NODE_ENV === 'production' ? '/imap-bangladesh/' : '/',

@@ -45,11 +45,15 @@ export const haversine=(lat1,lng1,lat2,lng2)=>{
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 
+// Served from a subpath, so an asset URL has to carry Vite's base. A literal
+// "/icons/…" resolves against the domain root and 404s. See constants/images.js.
+const NOTIF_ICON = `${import.meta.env.BASE_URL}icons/icon-192.png`;
+
 export function showBrowserNotif(title,body){
   if(typeof Notification==="undefined"||Notification.permission!=="granted") return;
   try{
     if(navigator.serviceWorker?.controller){
-      navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"/icons/icon-192.png",badge:"/icons/icon-192.png",vibrate:[100,50,100]})).catch(()=>new Notification(title,{body}));
+      navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:NOTIF_ICON,badge:NOTIF_ICON,vibrate:[100,50,100]})).catch(()=>new Notification(title,{body}));
     } else { new Notification(title,{body}); }
   }catch{}
 }
