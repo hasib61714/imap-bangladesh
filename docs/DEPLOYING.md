@@ -242,7 +242,33 @@ gh pr merge 4 --squash        # or merge in the GitHub UI
 Render redeploys the backend. GitHub Actions builds and publishes the
 frontend — once billing is unlocked.
 
-### 3.4 Check it
+### 3.4 Check the configuration took
+
+```bash
+curl -s https://imap-backend-mghb.onrender.com/api/admin/readiness   -H "Authorization: Bearer <an admin token>" | jq
+```
+
+Environment variables are typed by hand into a dashboard and `/api/health`
+stays green through every mistake in them. This reports what the process
+actually read:
+
+```json
+{ "payment": { "configured": true, "mode": "sandbox", "storeId": "imapb6…" },
+  "sealedStorage": { "available": true, "driver": "s3", "dedicated": true },
+  "warnings": [] }
+```
+
+`warnings` empty is the thing to want. It carries no credential — the store id
+is truncated to six characters and the password is never read — and it is
+admin-only, because which capabilities a deployment is missing is a map of
+where it is weakest.
+
+**Check `mode` against your credentials.** `SSL_IS_SANDBOX` is `"false"` in
+`render.yaml`. Sandbox credentials with `mode: "live"` means every payment
+fails at the gateway with "Store Credential Error", and nothing in the app
+explains why.
+
+### 3.5 Check it
 
 ```bash
 curl -s https://imap-backend-mghb.onrender.com/api/health

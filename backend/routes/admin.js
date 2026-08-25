@@ -16,6 +16,8 @@ const { writeAudit } = require("../src/modules/platform/audit/writeAudit");
 // cases that own the verification state machine, so there is one path that
 // can move a case rather than one here and one in the identity module.
 const { execute } = require("../src/application/execute");
+const paymentGateway = require("../utils/payment");
+const platform = require("../src/modules/platform");
 const identity = require("../src/modules/identity");
 
 /**
@@ -39,6 +41,75 @@ const auditActor = (req) => ({
   role: req.authorization.actor.primaryRole,
   via: "http",
   onBehalfOf: null,
+});
+
+/**
+ * GET /api/admin/readiness — is this deployment actually configured?
+ *
+ * WHY THIS EXISTS
+ * ───────────────
+ * Several capabilities are configured entirely through environment variables
+ * set by hand in a hosting dashboard, and until now there was no way to learn
+ * whether that had been done correctly except by exercising the capability
+ * against a real customer: a payment that fails at the gateway, or a KYC
+ * submission that 503s. `/api/health` answers "is the process up and can it
+ * reach the database", which stays green through every one of these.
+ *
+ * Two failures this would have caught immediately:
+ *
+ *   - `SSL_IS_SANDBOX=false` with sandbox credentials. The gateway answers
+ *     "Store Credential Error", every payment fails, and nothing in the app
+ *     says why. `mode` below says `live` while the store id is a sandbox one.
+ *   - No sealed bucket. Identity documents are refused in production rather
+ *     than written to a container filesystem that a restart discards. That is
+ *     deliberate, but it should be a thing an operator can SEE.
+ *
+ * WHAT IT DOES NOT CONTAIN
+ * ────────────────────────
+ * No secret, and no value that could be reassembled into one. `describe()`
+ * returns the store id truncated to six characters and never the password —
+ * `test/i0*` covers that ("describe() exposes no credential"). The storage
+ * capability reports a bucket NAME, which is not a credential and is the
+ * thing an operator needs to check against what they typed.
+ *
+ * It is admin-only regardless. Which capabilities a deployment is missing is
+ * a map of where it is weakest, and that is not public information.
+ */
+router.get("/readiness", authMiddleware, requireAuthorization(ACTION.STATS_READ), async (req, res) => {
+  const payment = paymentGateway.describe();
+  const sealed  = platform.sealedStorage.capability();
+
+  // A sandbox store id in live mode, or the reverse. The id itself carries no
+  // marker, so this is a heuristic on the environment pair rather than proof —
+  // it points at the question rather than answering it.
+  const sandboxCredsInLiveMode =
+    payment.configured && payment.mode === "live" &&
+    String(process.env.SSL_IS_SANDBOX || "").toLowerCase() !== "true" &&
+    /sandbox/i.test(String(payment.base || ""));
+
+  const warnings = [];
+  if (!payment.configured) {
+    warnings.push("SSLCommerz is not configured — paid bookings will be refused, not mocked.");
+  }
+  if (sandboxCredsInLiveMode) {
+    warnings.push("Payment mode is `live` but the gateway base is a sandbox host. Check SSL_IS_SANDBOX.");
+  }
+  if (!sealed.available) {
+    warnings.push("Sealed storage is unavailable — identity documents will be refused (503).");
+  } else if (sealed.driver === "local" && !sealed.durable) {
+    warnings.push("Sealed storage is a local directory with no SEALED_LOCAL_DIR set. On a container filesystem, submitted documents do not survive a restart.");
+  }
+
+  res.json({
+    environment: {
+      app: process.env.APP_ENV || null,
+      database: process.env.DATABASE_ENV || null,
+      backendUrl: process.env.BACKEND_URL || null,
+    },
+    payment,
+    sealedStorage: sealed,
+    warnings,
+  });
 });
 
 // ── GET /api/admin/stats ──────────────────────────────────
