@@ -65,3 +65,43 @@ backend/.private/
 # Local development secrets. scripts/dev.sh sources this if it exists.
 # Never committed — see scripts/dev.secrets.env.example for the shape.
 scripts/dev.secrets.env
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.staging
+backend/.env
+frontend/.env
+frontend/.env.local
+# frontend/.env.production is committed (contains only public VITE_API_URL)
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads / user files
+backend/uploads/
+
+# Coverage
+coverage/
+
+# Orphaned Next.js scaffold (build cache only)
+frontend-next/
+.gstack/
+
+# temp refactor analysis scripts
+frontend/.*.cjs

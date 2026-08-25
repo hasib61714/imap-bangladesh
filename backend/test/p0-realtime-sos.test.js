@@ -38,6 +38,26 @@ function fakeIo() {
 /** Wait a tick so async handlers finish. */
 const tick = () => new Promise((r) => setImmediate(r));
 
+/**
+ * A pool that answers the per-connection identity read.
+ *
+ * `realtime.verifiedUser` resolves who the socket IS from the database rather
+ * than from the token, and both `join_room` and the admin-room check now ask
+ * it. A pool that answers nothing means no identity, and every handler
+ * refuses — correct behaviour, but it makes an unrelated fixture look like a
+ * denial, so the tests state the DB's answer explicitly.
+ *
+ * `dbRole` is the role the database holds. Where it differs from the role in
+ * `fakeSocket(...)`, the socket is carrying a stale or forged claim.
+ */
+function identityPool(id, dbRole, extra = []) {
+  return makePool([
+    { match: /FROM users WHERE id = \? AND is_active = 1/,
+      rows: id ? [{ id, role: dbRole, is_active: 1 }] : [] },
+    ...extra,
+  ]);
+}
+
 function loadRealtime() {
   resetModules("../realtime", "../utils/bookingAccess", "../utils/bookingState");
   // utils/bookingAccess requires ../db at module load. Without a fake in
@@ -54,7 +74,7 @@ test("P0-7: a non-participant cannot join a booking room", async () => {
   const socket = fakeSocket({ id: "outsider-1", role: "customer" });
 
   registerHandlers(io, socket, {
-    pool: makePool([]),
+    pool: identityPool("outsider-1", "customer"),
     // Real bookings exist, but this user is neither party.
     participation: async () => ({ allowed: false, role: null, customerId: "cust-1", providerUserId: "prov-1" }),
   });
@@ -74,7 +94,7 @@ test("P0-7: a participant can join, and only that booking", async () => {
   const socket = fakeSocket({ id: "cust-1", role: "customer" });
 
   registerHandlers(io, socket, {
-    pool: makePool([]),
+    pool: identityPool("cust-1", "customer"),
     participation: async (bookingId) =>
       bookingId === "bk-mine"
         ? { allowed: true, role: "customer", customerId: "cust-1", providerUserId: "prov-1" }
@@ -111,7 +131,7 @@ test("P0-7: location_update from an unauthorized socket is dropped", async () =>
   const socket = fakeSocket({ id: "outsider-1", role: "customer" });
 
   registerHandlers(io, socket, {
-    pool: makePool([]),
+    pool: identityPool("outsider-1", "customer"),
     participation: async () => ({ allowed: false, role: null, customerId: "c", providerUserId: "p" }),
   });
 
@@ -129,7 +149,7 @@ test("P0-7: only the assigned provider may publish a location", async () => {
   const io1 = fakeIo();
   const customer = fakeSocket({ id: "cust-1", role: "customer" });
   registerHandlers(io1, customer, {
-    pool: makePool([]),
+    pool: identityPool("cust-1", "customer"),
     participation: async () => ({ allowed: true, role: "customer", customerId: "cust-1", providerUserId: "prov-1" }),
   });
   customer.listeners("join_room")[0]("bk-1");
@@ -142,7 +162,7 @@ test("P0-7: only the assigned provider may publish a location", async () => {
   const io2 = fakeIo();
   const provider = fakeSocket({ id: "prov-1", role: "provider" });
   registerHandlers(io2, provider, {
-    pool: makePool([]),
+    pool: identityPool("prov-1", "provider"),
     participation: async () => ({ allowed: true, role: "provider", customerId: "cust-1", providerUserId: "prov-1" }),
   });
   provider.listeners("join_room")[0]("bk-1");
@@ -154,13 +174,62 @@ test("P0-7: only the assigned provider may publish a location", async () => {
   assert.deepEqual(io2.sent[0].payload, { lat: 23.81, lng: 90.41 });
 });
 
+/**
+ * The gap this closes: `joinAdminRoomIfPermitted` re-read the role from the
+ * database precisely because a token's claim can be stale, and `join_room`
+ * twenty lines below built its actor straight from that same claim. The
+ * booking policy grants administrators broad observation, so a demoted user
+ * holding an un-expired `role:"admin"` token could still open any booking's
+ * private chat and live GPS feed.
+ *
+ * The identity is resolved once per connection, from the database, and both
+ * decisions are made about it.
+ */
+test("P0-7: a stale admin claim does not open a stranger's booking room", async () => {
+  const { registerHandlers } = loadRealtime();
+  const io = fakeIo();
+  // The token says admin. The database says this user was demoted to customer.
+  const demoted = fakeSocket({ id: "u-1", role: "admin" });
+
+  let sawRole = null;
+  registerHandlers(io, demoted, {
+    pool: identityPool("u-1", "customer"),
+    participation: async (bookingId, user) => {
+      sawRole = user.role;
+      // What the real kernel would answer for a customer who is not a party.
+      return { allowed: user.role === "admin", role: user.role, customerId: "c", providerUserId: "p" };
+    },
+  });
+
+  demoted.listeners("join_room")[0]("bk-not-theirs");
+  await tick();
+
+  assert.equal(sawRole, "customer", "the decision is made about the DB role, not the token's");
+  assert.equal(demoted.rooms.size, 0, "no room was joined");
+  assert.equal(demoted.authorizedBookings.size, 0);
+});
+
+test("P0-7: a socket whose user row is gone joins nothing", async () => {
+  const { registerHandlers } = loadRealtime();
+  const deleted = fakeSocket({ id: "u-gone", role: "customer" });
+  registerHandlers(fakeIo(), deleted, {
+    pool: identityPool(null, null),      // deactivated or deleted between requests
+    participation: async () => ({ allowed: true, role: "customer", customerId: "x", providerUserId: "y" }),
+  });
+
+  deleted.listeners("join_room")[0]("bk-1");
+  await tick();
+
+  assert.equal(deleted.rooms.size, 0, "fail closed when the identity cannot be read");
+});
+
 test("P0-8: only a DB-verified admin joins the admin room", async () => {
   const { registerHandlers, ADMIN_ROOM } = loadRealtime();
 
   // A forged/stale JWT claiming role admin, but the DB says customer.
   const liar = fakeSocket({ id: "u-1", role: "admin" });
   registerHandlers(fakeIo(), liar, {
-    pool: makePool([{ match: "SELECT role FROM users", rows: [{ role: "customer" }] }]),
+    pool: identityPool("u-1", "customer"),
     participation: async () => ({ allowed: false }),
   });
   await tick();
@@ -169,7 +238,7 @@ test("P0-8: only a DB-verified admin joins the admin room", async () => {
   // A real admin.
   const real = fakeSocket({ id: "admin-1", role: "admin" });
   registerHandlers(fakeIo(), real, {
-    pool: makePool([{ match: "SELECT role FROM users", rows: [{ role: "admin" }] }]),
+    pool: identityPool("admin-1", "admin"),
     participation: async () => ({ allowed: false }),
   });
   await tick();

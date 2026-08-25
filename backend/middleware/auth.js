@@ -17,9 +17,18 @@ async function authMiddleware(req, res, next) {
     // unverified payload on the request object is an invitation to read it as
     // though it meant something.
     req.tokenClaims = decoded;
-    // Fetch fresh user from DB
+    // Fetch fresh user from DB.
+    //
+    // `avatar` is deliberately NOT in this list. It is a LONGTEXT holding a
+    // base64 data URL, and this query runs on EVERY authenticated request —
+    // so every list, every poll and every socket-adjacent call was dragging a
+    // user's profile image through the connection to populate a field that
+    // nothing reads. `req.user.avatar` has no consumers; the one place that
+    // needs it (Google sign-in, routes/auth.js) selects it itself.
+    //
+    // Guarded by tests/storage-auth.test.js.
     const [rows] = await pool.query(
-      "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
+      "SELECT id, name, email, phone, role, kyc_status, verified, balance, points, is_active FROM users WHERE id = ?",
       [decoded.id]
     );
     if (!rows.length || !rows[0].is_active) {

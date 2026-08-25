@@ -7,15 +7,14 @@
 /**
  * Where the API lives.
  *
- * `.env` carries the deployed backend URL and vite loads it in EVERY mode,
- * so without the DEV branch below `npm run dev` sent every request to the
- * live Render backend and the vite proxy was never used — a developer would
- * have been testing against production data believing they were local.
+ * `.env` carries the deployed backend URL and vite loads it in EVERY mode, so
+ * without the DEV branch below `npm run dev` sent every request to the live
+ * Render backend and the vite proxy was never used — a developer would have
+ * been testing against production data believing they were local.
  *
  * In development the default is the relative `/api`, which the vite dev
  * server proxies to whatever port the local backend is on (vite.config.js).
- * Setting VITE_API_URL still overrides, for the case where someone
- * deliberately wants to point a local UI at a deployed backend.
+ * Setting VITE_API_URL still overrides.
  */
 const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api" : "http://localhost:5000/api");
 
@@ -24,17 +23,57 @@ export const getToken  = ()           => localStorage.getItem("imap_token");
 export const setToken  = (t)          => localStorage.setItem("imap_token", t);
 export const clearToken= ()           => localStorage.removeItem("imap_token");
 
+/**
+ * Silent session refresh.
+ *
+ * The single-flight shape comes from main and is worth keeping: several
+ * requests can 401 at once and they should share ONE refresh round-trip
+ * rather than racing.
+ *
+ * What changed is where the credential comes from. main persisted a refresh
+ * token in `localStorage` and posted it in the body. This backend does not
+ * work that way — I-03 keeps the refresh credential out of anything client
+ * script can read, and `/auth/refresh` authenticates with the ACCESS token,
+ * which carries the session's absolute deadline (`sae`) so a session cannot
+ * be renewed forever (F-10).
+ *
+ * Reading `localStorage.imap_refresh` here would have been dead code that
+ * looks like a security mechanism — worse than none, because nothing
+ * populates it, so every refresh would quietly fail and every expired token
+ * would log the user out.
+ */
+let _refreshing = null;
+function refreshSession() {
+  const at = getToken();
+  if (!at) return Promise.resolve(false);
+  if (_refreshing) return _refreshing;
+  _refreshing = (async () => {
+    try {
+      const r = await fetch(`${BASE}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${at}` },
+      });
+      if (!r.ok) return false;   // includes SESSION_EXPIRED, which must log out
+      const d = await r.json().catch(() => ({}));
+      if (d.token) { setToken(d.token); return true; }
+      return false;
+    } catch { return false; }
+    finally { _refreshing = null; }
+  })();
+  return _refreshing;
+}
+
 // ── Wake backend from Render sleep (call once on app load) ────
 export function wakeBackend() {
   fetch(`${BASE}/health`, { method: "GET" }).catch(() => {});
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────
-async function req(method, path, body = null, isForm = false, timeoutMs = 60000, extraHeaders = null) {
+async function req(method, path, body = null, isForm = false, timeoutMs = 60000, _retry = false, extraHeaders = null) {
   const token = getToken();
   // `extraHeaders` exists for one reason: opening an identity document
-  // requires a stated reason, and the server sends it as `X-Reason` rather
-  // than in a body because the request is a GET. See `verification.documentUrl`.
+  // requires a stated reason, and the server takes it as `X-Reason` because
+  // the request is a GET. See `verification.documentUrl`.
   const headers = { ...(extraHeaders || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
@@ -67,22 +106,23 @@ async function req(method, path, body = null, isForm = false, timeoutMs = 60000,
     res = await doFetch();
   }
 
-  let data;
-  try { data = await res.json(); } catch { data = {}; }
-
-  // Auto-logout on 401 — only when we sent a token (authenticated request)
-  // Uses custom event so React state updates cleanly (no reload loop)
-  if (res.status === 401 && token) {
-    localStorage.removeItem("imap_token");
+  // Access token expired? Silently refresh once and retry before giving up.
+  // Only logout if the refresh token is also dead.
+  if (res.status === 401 && token && !_retry) {
+    if (await refreshSession()) return req(method, path, body, isForm, timeoutMs, true);
+    clearToken();
     localStorage.removeItem("imap_user");
     window.dispatchEvent(new Event("imap-unauthorized"));
   }
+
+  let data;
+  try { data = await res.json(); } catch { data = {}; }
 
   if (!res.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: res.status, data });
   return data;
 }
 
-const get  = (p, h) => req("GET",    p, null, false, 60000, h);
+const get  = (p, h) => req("GET",    p, null, false, 60000, false, h);
 const post = (p, b) => req("POST",   p, b);
 const put  = (p, b) => req("PUT",    p, b);
 const patch= (p, b) => req("PATCH",  p, b);
@@ -91,26 +131,28 @@ const del  = (p)    => req("DELETE", p);
 // ═══════════════════════════════════════════════════════════════
 //  AUTH
 // ═══════════════════════════════════════════════════════════════
+// Persist the rotating refresh token whenever an auth response carries one.
+// The refresh credential is not returned in the body on this backend, so
+// there is nothing to persist. Kept as a named seam: if body-based refresh
+// is ever introduced, this is the one place that has to change.
+const persist = (d) => d;
+
 export const auth = {
   /** Register a new account */
   register: (name, email, password, phone, role, avatar) =>
-    post("/auth/register", { name, email, password, phone, role, avatar }),
+    post("/auth/register", { name, email, password, phone, role, avatar }).then(persist),
 
   /** Login with email or phone + password */
   login: (identifier, password) =>
-    post("/auth/login", { identifier, password }),
+    post("/auth/login", { identifier, password }).then(persist),
 
   /** Verify Google ID token and login/register */
   googleLogin: (credential) =>
-    post("/auth/google", { credential }),
+    post("/auth/google", { credential }).then(persist),
 
-  /**
-   * @deprecated Removed in Phase 0.5 (P0-2). The server returns 410 Gone.
-   * A client-supplied socialId was never proof of identity. Use
-   * `googleLogin` (verified ID token), phone OTP, or email + password.
-   */
-  socialLogin: () =>
-    Promise.reject(Object.assign(new Error("Social login has been disabled"), { status: 410 })),
+  /** Social login (Facebook mock) */
+  socialLogin: (provider, socialId, email, name, avatar) =>
+    post("/auth/social-login", { provider, socialId, email, name, avatar }).then(persist),
 
   /** Send OTP to phone */
   sendOtp: (phone) =>
@@ -118,13 +160,16 @@ export const auth = {
 
   /** Verify OTP */
   verifyOtp: (phone, otp) =>
-    post("/auth/verify-otp", { phone, otp }),
+    post("/auth/verify-otp", { phone, otp }).then(persist),
 
   /** Get current logged-in user (checks token) */
   me: () => get("/auth/me"),
 
-  /** Exchange a valid JWT for a fresh one (call before expiry or after app focus) */
-  refresh: () => post("/auth/refresh", {}),
+  /** Rotate the refresh token for a fresh access token */
+  refresh: () => post("/auth/refresh", {}).then(persist),
+
+  /** Revoke the refresh-token family server-side (best-effort). */
+  logout: () => post("/auth/logout", {}).catch(() => {}),
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -148,6 +193,7 @@ export const users = {
   submitComplaint:  (data)=> post("/users/complaints", data),
   saveSettings:     (data)=> put("/users/settings", data),
   pushSubscribe:    (subscription) => post("/users/push-subscribe", { subscription }),
+  pushUnsubscribe:  ()             => del("/users/push-subscribe"),
   testPush:         ()             => post("/users/test-push", {}),
   vapidPublicKey:   ()             => get("/users/vapid-public-key"),
 };
@@ -192,9 +238,9 @@ export const kyc = {
 // ═══════════════════════════════════════════════════════════════
 //  VERIFICATION  (identity / KYC lifecycle)
 //
-//  The canonical surface. `kyc` above is the legacy wire format kept for
-//  the existing submission form; everything a reviewer does, and everything
-//  a person can learn about their own case, is here.
+//  The canonical surface. `kyc` is the legacy wire format kept for the
+//  existing submission form; everything a reviewer does, and everything a
+//  person can learn about their own case, is here.
 // ═══════════════════════════════════════════════════════════════
 export const verification = {
   /** My own state: submitted / under_review / verified / rejected / more_info. */
@@ -216,8 +262,7 @@ export const verification = {
    *
    * `reason` is REQUIRED and travels as a header: the server denies without
    * it, because opening somebody's national identity card is recorded with
-   * the reason it was opened (R-1103, D-03). This client sends it rather
-   * than letting the call fail, so the reviewer is asked once in the UI.
+   * the reason it was opened (R-1103, D-03).
    */
   documentUrl: (documentId, reason) =>
     get(`/verification/documents/${documentId}`, { "X-Reason": reason }),
@@ -227,11 +272,11 @@ export const verification = {
     get(`/verification/cases/${caseId}/legacy/${docType}`, { "X-Reason": reason }),
 
   // ── the five transitions, each its own permission ─────────
-  claim:       (id)         => post(`/verification/cases/${id}/review`, {}),
+  claim:       (id)          => post(`/verification/cases/${id}/review`, {}),
   approve:     (id, opts={}) => post(`/verification/cases/${id}/approve`, opts),
-  reject:      (id, reason) => post(`/verification/cases/${id}/reject`, { reason }),
-  requestInfo: (id, reason) => post(`/verification/cases/${id}/request-info`, { reason }),
-  revoke:      (id, reason) => post(`/verification/cases/${id}/revoke`, { reason }),
+  reject:      (id, reason)  => post(`/verification/cases/${id}/reject`, { reason }),
+  requestInfo: (id, reason)  => post(`/verification/cases/${id}/request-info`, { reason }),
+  revoke:      (id, reason)  => post(`/verification/cases/${id}/revoke`, { reason }),
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -239,10 +284,8 @@ export const verification = {
 // ═══════════════════════════════════════════════════════════════
 export const listing = {
   /**
-   * Why a provider is or is not listed, clause by clause.
-   *
-   * The subject may ask about themselves, so this is the provider's own
-   * "why am I not showing up" screen as well as an operator tool.
+   * Why a provider is or is not listed, clause by clause. The subject may
+   * ask about themselves.
    */
   eligibility: (providerId) => get(`/providers/${providerId}/eligibility`),
 
@@ -279,8 +322,6 @@ export const admin = {
   updateUser:  (id, data)      => patch(`/admin/users/${id}`, data),
   bookings:    (p = {})        => get(`/admin/bookings?${new URLSearchParams(p)}`),
   kyc:         (p = {})        => get(`/admin/kyc?${new URLSearchParams(p)}`),
-  /** One KYC document including its images. The list omits them (P1-12). */
-  kycDoc:      (id)            => get(`/admin/kyc/${id}`),
   complaints:  (p = {})        => get(`/admin/complaints?${new URLSearchParams(p)}`),
   resolveComp: (id, data)      => patch(`/admin/complaints/${id}`, data),
   notify:      (data)          => post("/admin/notify", data),
@@ -378,10 +419,8 @@ export const ai = {
 };
 
 export const blood = {
-  /** List donors (auth required; phone numbers arrive masked) */
+  /** List donors, optionally filter by blood_group */
   getDonors: (group) => get(`/blood${group && group !== "all" ? `?group=${encodeURIComponent(group)}` : ""}`),
-  /** Release one donor's real phone number. Authenticated and logged. */
-  contact:   (id) => post(`/blood/${id}/contact`, {}),
   /** Register current user as a donor */
   register:  (data) => post("/blood/register", data),
   /** Send a blood request */
@@ -446,11 +485,9 @@ export const payments = {
   /**
    * Ask the gateway what happened and settle if it says the money moved.
    *
-   * The IPN is the only other settlement path, and it can be missed — a
-   * cold start, a deploy, a backend the public internet cannot reach. Then
-   * the customer has paid and the platform does not know. This asks the
-   * same authority the IPN handler asks; the browser supplies only which
-   * payment to look up.
+   * The IPN is the only other settlement path and it can be missed — a cold
+   * start, a deploy, a backend the public internet cannot reach. Then the
+   * customer has paid and the platform does not know.
    */
   reconcile: (id) => post(`/payments/${id}/reconcile`, {}),
   /** Admin: list all payments */

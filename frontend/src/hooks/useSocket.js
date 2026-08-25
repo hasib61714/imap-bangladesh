@@ -34,8 +34,15 @@ export function useSocket(token) {
     // connection, so this is idempotent across every component that calls it.
     socketRef.current = connectSocket();
     const s = getSocket();
-    if (token && s && !s.connected) {
-      s.auth = { token };
+    if (!s) return;
+    // A live socket authenticated as the PREVIOUS identity is worse than no
+    // socket: it stays in rooms the new user may not be entitled to. If the
+    // token changed, tear it down and reconnect. (Carried over from main.)
+    if (s.auth?.token !== (token || "")) {
+      s.auth = { token: token || "" };
+      if (s.connected) s.disconnect();
+      s.connect();
+    } else if (!s.connected) {
       s.connect();
     }
   }, [token]);

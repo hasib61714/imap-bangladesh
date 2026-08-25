@@ -229,9 +229,16 @@ test("a correct code authenticates, and the token carries a deadline", async (t)
 test("§19 POST /auth/refresh cannot extend a session forever", async (t) => {
   const sign = (claims) => jwt.sign(claims, process.env.JWT_SECRET, { algorithm: "HS256", expiresIn: "7d" });
 
+  // Matched by shape rather than by the exact column list. Pinning the literal
+  // SQL meant that removing `avatar` from the per-request lookup — a change
+  // with nothing to do with session deadlines — failed these three tests with
+  // `undefined !== "SESSION_EXPIRED"`, which points nowhere near the edit.
+  //
+  // The first is authMiddleware's lookup (`middleware/auth.js`), the second is
+  // the refresh handler's own (`routes/auth.js`), and they differ only in
+  // whether `is_active` is selected or filtered in the WHERE clause.
   const refreshPool = () => makePool([
-    { match: "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points, is_active FROM users", rows: [USER] },
-    { match: "SELECT id, name, email, phone, role, avatar, kyc_status, verified, balance, points FROM users", rows: [USER] },
+    { match: /SELECT id, name, email, phone, role,[\s\S]*?FROM users WHERE id = \?/, rows: [USER] },
   ]);
 
   await t.test("a token past its session deadline is refused", async (tt) => {

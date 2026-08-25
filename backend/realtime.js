@@ -15,6 +15,43 @@ const { legacyActorFromUser } = require("./src/modules/platform/authorization/le
 const ADMIN_ROOM = "role:admin";
 
 /**
+ * The connection's identity, as the DATABASE has it — not as the token says.
+ *
+ * `server.js` authenticates a socket with `jwt.verify` and nothing else, so
+ * `socket.user` is a decoded token: whatever `role` was true when it was
+ * issued. Tokens outlive demotions, and the role claim is the one field an
+ * attacker holding an old token fully controls.
+ *
+ * `joinAdminRoomIfPermitted` already refused to trust it and re-read the row.
+ * `join_room` did not — it built its actor straight from `socket.user`, so a
+ * stale `role:"admin"` token was admitted to any booking's private chat and
+ * live GPS feed by a policy that (correctly) grants administrators broad
+ * observation. Two standards for the same claim, twenty lines apart.
+ *
+ * Resolved ONCE per connection and memoised on the socket: this runs for
+ * every connected client, and one row read per socket is the budget.
+ * A read failure resolves to null — fail closed, no identity, no rooms.
+ */
+function verifiedUser(socket, pool) {
+  if (socket._verifiedUser) return socket._verifiedUser;
+  socket._verifiedUser = (async () => {
+    if (!socket.user?.id) return null;
+    try {
+      const [rows] = await pool.query(
+        "SELECT id, role, is_active FROM users WHERE id = ? AND is_active = 1 LIMIT 1",
+        [socket.user.id]
+      );
+      if (!rows.length) return null;
+      return { id: rows[0].id, role: rows[0].role, is_active: 1, name: socket.user.name };
+    } catch (e) {
+      logger.warn("socket identity check failed", { err: e.message });
+      return null;
+    }
+  })();
+  return socket._verifiedUser;
+}
+
+/**
  * Confirm, against the database, that this socket may see the emergency
  * queue. A `role` claim inside the JWT is not sufficient: it can be stale
  * after a demotion, and it is the only thing an attacker with an old token
@@ -35,12 +72,11 @@ const ADMIN_ROOM = "role:admin";
 async function joinAdminRoomIfPermitted(socket, pool) {
   if (!socket.user?.id) return false;
   try {
-    const [rows] = await pool.query(
-      "SELECT role FROM users WHERE id = ? AND is_active = 1 LIMIT 1",
-      [socket.user.id]
-    );
-    if (!rows.length) return false;
-    const actor = legacyActorFromUser({ id: socket.user.id, role: rows[0].role, is_active: 1 });
+    // Was its own `SELECT role`. It is `verifiedUser` now, so the connection
+    // reads the row once and both decisions are made about the same identity.
+    const who = await verifiedUser(socket, pool);
+    if (!who) return false;
+    const actor = legacyActorFromUser(who);
     const decision = await authorize(actor, ACTION.EMERGENCY_LIST, null, { db: pool });
     if (decision.allowed) {
       socket.join(ADMIN_ROOM);
@@ -80,7 +116,10 @@ function registerHandlers(io, socket, deps = {}) {
     if (!socket.user?.id) return;
     if (typeof bookingId !== "string" || !bookingId || bookingId.length > 36) return;
     try {
-      const part = await participationOf(bookingId, socket.user);
+      // The DB-verified identity, never the token's claim.
+      const who = await verifiedUser(socket, pool);
+      if (!who) return;
+      const part = await participationOf(bookingId, who);
       if (!part.allowed) {
         logger.warn("socket join_room denied", { userId: socket.user.id, bookingId });
         socket.emit("room_denied", { bookingId, error: "Access denied" });
@@ -145,4 +184,4 @@ function registerHandlers(io, socket, deps = {}) {
   });
 }
 
-module.exports = { registerHandlers, joinAdminRoomIfPermitted, ADMIN_ROOM };
+module.exports = { registerHandlers, joinAdminRoomIfPermitted, verifiedUser, ADMIN_ROOM };
