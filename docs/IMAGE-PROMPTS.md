@@ -571,35 +571,64 @@ the image is duplicated, and each platform crops it differently.
 
 # Checklist
 
-Run `npm --prefix frontend run check:images` for the authoritative count; this
-is the state as of the last batch.
+Run `npm --prefix frontend run check:images` for the authoritative count.
+
+**Every slot is filled — 27 of 27.** Nothing is on the fallback tile, and the
+whole set is 1,247 KB, averaging 46 KB per image. `AppImage` lazy-loads, so a
+visitor pays only for what scrolls into view.
+
+## Sixteen are placeholders, not finished work
+
+They fill their slot and they are all better than an empty tile, which is why
+they are installed. They are not what the brief asked for, and each should be
+replaced when there is time. Grouped by what is wrong, worst first:
+
+**An invented company name on the worker** — the strongest reason to replace
+these. The platform lists independent providers; one brand across all of them
+says something about the product that is not true.
 
 ```
-category/    ☑ emergency          ☑ home-maintenance   ☑ cleaning
-             ☑ healthcare         ☑ education          ☑ moving
-             ☑ food               ☑ professional       ☑ security
-             ☐ errands            ☐ elderly            ☐ childcare
-             ☑ agro               ☐ events             ☑ lifestyle
-             ☐ repair             ☐ digital            ☐ utility
-             ☐ beauty
-
-hero/        ☐ hero-bg
-steps/       ☐ step-1-browse  ☐ step-2-register  ☐ step-3-book  ☐ step-4-service
-trust/       ☐ verification
-empty/       ☐ portfolio
-social/      ☐ og-share
+childcare   'nexora' on the polo and lanyard
+errands     the bag reads 'NEXORA / We run your errands'
+repair      'nexora Care & Beyond' on the polo
+portfolio   nexora polo — and the brief wants tools only, no people at all
+step-2      nexora polo, plus an 'Expert Repair / Reliable Care' sign
+step-4      nexora cap, polo and toolbox, plus 'Fix Maintain Improve Life'
 ```
 
-**11 of 27.** The sixteen open ones each have a prompt above; the eight
-category slots are the set worth doing first, because that grid is the first
-thing a visitor scrolls to.
+**A picture of the wrong thing**
 
-Two of them need more than a re-run:
+```
+beauty      a man vacuuming a living room. That is cleaning, not a salon
+digital     photo-editing software on a laptop, 'DESIGN' legible on screen
+events      a concert stage. Prompt 14 asks for marigolds at a doorway
+```
 
-- **`utility`** must not be another under-sink shot. `home-maintenance`
-  already owns that, and a batch that put the same plumbing photograph in
-  both is why prompt 18 specifies a **rooftop water tank** instead.
-- **`elderly`** must not be another nurse-with-a-blood-pressure-cuff.
-  `healthcare` already owns that. Prompt 11 asks for a carer steadying a
-  forearm as someone rises from a chair — a different action, and the reason
-  the two categories are distinct.
+**A photograph that is already doing another job.** Seven slots, four
+photographs between them:
+
+```
+utility     the home-maintenance under-sink shot, byte for byte
+hero-bg     the cleaning photograph
+og-share    the cleaning photograph again
+step-1      the education photograph
+step-3      the professional photograph
+verification the professional photograph
+elderly     the healthcare nurse-and-cuff scene, close enough to read as a repeat
+```
+
+`utility` is recorded in `ACCEPTED_DUPLICATES` in
+`frontend/scripts/check-images.mjs`, so the build prints it on every run
+rather than failing. Delete that entry when the slot gets its own picture —
+a stale entry fails the build, so the list cannot outlive what it excuses.
+
+## Two need a different subject, not another attempt
+
+Re-running their prompt will most likely produce the same collision again:
+
+- **`utility`** must not be another under-sink shot — `home-maintenance` owns
+  that. Prompt 18 specifies a **rooftop water tank**.
+- **`elderly`** must not be another nurse with a blood-pressure cuff —
+  `healthcare` owns that. Prompt 11 asks for a carer **steadying a forearm as
+  someone rises from a chair**: a different action, and the reason the two
+  categories exist separately.
