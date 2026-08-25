@@ -51,7 +51,7 @@ export default function LoyaltyPage(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:16,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["points","🎯 "+tr.lyEarn+"/"+tr.lyRedeem],["history","📋 "+tr.lyHistory]].map(([id,lbl])=>(
+        {[["points",""+tr.lyEarn+"/"+tr.lyRedeem],["history",""+tr.lyHistory]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lbl}</button>
         ))}
       </div>
@@ -99,7 +99,7 @@ export default function LoyaltyPage(){
           )}
           {history.map((h,i)=>(
             <div key={h.id||i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i<history.length-1?`1px solid ${C.bdr}`:"none"}}>
-              <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{h.points>0?"🎯":"🎁"}</div>
+              <div style={{width:36,height:36,borderRadius:10,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{h.points>0?"":""}</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.text}}>{lang==="en"?h.reason_en:h.reason_bn}</div>
                 <div style={{fontSize:11,color:C.muted}}>{new Date(h.created_at).toLocaleDateString("bn-BD")}</div>

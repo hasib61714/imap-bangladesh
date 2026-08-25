@@ -46,7 +46,7 @@ export default function LiveMap({tracking,setTracking}) {
     const satBtn=L.control({position:"topleft"});
     satBtn.onAdd=()=>{
       const d=L.DomUtil.create("button");
-      d.innerHTML="🛰️";
+      d.innerHTML="";
       d.title="Toggle satellite";
       Object.assign(d.style,{background:"rgba(255,255,255,.98)",backdropFilter:"blur(3px)",borderRadius:"8px",padding:"6px 9px",cursor:"pointer",fontSize:"15px",border:"1.5px solid rgba(255,255,255,.6)",boxShadow:"0 4px 14px rgba(0,0,0,.15)"});
       L.DomEvent.on(d,"click",L.DomEvent.stopPropagation);

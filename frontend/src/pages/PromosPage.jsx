@@ -126,7 +126,7 @@ export default function PromosPage(){
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:7,flexShrink:0}}>
                 <button onClick={()=>copyCode(c)} style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${C.bdr}`,background:C.bg,color:C.sub,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-                  {copied===c.code?tr.prCopied:"📋 Copy"}
+                  {copied===c.code?tr.prCopied:"Copy"}
                 </button>
                 <button onClick={()=>{if(!isApplied){setCode(c.code);setAppliedCode(c);setApplyResult("ok");}else{setAppliedCode(null);setApplyResult(null);setCode("");}}}
                   style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${isApplied?"#DC2626":C.p}`,background:isApplied?"#FEF2F2":C.plt,color:isApplied?"#DC2626":C.p,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>

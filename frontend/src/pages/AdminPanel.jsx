@@ -150,7 +150,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
    * WHAT THESE USED TO DO
    * ─────────────────────
    *   setProviders(... status: "active" ...);
-   *   toast("✅ Approved!");
+   *   toast("Approved!");
    *   try { await adminApi.updateUser(id, { is_active: 1 }); } catch { console.warn }
    *
    * `is_active` is the USER ACCOUNT. Setting it did not make a provider
@@ -184,7 +184,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   const approveProvider = (row) =>
     runListing(row._pid, () => listingApi.approve(row._pid),
-      lang === "bn" ? "✅ তালিকাভুক্ত করা হয়েছে" : "✅ Now listed");
+      lang === "bn" ? "তালিকাভুক্ত করা হয়েছে" : "Now listed");
 
   const submitListingDecision = async () => {
     const reason = listingReason.trim();
@@ -217,7 +217,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
       const nextStatus = nextActive ? "active" : "suspended";
       if (type==="provider") setProviders(p => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
       else                   setUsers(p   => p.map(x => x.id===id ? {...x, status:nextStatus} : x));
-      toast(lang==="bn" ? "✅ অবস্থা পরিবর্তিত" : "✅ Status updated");
+      toast(lang==="bn" ? "অবস্থা পরিবর্তিত" : "Status updated");
     } catch(e) {
       toast((lang==="bn" ? "পরিবর্তন ব্যর্থ: " : "Update failed: ") + (e.data?.error || e.message), "error");
     }
@@ -284,13 +284,13 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
    * WHAT THESE USED TO DO
    * ─────────────────────
    *   setKycList(... status: "verified" ...);
-   *   toast("✅ KYC Approved");
+   *   toast("KYC Approved");
    *   adminApi.kycReview(id, "verified").catch(e => console.warn(...));
    *
    * The list was updated, the success toast was shown, and the request was
    * fired into a `console.warn`. An operator who was not permitted to
    * approve — or who hit a state conflict, or lost the network — saw
-   * "✅ KYC Approved" and had approved nothing. The UI reported an outcome
+   * "KYC Approved" and had approved nothing. The UI reported an outcome
    * it had not waited for and could not observe.
    *
    * Now every decision awaits the server, the list is refreshed from what
@@ -338,7 +338,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
 
   const kycApprove = async (id) => {
     const ok = await decide(id, (i) => verificationApi.approve(i));
-    if (ok) toast(lang === "bn" ? "✅ পরিচয় যাচাই সম্পন্ন" : "✅ Identity verified");
+    if (ok) toast(lang === "bn" ? "পরিচয় যাচাই সম্পন্ন" : "Identity verified");
   };
 
   const kycReject = async () => {
@@ -444,7 +444,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     try {
       await loansApi.update(id, status, note);
       setLoanList(prev => prev.map(l => l.id===id ? {...l, status} : l));
-      toast(lang==="bn" ? "✅ লোন আপডেট হয়েছে" : "✅ Loan updated");
+      toast(lang==="bn" ? "লোন আপডেট হয়েছে" : "Loan updated");
     } catch(e) { toast(e.data?.error||"Error", "error"); }
   };
   useEffect(() => { if(tab==="loans") loadLoans(loanFilter); }, [tab, loanFilter]);
@@ -537,7 +537,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           rating: parseFloat(p.rating || 0).toFixed(1),
           jobs: p.total_jobs || 0,
           earned: parseFloat(p.earned || 0),
-          nid: p.nid_verified ? "✓ Verified" : null,
+          nid: p.nid_verified ? "Verified" : null,
           phone: p.phone,
           kyc: p.kyc_status,
         })));
@@ -663,7 +663,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
       if (Array.isArray(data) && data.length) {
         setCategories(data.map(c => ({
           id: c.id,
-          icon: c.icon || "🔧",
+          icon: c.icon || "",
           name: c.name_bn || c.name_en || c.name || "Service",
           providers: c.available_count || 0,
           active: c.is_active !== 0,
@@ -751,7 +751,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
     {
       title: lang==="bn"?"পরিচয়":"Identity", key:"identity",
       render: (_,p) => p.identityVerified
-        ? <Tag color="success">{lang==="bn"?"✅ যাচাইকৃত":"✅ Verified"}</Tag>
+        ? <Tag color="success">{lang==="bn"?"যাচাইকৃত":"Verified"}</Tag>
         : <Tag color="warning">{lang==="bn"?"অযাচাইকৃত":"Not verified"}</Tag>,
     },
     {
@@ -990,7 +990,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 )}
                 <Row gutter={[16,16]}>
                   <Col xs={24} lg={14}>
-                    <Card title={lang==="bn"?"🕐 সাম্প্রতিক বুকিং":"🕐 Recent Bookings"} bordered>
+                    <Card title={lang==="bn"?"সাম্প্রতিক বুকিং":"Recent Bookings"} bordered>
                       <Table dataSource={displayBookings.slice(0,3)} columns={bookingCols.slice(0,5)}
                         pagination={false} size="small" rowKey="id" />
                     </Card>
@@ -1237,8 +1237,8 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                                   it somewhere and wondering why it died. */}
                               <Text type="secondary" style={{fontSize:11,display:"block",marginTop:6}}>
                                 {lang==="bn"
-                                  ? "🔒 লিঙ্কগুলো ৫ মিনিট পরে কাজ করবে না। শেয়ার করবেন না।"
-                                  : "🔒 These links stop working in five minutes. Do not share them."}
+                                  ? "লিঙ্কগুলো ৫ মিনিট পরে কাজ করবে না। শেয়ার করবেন না।"
+                                  : "These links stop working in five minutes. Do not share them."}
                               </Text>
                             </>
                           )}
@@ -1347,7 +1347,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 </Row>
                 <Row gutter={[16,16]}>
                   <Col xs={24} lg={14}>
-                    <Card title={lang==="bn"?"📈 মাসিক রাজস্ব (৳)":"📈 Monthly Revenue (৳)"} bordered>
+                    <Card title={lang==="bn"?"মাসিক রাজস্ব (৳)":"Monthly Revenue (৳)"} bordered>
                       <div style={{display:"flex",alignItems:"flex-end",gap:10,height:140,paddingTop:8}}>
                         {(monthlyRev2.length>0?monthlyRev2:monthlyRev).map((m,i,arr)=>(
                           <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
@@ -1361,7 +1361,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     </Card>
                   </Col>
                   <Col xs={24} lg={10}>
-                    <Card title={lang==="bn"?"🏆 শীর্ষ প্রদানকারী":"🏆 Top Providers"} bordered>
+                    <Card title={lang==="bn"?"শীর্ষ প্রদানকারী":"Top Providers"} bordered>
                       {topProviders.map((p,i)=>(
                         <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:"10px 0",borderBottom:i<2?"1px solid rgba(0,0,0,0.06)":"none"}}>
@@ -1417,7 +1417,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                               <Space direction="vertical" size={4}>
                                 <Button size="small" type="primary" onClick={async()=>{
                                   setTickets(tk=>tk.map(x=>x.id===t.id?{...x,status:"resolved"}:x));
-                                  toast(lang==="bn"?"✅ সমাধান হয়েছে":"✅ Resolved");
+                                  toast(lang==="bn"?"সমাধান হয়েছে":"Resolved");
                                   if(t._rawId) adminApi.resolveComp(t._rawId,{status:"resolved"}).catch(()=>{});
                                 }}>{lang==="bn"?"সমাধান":"Resolve"}</Button>
                                 <Button size="small" danger onClick={async()=>{
@@ -1468,7 +1468,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                         try{await adminApi.notify({title_bn:titleVal,title_en:titleVal,body_bn:msgVal,body_en:msgVal,type:"system"});}catch(e){console.warn(e.message);}finally{setNotifSending(false);}
                         setNotifTitle("");setNotifMsg("");
                         loadAnnouncements();
-                        toast(lang==="bn"?"📢 বিজ্ঞপ্তি পাঠানো হয়েছে":"📢 Sent!");
+                        toast(lang==="bn"?"বিজ্ঞপ্তি পাঠানো হয়েছে":"Sent!");
                       }}>{lang==="bn"?"পাঠান":"Send"}</Button>
                     </Form>
                   </Card>
@@ -1529,9 +1529,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           });
                           setPromoForm({code:"",discount:"",type:"percent",limit:""});
                           loadPromos();
-                          toast(lang==="bn"?"✅ প্রোমো তৈরি হয়েছে":"✅ Promo created!");
+                          toast(lang==="bn"?"প্রোমো তৈরি হয়েছে":"Promo created!");
                         }catch(e){
-                          toast(lang==="bn"?"❌ ব্যর্থ হয়েছে":"❌ Failed","error");
+                          toast(lang==="bn"?"ব্যর্থ হয়েছে":"Failed","error");
                         }finally{setPromoSaving(false);}
                       }}>{lang==="bn"?"যোগ":"Add"}</Button>
                     </Col>
@@ -1550,7 +1550,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           const newActive = !p.active;
                           setPromos(prev=>prev.map(x=>x.id===p.id?{...x,active:newActive}:x));
                           adminApi.promoToggle(p.id,{is_active:newActive}).catch(()=>{});
-                          toast(lang==="bn"?"✅ আপডেট":"✅ Updated");
+                          toast(lang==="bn"?"আপডেট":"Updated");
                         }} />
                         <Popconfirm title={lang==="bn"?"মুছে ফেলবেন?":"Delete?"} onConfirm={()=>{
                           adminApi.promoDelete(p.id).then(()=>loadPromos()).catch(()=>{});
@@ -1637,7 +1637,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 <Card title={`➕ ${lang==="bn"?"নতুন বিভাগ":"New Category"}`} bordered style={{marginBottom:20,borderTop:"3px solid #006A4E"}}>
                   <Space wrap>
                     <Input value=<Icon name={newCat.icon} size={14} style={{marginRight:6}} />onChange={e=>setNewCat(c=>({...c,icon:e.target.value}))}
-                      placeholder="🔧" style={{width:60,textAlign:"center",fontSize:20}} />
+                      placeholder="" style={{width:60,textAlign:"center",fontSize:20}} />
                     <Input value={newCat.name} onChange={e=>setNewCat(c=>({...c,name:e.target.value}))}
                       placeholder={lang==="bn"?"বিভাগের নাম":"Category name"} style={{width:200}} />
                     <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{
@@ -1645,9 +1645,9 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                       const slug = newCat.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"") || "cat-"+Date.now();
                       servicesApi.create({slug, name_bn:newCat.name, name_en:newCat.name, icon:newCat.icon||"\ud83d\udd27"})
                         .then(()=>loadCategories()).catch(()=>{});
-                      setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"🔧",name:newCat.name,providers:0,active:true}]);
+                      setCategories(c=>[...c,{id:Date.now(),icon:newCat.icon||"",name:newCat.name,providers:0,active:true}]);
                       setNewCat({icon:"",name:""});
-                      toast(lang==="bn"?"✅ বিভাগ যোগ":"✅ Added");
+                      toast(lang==="bn"?"বিভাগ যোগ":"Added");
                     }}>{lang==="bn"?"যোগ করুন":"Add"}</Button>
                   </Space>
                 </Card>
@@ -1823,14 +1823,14 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                 {/* AI Feature Cards */}
                 <Row gutter={[14,14]}>
                   {[
-                    {ic:"🤖",lbn:"Real AI Chatbot",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#006A4E"},
-                    {ic:"🎙️",lbn:"ভয়েস ইনপুট",len:"Voice Input",d_bn:"Web Speech API — বাংলা ও ইংরেজি সাপোর্ট",d_en:"Web Speech API — Bangla & English supported",color:"#6366F1"},
-                    {ic:"🎯",lbn:"স্মার্ট ম্যাচিং",len:"Smart Matching",d_bn:"AI স্কোর দিয়ে provider র‍্যাংকিং",d_en:"AI-scored provider ranking",color:"#F59E0B"},
-                    {ic:"💰",lbn:"ডায়নামিক প্রাইসিং",len:"Dynamic Pricing",d_bn:"চাহিদা ও সময়ভিত্তিক মূল্য",d_en:"Demand & time-based pricing",color:"#EF4444"},
-                    {ic:"🛡️",lbn:"ফ্রড ডিটেকশন",len:"Fraud Detection",d_bn:"সন্দেহজনক বুকিং স্বয়ংক্রিয়ভাবে ফ্ল্যাগ",d_en:"Auto-flag suspicious bookings",color:"#0EA5E9"},
-                    {ic:"⭐",lbn:"ফেক রিভিউ চেক",len:"Fake Review Check",d_bn:"নকল রিভিউ AI দিয়ে শনাক্ত",d_en:"Detect fake reviews with AI",color:"#8B5CF6"},
-                    {ic:"📦",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#00C170"},
-                    {ic:"📉",lbn:"চার্ন প্রেডিকশন",len:"Churn Prediction",d_bn:"নিষ্ক্রিয় ব্যবহারকারী শনাক্ত",d_en:"Identify inactive users about to leave",color:"#F97316"},
+                    {ic:"",lbn:"Real AI Chatbot",len:"Real AI Chatbot",d_bn:"OpenAI GPT-4o-mini + স্মার্ট বাংলা ফলব্যাক সক্রিয়",d_en:"OpenAI GPT-4o-mini + Smart Bangla fallback active",color:"#006A4E"},
+                    {ic:"",lbn:"ভয়েস ইনপুট",len:"Voice Input",d_bn:"Web Speech API — বাংলা ও ইংরেজি সাপোর্ট",d_en:"Web Speech API — Bangla & English supported",color:"#6366F1"},
+                    {ic:"",lbn:"স্মার্ট ম্যাচিং",len:"Smart Matching",d_bn:"AI স্কোর দিয়ে provider র‍্যাংকিং",d_en:"AI-scored provider ranking",color:"#F59E0B"},
+                    {ic:"",lbn:"ডায়নামিক প্রাইসিং",len:"Dynamic Pricing",d_bn:"চাহিদা ও সময়ভিত্তিক মূল্য",d_en:"Demand & time-based pricing",color:"#EF4444"},
+                    {ic:"",lbn:"ফ্রড ডিটেকশন",len:"Fraud Detection",d_bn:"সন্দেহজনক বুকিং স্বয়ংক্রিয়ভাবে ফ্ল্যাগ",d_en:"Auto-flag suspicious bookings",color:"#0EA5E9"},
+                    {ic:"",lbn:"ফেক রিভিউ চেক",len:"Fake Review Check",d_bn:"নকল রিভিউ AI দিয়ে শনাক্ত",d_en:"Detect fake reviews with AI",color:"#8B5CF6"},
+                    {ic:"",lbn:"বান্ডেল সাজেশন",len:"Bundle Suggest",d_bn:"বুকিং পরে পরিপূরক সেবা সাজেস্ট",d_en:"Suggest complementary services post-booking",color:"#00C170"},
+                    {ic:"",lbn:"চার্ন প্রেডিকশন",len:"Churn Prediction",d_bn:"নিষ্ক্রিয় ব্যবহারকারী শনাক্ত",d_en:"Identify inactive users about to leave",color:"#F97316"},
                   ].map((f,i)=>(
                     <Col key={i} xs={24} sm={12} md={6}>
                       <Card bordered style={{borderTop:`3px solid ${f.color}`,textAlign:"center"}}>
@@ -1966,7 +1966,7 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                           setSysToggles(t=>{const n=[...t];n[i]=newVal;return n;});
                           const keys=["system_online","maintenance_mode","sms_notifications","ai_matching","payment_gateway","nid_verification"];
                           await adminApi.saveSettings(keys[i], newVal).catch(()=>{});
-                          toast(lang==="bn"?"✅ সেটিংস সংরক্ষিত":"✅ Setting saved");
+                          toast(lang==="bn"?"সেটিংস সংরক্ষিত":"Setting saved");
                         }} />
                       </div>
                     ))}

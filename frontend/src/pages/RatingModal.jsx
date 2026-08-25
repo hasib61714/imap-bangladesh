@@ -38,7 +38,7 @@ export default function RatingModal({p,onClose,onSuccess}) {
       </div>
       {rating>0&&<div style={{textAlign:"center",fontSize:14,color:C.p,fontWeight:600,marginBottom:12}}>{LABELS[rating]}</div>}
       <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:14}}>
-        {TAGS.map(t=><button key={t} onClick={()=>setSelTags(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t])} style={{padding:"6px 12px",borderRadius:99,border:`1.5px solid ${selTags.includes(t)?C.p:C.bdr}`,background:selTags.includes(t)?`${C.p}12`:"#fff",color:selTags.includes(t)?C.p:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",fontWeight:600,transition:"all .15s"}}>{selTags.includes(t)?"✓ ":""}{t}</button>)}
+        {TAGS.map(t=><button key={t} onClick={()=>setSelTags(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t])} style={{padding:"6px 12px",borderRadius:99,border:`1.5px solid ${selTags.includes(t)?C.p:C.bdr}`,background:selTags.includes(t)?`${C.p}12`:"#fff",color:selTags.includes(t)?C.p:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",fontWeight:600,transition:"all .15s"}}>{selTags.includes(t)?"":""}{t}</button>)}
       </div>
       <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder={tr.commentPh} rows={3} style={{width:"100%",padding:"11px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:11,fontSize:13,color:C.text,resize:"none",marginBottom:14}}/>
       <div className="row" style={{gap:8}}>

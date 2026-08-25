@@ -44,7 +44,7 @@ export default function SettingsPage(){
   return(
     <div>
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["profile","👤"],[" security","🔐"],["privacy","🔒"],["notifs","🔔"]].map(([id,ic])=>(
+        {[["profile",""],[" security",""],["privacy",""],["notifs",""]].map(([id,ic])=>(
           <button key={id} onClick={()=>setTab(id.trim())} style={{flex:1,padding:"9px 4px",borderRadius:10,border:"none",background:tab===id.trim()?C.p:"transparent",color:tab===id.trim()?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{ic}</button>
         ))}
       </div>

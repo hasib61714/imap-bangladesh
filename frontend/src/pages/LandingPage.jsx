@@ -841,8 +841,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
       </section>
 
       {/*
-        A "LIVE ACTIVITY TICKER" used to scroll here — "🏠 Home Maintenance
-        booked in Dhaka", "📚 Tutor booked in Sylhet" — eight lines on a 28
+        A "LIVE ACTIVITY TICKER" used to scroll here — "Home Maintenance
+        booked in Dhaka", "Tutor booked in Sylhet" — eight lines on a 28
         second loop, hardcoded. Nothing about it was live. A visitor reading a
         booking scroll past believes the marketplace is busy, and that belief
         is the entire reason the component was there.

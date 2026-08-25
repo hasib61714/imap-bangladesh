@@ -27,7 +27,7 @@ export default function WalletPage() {
       if(Array.isArray(data.transactions)){
         setApiTxns(data.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:("TXN-"+Math.random().toString(36).slice(2,8).toUpperCase()),
-          icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
@@ -78,7 +78,7 @@ export default function WalletPage() {
       if(Array.isArray(walletData.transactions)){
         setApiTxns(walletData.transactions.map(t=>({
           id: t.id?`TXN-${String(t.id).slice(0,8).toUpperCase()}`:"TXN-"+Math.random().toString(36).slice(2,8).toUpperCase(),
-          icon: t.type==="topup"?"💳":t.type==="credit"||t.type==="refund"?"🔄":"💸",
+          icon: t.type==="topup"?"":t.type==="credit"||t.type==="refund"?"":"",
           type: t.type==="debit"?"payment":t.type==="topup"?"topup":"refund",
           titleBn: t.description_bn||t.description||"লেনদেন",
           titleEn: t.description_en||t.description||"Transaction",
@@ -132,7 +132,7 @@ export default function WalletPage() {
         <div style={{fontSize:13,opacity:.85,marginBottom:4}}>{tr.wlBalance}</div>
         <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,marginBottom:16}}>৳{balance.toLocaleString()}</div>
         <div style={{display:"flex",gap:24,marginBottom:18}}>
-          {[[tr.wlIncome,"⬆️",income],[tr.wlSpent,"⬇️",spent]].map(([lbl,ic,amt])=>(
+          {[[tr.wlIncome,"",income],[tr.wlSpent,"",spent]].map(([lbl,ic,amt])=>(
             <div key={lbl}>
               <div style={{fontSize:11,opacity:.8}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
               <div style={{fontSize:16,fontWeight:700}}>৳{amt.toLocaleString()}</div>
@@ -153,7 +153,7 @@ export default function WalletPage() {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["history",tr.wlHistory,"📋"],["topup",tr.wlTopUp,"➕"]].map(([id,lbl,ic])=>(
+        {[["history",tr.wlHistory,""],["topup",tr.wlTopUp,""]].map(([id,lbl,ic])=>(
           <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}
       </div>

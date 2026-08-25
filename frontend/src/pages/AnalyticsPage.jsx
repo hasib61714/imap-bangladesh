@@ -15,10 +15,10 @@ export default function AnalyticsPage(){
   const now=new Date();
   const thisMonthBk=ctxBk.filter(b=>{const d=new Date(b.created_at||b.scheduled_at||0);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
   const stats=[
-    [tr.anBookings,"📋",totalBookings||AN_DATA.reduce((a,v)=>a+v,0),thisMonthBk?`+${thisMonthBk} ${lang==="en"?"this month":"এই মাসে"}`:"↑12%",C.p],
-    [tr.anSpent,"💸",totalSpent?`৳${Math.round(totalSpent).toLocaleString()}`:"৳3,820",totalSpent?"":"↑8%","#F59E0B"],
-    [tr.anSaved,"🎁",savedAmt?`৳${savedAmt.toLocaleString()}`:"৳640",savedAmt?"":"↑23%","#00C170"],
-    [tr.anRating,"⭐","4.8","→0%","#8B5CF6"],
+    [tr.anBookings,"",totalBookings||AN_DATA.reduce((a,v)=>a+v,0),thisMonthBk?`+${thisMonthBk} ${lang==="en"?"this month":"এই মাসে"}`:"↑12%",C.p],
+    [tr.anSpent,"",totalSpent?`৳${Math.round(totalSpent).toLocaleString()}`:"৳3,820",totalSpent?"":"↑8%","#F59E0B"],
+    [tr.anSaved,"",savedAmt?`৳${savedAmt.toLocaleString()}`:"৳640",savedAmt?"":"↑23%","#00C170"],
+    [tr.anRating,"","4.8","→0%","#8B5CF6"],
   ];
 
   // Last 7 months chart
@@ -35,12 +35,12 @@ export default function AnalyticsPage(){
   const svcMap={};
   ctxBk.forEach(b=>{const s=b.service_name_en||b.service_type||"Other";svcMap[s]=(svcMap[s]||0)+1;});
   const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const SCOLS=["#F59E0B","#00C170","#3B82F6","#EF4444","#8B5CF6"],SICONS=["🔧","🧹","⚡","🏥","📚"];
+  const SCOLS=["#F59E0B","#00C170","#3B82F6","#EF4444","#8B5CF6"],SICONS=["","","","",""];
   const sTot=svcEntries.reduce((s,[,c])=>s+c,0)||1;
-  const serviceData=svcEntries.length?svcEntries.map(([name,cnt],i)=>({icon:SICONS[i]||"🔧",name,nameBn:name,pct:Math.round(cnt/sTot*100),color:SCOLS[i]||"#6B7280"})):AN_SERVICES;
+  const serviceData=svcEntries.length?svcEntries.map(([name,cnt],i)=>({icon:SICONS[i]||"",name,nameBn:name,pct:Math.round(cnt/sTot*100),color:SCOLS[i]||"#6B7280"})):AN_SERVICES;
 
   // Recent activity
-  const activityData=ctxBk.length?ctxBk.slice(0,4).map(b=>({icon:b.icon||"📋",title:b.service_name_en||b.svcEn||"Service booked",titleBn:b.service_name_bn||b.svc||"সেবা বুকিং",date:b.created_at?new Date(b.created_at).toLocaleDateString("en-GB"):"Recently",amt:-parseFloat(b.total_amount||b.amount||0)})):AN_ACTIVITY;
+  const activityData=ctxBk.length?ctxBk.slice(0,4).map(b=>({icon:b.icon||"",title:b.service_name_en||b.svcEn||"Service booked",titleBn:b.service_name_bn||b.svc||"সেবা বুকিং",date:b.created_at?new Date(b.created_at).toLocaleDateString("en-GB"):"Recently",amt:-parseFloat(b.total_amount||b.amount||0)})):AN_ACTIVITY;
 
   return(
     <div>

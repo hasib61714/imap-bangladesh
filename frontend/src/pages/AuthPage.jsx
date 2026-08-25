@@ -14,7 +14,7 @@ import { auth as authApi, setToken } from "../api";
 // ── Google One Tap helper ────────────────────────────────
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-const EYE_CYCLE = ["👁️","🙈","🤫","😶","🕵️","👁️"];
+const EYE_CYCLE = ["","","","","",""];
 
 export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
   const tr = T[lang] || T.bn;
@@ -246,7 +246,14 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
       <div className="auth-page">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontSize: 54, cursor: "default", userSelect: "none", lineHeight: 1, filter:`drop-shadow(0 0 16px #00C17088)` }}>🌿</div>
+          <div style={{
+            width: 64, height: 64, borderRadius: 18,
+            background: "linear-gradient(135deg,#006A4E,#00C170)",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "'Plus Jakarta Sans',sans-serif",
+            fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -1,
+            boxShadow: "0 8px 28px rgba(0,106,78,.35), inset 0 1px 0 rgba(255,255,255,.25)",
+          }} aria-hidden="true">iM</div>
           <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#006A4E,#00C170)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>🇧🇩 {lang === "bn" ? "বাংলাদেশের এআই-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম" : "Bangladesh"}</div>
         </div>
@@ -404,7 +411,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                   <Avatar size={80} src={avatarB64 || undefined} icon={!avatarB64 ? <UserOutlined /> : undefined}
                     style={{ border: "3px solid #006A4E", cursor: "pointer", background: avatarB64 ? "transparent" : "#dcfce7" }} />
                   <div style={{ fontSize: 11, color: "#006A4E", fontWeight: 600, marginTop: 6 }}>
-                    {lang === "bn" ? "📷 ছবি আপলোড করুন" : "📷 Upload photo"}
+                    {lang === "bn" ? "ছবি আপলোড করুন" : "Upload photo"}
                   </div>
                 </label>
               </div>

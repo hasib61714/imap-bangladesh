@@ -43,7 +43,7 @@ export default function ReferralPage(){
         <div style={{fontSize:26,fontWeight:900,letterSpacing:4,fontFamily:"monospace",background:"rgba(255,255,255,.15)",padding:"10px 20px",borderRadius:12,marginBottom:16,display:"inline-block"}}>{refCode}</div>
         <div style={{display:"flex",gap:10,justifyContent:"center"}}>
           <button onClick={doCopy} style={{padding:"10px 20px",borderRadius:10,background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            {copied?tr.rfCopied:"📋 Copy"}
+            {copied?tr.rfCopied:"Copy"}
           </button>
           <button onClick={doShare} style={{
             padding:"10px 20px",borderRadius:10,
@@ -59,7 +59,7 @@ export default function ReferralPage(){
       </div>
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:12,marginBottom:20}}>
-        {[[friends.length,tr.rfFriends,"👥"],[totalEarned,"৳ "+tr.rfEarned,"💰"],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
+        {[[friends.length,tr.rfFriends,""],[totalEarned,"৳ "+tr.rfEarned,""],[friends.filter(f=>f.status==="pending").length,tr.rfPending,"⏳"]].map(([val,lbl,ic])=>(
           <div key={lbl} style={{background:C.card,borderRadius:14,padding:"14px 10px",border:`1px solid ${C.bdr}`,textAlign:"center"}}>
             <div style={{fontSize:20}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div>
             <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:-1}}>{val}{lbl==="৳ "+tr.rfEarned?"":""}</div>

@@ -99,7 +99,7 @@ export default function LoanScore() {
         boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.35)`
       }}>
         <div style={{fontSize:13,fontWeight:700,marginBottom:12}}>{tr.scoreAnalysis}</div>
-        {[["📋",95],["💳",88],["⭐",92],["📱",78],["🏆",70]].map(([ic,s],i)=>{
+        {[["",95],["",88],["",92],["",78],["",70]].map(([ic,s],i)=>{
           const labels={en:["Service History","Payment Regularity","Customer Rating","Activity","Years of Experience"],bn:["সেবার ইতিহাস","পেমেন্ট নিয়মিততা","গ্রাহক রেটিং","সক্রিয়তা","অভিজ্ঞতার বছর"]};
           return (
             <div key={i} style={{marginBottom:10}}>

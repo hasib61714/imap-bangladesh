@@ -13,7 +13,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
   const { balance: ctxBalance, bookings: ctxBookings } = useLiveData();
   const u=user||{name:"অতিথি",email:"guest@example.com",role:"customer",kycStatus:"pending",points:320};
   const kycColor={verified:"#00C170",pending:"#F59E0B",rejected:"#EF4444"};
-  const kycLabel=lang==="bn"?{verified:"✅ যাচাইকৃত",pending:"⏳ অপেক্ষায়",rejected:"❌ প্রত্যাখ্যাত"}:{verified:"✅ Verified",pending:"⏳ Pending",rejected:"❌ Rejected"};
+  const kycLabel=lang==="bn"?{verified:"যাচাইকৃত",pending:"⏳ অপেক্ষায়",rejected:"প্রত্যাখ্যাত"}:{verified:"Verified",pending:"⏳ Pending",rejected:"Rejected"};
   const statusBg={completed:["#D1FAE5","#065F46"],cancelled:["#FEE2E2","#B91C1C"],pending:["#FEF9C3","#7C5800"]};
   const statusLabel=lang==="bn"?{completed:"সম্পন্ন",cancelled:"বাতিল",pending:"অপেক্ষায়"}:{completed:"Completed",cancelled:"Cancelled",pending:"Pending"};
 

@@ -37,7 +37,7 @@ export default function DisasterPage() {
           // Normalize DB rows to match ALERTS format
           const mapped=r.alerts.map(a=>({
             id:a.id,
-            icon:a.type==="flood"?"🌊":a.type==="cyclone"?"🌀":a.type==="fire"?"🔥":a.type==="earthquake"?"🏚️":"⚠️",
+            icon:a.type==="flood"?"":a.type==="cyclone"?"":a.type==="fire"?"":a.type==="earthquake"?"":"",
             level:a.severity==="critical"?"extreme":a.severity==="high"?"high":"moderate",
             color:a.severity==="critical"?"#DC2626":a.severity==="high"?"#D97706":"#006A4E",
             bg:a.severity==="critical"?"#FEF2F2":a.severity==="high"?"#FFFBEB":"#F0FDF4",
@@ -69,14 +69,14 @@ export default function DisasterPage() {
   };
   const TIPS_BN=[
 
-    ["🌪️ ঘূর্ণিঝড়",["পাকা ঘরে থাকুন","🔋 শেয়ারযোগ্য ইন্ধন সংগ্রহ করুন","👰️ সরকারি নির্দেশ মানুন","📱 ডিভাইস চার্জ দিয়ে রাখুন"]],
-    ["🌊 বন্যা",["দোতলায় উঠুন","পানির বোতল সংগ্রহ করুন","বিদ্যুৎ সুইচ অফ করুন","পোষা প্রাণী সাথে নিন"]],
-    ["🌍 ভূমিকম্প",["টেবিলের নীচে আশ্রয় নিন","जানালা থেকে দূরে থাকুন","লিফট ব্যবহার না করুন","শান্ত থাকুন ও দলের সাথে বেরিয়ে পড়ুন"]],
+    ["ঘূর্ণিঝড়",["পাকা ঘরে থাকুন","শেয়ারযোগ্য ইন্ধন সংগ্রহ করুন","সরকারি নির্দেশ মানুন","ডিভাইস চার্জ দিয়ে রাখুন"]],
+    ["বন্যা",["দোতলায় উঠুন","পানির বোতল সংগ্রহ করুন","বিদ্যুৎ সুইচ অফ করুন","পোষা প্রাণী সাথে নিন"]],
+    ["ভূমিকম্প",["টেবিলের নীচে আশ্রয় নিন","जানালা থেকে দূরে থাকুন","লিফট ব্যবহার না করুন","শান্ত থাকুন ও দলের সাথে বেরিয়ে পড়ুন"]],
   ];
   const TIPS_EN=[
-    ["🌪️ Cyclone",["Stay in a sturdy building","⚡ Store charged devices","👮 Follow government orders","📱 Keep devices charged"]],
-    ["🌊 Flood",["Move to higher floors","Store bottled water","Turn off electricity mains","Take pets with you"]],
-    ["🌍 Earthquake",["Take cover under a table","Stay away from windows","Do not use elevators","Stay calm and exit with your group"]],
+    ["Cyclone",["Stay in a sturdy building","Store charged devices","Follow government orders","Keep devices charged"]],
+    ["Flood",["Move to higher floors","Store bottled water","Turn off electricity mains","Take pets with you"]],
+    ["Earthquake",["Take cover under a table","Stay away from windows","Do not use elevators","Stay calm and exit with your group"]],
   ];
   const TIPS=lang==="en"?TIPS_EN:TIPS_BN;
 
@@ -84,8 +84,8 @@ export default function DisasterPage() {
   const LEVEL_LBL={high:lang==="en"?"HIGH":"তীব্র",extreme:lang==="en"?"EXTREME":"জরুরি",moderate:lang==="en"?"MODERATE":"মাধ্যম"};
 
   const REPORT_TYPES=lang==="en"
-    ?["🌊 Flood","🌀 Cyclone","🔥 Fire","🏚️ Building Collapse","⚡ Power Outage","🚗 Road Block"]
-    :["🌊 বন্যা","🌀 ঘূর্ণিঝড়","🔥 আগুন","🏠 ভবন ধস","⚡ বিদ্যুৎ বিচ্ছিন্ন","🚗 রাস্তা বন্ধ"];
+    ?["Flood","Cyclone","Fire","Building Collapse","Power Outage","Road Block"]
+    :["বন্যা","ঘূর্ণিঝড়","আগুন","ভবন ধস","বিদ্যুৎ বিচ্ছিন্ন","রাস্তা বন্ধ"];
 
   return (
     <div>
@@ -99,7 +99,7 @@ export default function DisasterPage() {
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>{setShared(true);setTimeout(()=>setShared(false),2000);}}
             style={{padding:"7px 14px",borderRadius:10,background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.5)",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>
-            {shared?"✅ "+tr.dsShared:"📍 "+tr.dsShare}
+            {shared?""+tr.dsShared:""+tr.dsShare}
           </button>
           <a href="tel:999" style={{
             padding:"7px 14px",borderRadius:10,
@@ -118,7 +118,7 @@ export default function DisasterPage() {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:6,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["alerts","🚨",lang==="en"?"Alerts":"সতর্ক"],["shelters","🏕️",lang==="en"?"Shelters":"আশ্রয়"],["tips","💡",lang==="en"?"Tips":"টিপস"],["report","📋",lang==="en"?"Report":"রিপোর্ট"]].map(([id,ic,lbl])=>(
+        {[["alerts","",lang==="en"?"Alerts":"সতর্ক"],["shelters","",lang==="en"?"Shelters":"আশ্রয়"],["tips","",lang==="en"?"Tips":"টিপস"],["report","",lang==="en"?"Report":"রিপোর্ট"]].map(([id,ic,lbl])=>(
           <button key={id} onClick={()=>setTab(id)}
             style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",background:tab===id?"#DC2626":"transparent",color:tab===id?"#fff":C.sub,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</button>
         ))}

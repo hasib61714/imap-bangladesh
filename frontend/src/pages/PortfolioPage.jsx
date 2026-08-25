@@ -23,7 +23,7 @@ export default function PortfolioPage(){
         about:p.bio_bn||p.bio_en||"",
         aboutEn:p.bio_en||p.bio_bn||"",
         skills:p.service_type_en?[p.service_type_en,...(p.cat_en&&p.cat_en!==p.service_type_en?[p.cat_en]:[])]:["General Service"],
-        gallery:[p.cat_icon||"⚡","🔧","🛠️","🔌","💡","⚙️"],
+        gallery:[p.cat_icon||"","","","","",""],
       }));
       if(list.length){setPfProviders(list);setSel(list[0]);}
     }).catch(()=>{});
@@ -59,7 +59,7 @@ export default function PortfolioPage(){
       <div style={{background:C.card,borderRadius:16,padding:"18px",border:`1px solid ${C.bdr}`,marginBottom:16}}>
         <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
           <div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#006A4E,#004D38)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
-            {sel.skill==="Electrician"?"⚡":"🧹"}
+            {sel.skill==="Electrician"?"":""}
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:16,fontWeight:800,color:C.text}}>{sel.name}</div>

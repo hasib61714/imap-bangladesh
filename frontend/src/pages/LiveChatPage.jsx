@@ -105,7 +105,7 @@ export default function LiveChatPage({provider, onBack}) {
       }}>
         <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",fontSize:22,color:C.p,padding:"0 6px 0 0",lineHeight:1}}>←</button>
         <div style={{width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
-          {typeof avatar==="string"&&avatar.length===1?avatar:"👤"}
+          {typeof avatar==="string"&&avatar.length===1?avatar:""}
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:700,fontSize:15,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{pName}</div>
@@ -124,7 +124,7 @@ export default function LiveChatPage({provider, onBack}) {
           return (
             <div key={m.id} style={{display:"flex",justifyContent:isUser?"flex-end":"flex-start",alignItems:"flex-end",gap:7}}>
               {!isUser&&<div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
-                {typeof avatar==="string"&&avatar.length===1?avatar:"👤"}
+                {typeof avatar==="string"&&avatar.length===1?avatar:""}
               </div>}
               <div style={{maxWidth:"70%",background:isUser?C.p:C.card,color:isUser?"#fff":C.text,borderRadius:isUser?"18px 4px 18px 18px":"4px 18px 18px 18px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:`0 1px 4px ${C.bdr}`,wordBreak:"break-word"}}>
                 {m.text}
@@ -137,7 +137,7 @@ export default function LiveChatPage({provider, onBack}) {
         {typing&&(
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.p},${C.pdk})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>
-              {typeof avatar==="string"&&avatar.length===1?avatar:"👤"}
+              {typeof avatar==="string"&&avatar.length===1?avatar:""}
             </div>
             <div style={{background:C.card,borderRadius:"4px 18px 18px 18px",padding:"10px 18px",display:"flex",gap:5,alignItems:"center",boxShadow:`0 1px 4px ${C.bdr}`}}>
               {[0,1,2].map(i=><span key={i} style={{width:7,height:7,borderRadius:"50%",background:C.muted,display:"inline-block",animation:`bounce 1.2s ${i*0.2}s infinite`}}/>)}

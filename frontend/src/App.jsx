@@ -361,7 +361,7 @@ export default function IMAP() {
       usersApi.getNotifications().then(d=>{
         if(d?.notifications?.length){
           setLiveNotifs(d.notifications.map(n=>({
-            id:n.id, icon:n.icon||"🔔",
+            id:n.id, icon:n.icon||"",
             t:n.title_bn||n.title||"", tEn:n.title_en||n.title||"",
             m:n.body_bn||n.body||"",   mEn:n.body_en||n.body||"",
             time:n.created_at||"", timeEn:n.created_at||"",
@@ -456,9 +456,9 @@ export default function IMAP() {
           </div>
         )}
         <div className="g2" style={{marginBottom:12,gap:8}}>
-          {(lang==="en"?["🏥 Ambulance","💊 Nurse","🩺 Doctor","🩸 Blood Donor"]:["🏥 অ্যাম্বুলেন্স","💊 নার্স","🩺 ডাক্তার","🩸 রক্তদাতা"]).map(item=>(
+          {(lang==="en"?["Ambulance","Nurse","Doctor","Blood Donor"]:["অ্যাম্বুলেন্স","নার্স","ডাক্তার","রক্তদাতা"]).map(item=>(
             <button key={item} onClick={()=>setEmgSvc(item)}
-              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"rgba(239,68,68,.08)",border:`2px solid ${emgSvc===item?"#DC2626":"rgba(220,38,38,.25)"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"✓ ":""}{item}</button>
+              style={{padding:"11px 6px",background:emgSvc===item?"#DC2626":"rgba(239,68,68,.08)",border:`2px solid ${emgSvc===item?"#DC2626":"rgba(220,38,38,.25)"}`,borderRadius:10,fontSize:12,cursor:"pointer",color:emgSvc===item?"#fff":C.red,fontWeight:700,fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{emgSvc===item?"":""}{item}</button>
           ))}
         </div>
         {emgSvc&&(
@@ -717,7 +717,7 @@ export default function IMAP() {
                 </div>
                 {/* Dark toggle */}
                 <div onClick={()=>{setDark(d=>!d);setNavDotMenu(false);}} style={{padding:"11px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,fontSize:13,color:C.text,transition:"background .1s"}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span>{dark?"☀️":"🌙"}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
+                  <span>{dark?"":""}</span><span>{dark?(lang==="bn"?"লাইট মোড":"Light Mode"):(lang==="bn"?"ডার্ক মোড":"Dark Mode")}</span>
                 </div>
                 <div style={{height:1,background:C.bdr}}/>
                 {/* Logout */}
@@ -735,7 +735,7 @@ export default function IMAP() {
   /* ── MOBILE BOTTOM NAV ── */
   const MobNav = ()=>(
     <div className="mnav">
-      {[["home","🏠",tr.home],["services","🛠️",tr.services],["nearby","📍",tr.gpsNav||"Nearby"],["saved","🔖",tr.favNav||"Saved"],["_profile","👤",tr.profile]].map(([id,icon,l])=>{
+      {[["home","",tr.home],["services","",tr.services],["nearby","",tr.gpsNav||"Nearby"],["saved","",tr.favNav||"Saved"],["_profile","",tr.profile]].map(([id,icon,l])=>{
         const active = page===id;
         return (
         <button key={id} aria-label={l} aria-current={active?"page":undefined} onClick={()=>{
@@ -788,7 +788,7 @@ export default function IMAP() {
               </div>
               <div className="sx" style={{marginTop:14}}>
                 <div style={{display:"flex",gap:8,width:"max-content"}}>
-                  {(lang==="en"?["⚡ Electrician","🏥 Nurse","📚 Tutor","🧹 Cleaning","🔧 Plumber"]:["⚡ ইলেকট্রিশিয়ান","🏥 নার্স","📚 গৃহশিক্ষক","🧹 পরিষ্কার","🔧 প্লাম্বার"]).map(s=>(
+                  {(lang==="en"?["Electrician","Nurse","Tutor","Cleaning","Plumber"]:["ইলেকট্রিশিয়ান","নার্স","গৃহশিক্ষক","পরিষ্কার","প্লাম্বার"]).map(s=>(
                     <button key={s} onClick={()=>setModal("search")} style={{padding:"6px 12px",background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.18)",borderRadius:99,color:"rgba(255,255,255,.9)",fontSize:11,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",whiteSpace:"nowrap"}}>{s}</button>
                   ))}
                 </div>
@@ -796,7 +796,7 @@ export default function IMAP() {
             </div>
             {/* Hero stats (desktop) */}
             <div className="sb" style={{opacity:anim?1:0,transition:"opacity .8s ease .2s"}}>
-              {[{ic:"✅",vBn:"৪৮,২৩৫+",vEn:"48,235+",l:tr.statDone,g:"+12%",d:.3},{ic:"🛡️",vBn:"৮,৪৯২",vEn:"8,492",l:tr.statVerified,g:"+8%",d:.4},{ic:"⭐",vBn:"২,১৫,৮৬৩",vEn:"215,863",l:tr.statHappy,g:"+23%",d:.5},{ic:"🗺️",vBn:"৬৪ জেলা",vEn:"64 Districts",l:tr.statNation,g:"100%",d:.6}].map((s,i)=>(
+              {[{ic:"",vBn:"৪৮,২৩৫+",vEn:"48,235+",l:tr.statDone,g:"+12%",d:.3},{ic:"",vBn:"৮,৪৯২",vEn:"8,492",l:tr.statVerified,g:"+8%",d:.4},{ic:"",vBn:"২,১৫,৮৬৩",vEn:"215,863",l:tr.statHappy,g:"+23%",d:.5},{ic:"",vBn:"৬৪ জেলা",vEn:"64 Districts",l:tr.statNation,g:"100%",d:.6}].map((s,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,.07)",backdropFilter:"blur(3px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:20,animation:`fadeUp .5s ease ${s.d}s both`}}>
                   <div style={{fontSize:27,marginBottom:8}}><Icon name=<Icon name={s.ic} size={14} style={{marginRight:6}} />size={27} /></div>
                   <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:24,fontWeight:800,color:"#fff"}}>{lang==="en"?s.vEn:s.vBn}</div>
@@ -824,7 +824,7 @@ export default function IMAP() {
       <div style={{background:C.p,padding:"9px 0",overflow:"hidden"}}>
         <div style={{display:"flex",gap:28,width:"max-content",animation:"ticker 22s linear infinite"}}>
           {[...Array(2)].map((_,ri)=>(
-            (lang==="en"?["✅ 1,245 services done today","⚡ 342 providers active","⭐ Avg rating 4.8/5","🗺️ Services in 64 districts","💳 bKash · Nagad · Rocket","🛡️ NID verified providers"]:["✅ আজ ১,২৪৫ সেবা সম্পন্ন","⚡ ৩৪২ জন সক্রিয়","⭐ গড় রেটিং ৪.৮/৫","🗺️ ৬৪ জেলায় সেবা","💳 bKash · Nagad · Rocket","🛡️ NID যাচাইকৃত"]).map((t,i)=>(
+            (lang==="en"?["1,245 services done today","342 providers active","Avg rating 4.8/5","Services in 64 districts","bKash · Nagad · Rocket","NID verified providers"]:["আজ ১,২৪৫ সেবা সম্পন্ন","৩৪২ জন সক্রিয়","গড় রেটিং ৪.৮/৫","৬৪ জেলায় সেবা","bKash · Nagad · Rocket","NID যাচাইকৃত"]).map((t,i)=>(
               <span key={`${ri}-${i}`} style={{fontSize:13,fontWeight:600,color:"#fff",whiteSpace:"nowrap",paddingRight:40}}>{t}</span>
             ))
           ))}
@@ -842,7 +842,7 @@ export default function IMAP() {
             <div className="sec-s">{tr.howSub}</div>
           </div>
           <div className="g3">
-            {[{n:"01",ic:"🔍",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"02",ic:"📋",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"03",ic:"✅",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
+            {[{n:"01",ic:"",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"02",ic:"",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"03",ic:"",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
               <div key={i} className="card" style={{padding:26,animation:`fadeUp .5s ease ${.2+i*.14}s both`}}>
                 <div className="jc" style={{width:52,height:52,borderRadius:15,background:h.bg,fontSize:22,marginBottom:14}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={22} /></div>
                 <div style={{fontSize:10,fontWeight:700,color:C.p,letterSpacing:2,marginBottom:5}}>{tr.step} {h.n}</div>
@@ -957,7 +957,7 @@ export default function IMAP() {
             <div>
               <div className="sec-h" style={{marginBottom:6}}>{tr.impactTitle}</div>
               <div className="sec-s" style={{marginBottom:20}}>{tr.impactSub}</div>
-              {[[tr.si1,tr.si1v,"🩸"],[tr.si2,tr.si2v,"🤝"],[tr.si3,tr.si3v,"🌪️"],[tr.si4,tr.si4v,"💙"]].map(([l,v,ic],i)=>(
+              {[[tr.si1,tr.si1v,""],[tr.si2,tr.si2v,""],[tr.si3,tr.si3v,""],[tr.si4,tr.si4v,""]].map(([l,v,ic],i)=>(
                 <div key={i} className="row" style={{justifyContent:"space-between",padding:"12px 0",borderBottom:i<3?`1px solid ${C.bdr}`:"none"}}>
                   <div className="row" style={{gap:12}}><div className="jc" style={{width:42,height:42,borderRadius:11,background:C.plt,fontSize:20,flexShrink:0}}><Icon name=<Icon name={ic} size={14} style={{marginRight:6}} />size={20} /></div><div style={{fontSize:14,fontWeight:600}}>{l}</div></div>
                   <div style={{fontSize:14,fontWeight:700,color:C.p}}>{v}</div>
@@ -1000,7 +1000,7 @@ export default function IMAP() {
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,.44)",lineHeight:1.8,maxWidth:260}}>{tr.footerDesc}</div>
               <div className="row" style={{gap:7,marginTop:16}}>
-                {["📱 bKash","📱 Nagad","🚀 Rocket"].map(p=><span key={p} style={{padding:"3px 9px",background:"rgba(255,255,255,.07)",borderRadius:7,fontSize:11,color:"rgba(255,255,255,.55)"}}>{p}</span>)}
+                {["bKash","Nagad","Rocket"].map(p=><span key={p} style={{padding:"3px 9px",background:"rgba(255,255,255,.07)",borderRadius:7,fontSize:11,color:"rgba(255,255,255,.55)"}}>{p}</span>)}
               </div>
             </div>
             {[[tr.footerServices,[tr.services,"AC","Nurse","Tutor","Cleaning"]],[tr.footerCompany,[tr.footerAbout,tr.footerCareers,tr.footerBlog,tr.footerPartner]],[tr.footerSupport,[tr.footerHelp,tr.footerContact,tr.footerPrivacy,tr.footerJoin]]].map(([title,links],i)=>(
@@ -1187,7 +1187,7 @@ export default function IMAP() {
         <div className="sec-h">{tr.howPageTitle}</div>
         <div className="sec-s">{tr.howPageSub}</div>
       </div>
-      {[{n:"1",ic:"🔍",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"2",ic:"📋",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"3",ic:"✅",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
+      {[{n:"1",ic:"",bg:"#EAF5F0",t:tr.s1t,d:tr.s1d},{n:"2",ic:"",bg:"#FEF3C7",t:tr.s2t,d:tr.s2d},{n:"3",ic:"",bg:"#EDE9FE",t:tr.s3t,d:tr.s3d}].map((h,i)=>(
         <div key={i} className="card" style={{padding:28,marginBottom:16,display:"flex",gap:20,alignItems:"flex-start"}}>
           <div className="jc" style={{width:56,height:56,borderRadius:16,background:h.bg,fontSize:24,flexShrink:0}}><Icon name=<Icon name={h.ic} size={14} style={{marginRight:6}} />size={24} /></div>
           <div>
@@ -1334,7 +1334,7 @@ export default function IMAP() {
                 <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{lang==="bn"?"পেমেন্ট করুন":"Complete Payment"}</div>
                 <div style={{fontSize:12,color:C.muted,marginBottom:20}}>{lang==="bn"?"SSLCommerz — bKash, Nagad, Rocket, Card সহ সকল পদ্ধতি":"SSLCommerz — bKash, Nagad, Rocket, uPay, Cards & more"}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",marginBottom:20}}>
-                  {[["🟢","bKash"],["🔵","Nagad"],["🟠","Rocket"],["🟣","uPay"],["🔴","CelFin"],["💳","Card"]].map(([ic,lbl])=>(
+                  {[["","bKash"],["","Nagad"],["","Rocket"],["","uPay"],["","CelFin"],["","Card"]].map(([ic,lbl])=>(
                     <div key={lbl} style={{padding:"6px 14px",background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:20,fontSize:12,fontWeight:600,color:C.text}}><Icon name={ic} size={14} style={{marginRight:6}} />{lbl}</div>
                   ))}
                 </div>
@@ -1354,7 +1354,7 @@ export default function IMAP() {
                       }catch(e){ alert(e.message||"পেমেন্ট শুরু করতে সমস্যা হয়েছে।"); }
                       finally{setPayLoading(false);}
                     }}>
-                    {payLoading?(lang==="bn"?"প্রসেস হচ্ছে…":"Processing…"):(lang==="bn"?"💳 পেমেন্ট করুন":"💳 Pay Now")}
+                    {payLoading?(lang==="bn"?"প্রসেস হচ্ছে…":"Processing…"):(lang==="bn"?"পেমেন্ট করুন":"Pay Now")}
                   </button>
                 </div>
                 <div style={{marginTop:12,fontSize:10,color:C.muted}}>{lang==="bn"?"SSL নিরাপদ এনক্রিপ্টেড পেমেন্ট":"SSL secured encrypted payment — All data protected"}</div>

@@ -34,7 +34,7 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
     date:       (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("bn-BD"):(b.date||""),
     dateEn:     (b.scheduled_time||b.scheduled_at)?new Date(b.scheduled_time||b.scheduled_at).toLocaleDateString("en-GB"):(b.dateEn||""),
     price:      (b.amount||b.total_amount)?`৳${b.amount||b.total_amount}`:(b.price||""),
-    icon:       b.icon||"📋",
+    icon:       b.icon||"",
     pid:        b.provider_id||b.pid,
   });
   const bookingsData = ctxBookings.map(toUiBk);

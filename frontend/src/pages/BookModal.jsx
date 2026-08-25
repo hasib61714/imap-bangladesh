@@ -219,7 +219,7 @@ export default function BookModal({p,onClose,onSuccess}) {
       <div className="row" style={{gap:4,marginBottom:20}}>
         {STEPS.map((s,i)=>(
           <div key={i} className="row" style={{flex:1,gap:4}}>
-            <div className="jc" style={{width:26,height:26,borderRadius:"50%",fontSize:11,fontWeight:700,flexShrink:0,background:i<step?C.p:i===step?`${C.p}18`:"#E5E7EB",color:i<step?"#fff":i===step?C.p:C.muted,border:i===step?`2px solid ${C.p}`:"2px solid transparent"}}>{i<step?"✓":i+1}</div>
+            <div className="jc" style={{width:26,height:26,borderRadius:"50%",fontSize:11,fontWeight:700,flexShrink:0,background:i<step?C.p:i===step?`${C.p}18`:"#E5E7EB",color:i<step?"#fff":i===step?C.p:C.muted,border:i===step?`2px solid ${C.p}`:"2px solid transparent"}}>{i<step?"":i+1}</div>
             <div style={{fontSize:11,fontWeight:i===step?700:400,color:i<=step?C.p:C.muted}}>{s}</div>
             {i<2&&<div style={{flex:1,height:1,background:i<step?C.p:C.bdr}}/>}
           </div>
@@ -247,7 +247,7 @@ export default function BookModal({p,onClose,onSuccess}) {
       </>}
       {step===2&&<>
         <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{tr.payMethod}</div>
-        {[["bKash","💳","#E31E50"],["Nagad","📱","#F97316"],["Rocket","🚀","#7C3AED"],["Cash","💵","#00C170"]].map(([nm,ic,cl])=>(
+        {[["bKash","","#E31E50"],["Nagad","","#F97316"],["Rocket","","#7C3AED"],["Cash","","#00C170"]].map(([nm,ic,cl])=>(
           <div key={nm} onClick={()=>setPay(nm)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:11,border:`2px solid ${pay===nm?C.p:C.bdr}`,background:pay===nm?`${C.p}08`:"#fff",marginBottom:7,cursor:"pointer",transition:"all .15s"}}>
             <div className="jc" style={{width:38,height:38,borderRadius:9,background:cl+"22",fontSize:17,flexShrink:0}}><Icon name={ic} size={17} /></div>
             <div style={{flex:1,fontSize:14,fontWeight:600}}>{nm}</div>

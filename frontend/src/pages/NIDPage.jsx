@@ -92,10 +92,10 @@ export default function NIDPage({onClose}) {
       ? new Date(authUser.created_at).toLocaleDateString(lang==="en"?"en-GB":"bn-BD",{month:"short",year:"numeric"})
       : (lang==="en"?"Jan 2024":"জানু ২০২৪");
   const profile_stats=[
-    ["📋", tr.totalBookings||"Bookings",   profileStats?.total_bookings ?? "—"],
-    ["⭐", tr.avgRating   ||"Avg Rating",  "4.8"],
-    ["💰", tr.totalSpent  ||"Spent",       profileStats?.total_spent != null ? `৳${Number(profileStats.total_spent).toLocaleString()}` : "—"],
-    ["📅", tr.joinedDate  ||"Joined",      joinedDate],
+    ["", tr.totalBookings||"Bookings",   profileStats?.total_bookings ?? "—"],
+    ["", tr.avgRating   ||"Avg Rating",  "4.8"],
+    ["", tr.totalSpent  ||"Spent",       profileStats?.total_spent != null ? `৳${Number(profileStats.total_spent).toLocaleString()}` : "—"],
+    ["", tr.joinedDate  ||"Joined",      joinedDate],
   ];
   return (
     <div style={{padding:24}}>
@@ -119,7 +119,7 @@ export default function NIDPage({onClose}) {
         }}>
           {verified_items.map(([l,done],i,arr)=>(
             <div key={i} className="row" style={{padding:"11px 14px",borderBottom:i<arr.length-1?`1px solid ${C.bdr}`:"none",gap:10}}>
-              <div className="jc" style={{width:28,height:28,borderRadius:8,background:done?"#D1FAE5":"#FEF9C3",fontSize:13}}>{done?"✅":"⏳"}</div>
+              <div className="jc" style={{width:28,height:28,borderRadius:8,background:done?"#D1FAE5":"#FEF9C3",fontSize:13}}>{done?"":"⏳"}</div>
               <div style={{flex:1,fontSize:13}}>{l}</div>
               {!done&&<button className="btn btn-g" style={{padding:"5px 10px",fontSize:11}} onClick={()=>setStep(1)}>{tr.verifyBtn}</button>}
             </div>
@@ -152,7 +152,7 @@ export default function NIDPage({onClose}) {
                 ?<div style={{fontSize:13,color:C.p,fontWeight:600,padding:"10px 0"}}>🔍 স্ক্যান হচ্ছে...</div>
                 :<>
                   {files[key]&&<img src={files[key]} alt="" style={{width:"100%",maxHeight:80,objectFit:"cover",borderRadius:8,marginBottom:6}}/>}
-                  <div style={{fontSize:uploads[key]?22:26,marginBottom:4}}>{uploads[key]?"✅":"📤"}</div>
+                  <div style={{fontSize:uploads[key]?22:26,marginBottom:4}}>{uploads[key]?"":""}</div>
                   <div style={{fontSize:13,fontWeight:600,color:uploads[key]?C.p:C.text}}>{label}</div>
                   <div style={{fontSize:12,color:uploads[key]?"#065F46":C.muted,marginTop:3}}>{uploads[key]?tr.uploadedL:tr.tapUpload}</div>
                 </>
