@@ -14,7 +14,9 @@ import { auth as authApi, setToken } from "../api";
 // ── Google One Tap helper ────────────────────────────────
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-const EYE_CYCLE = ["","","","","",""];
+// A row of decorative marks beside the sign-in art. They were emoji; now
+// they are one repeated mark, which is what a decoration should be.
+const EYE_CYCLE = ["star","star","star","star","star","star"];
 
 export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
   const tr = T[lang] || T.bn;
@@ -302,7 +304,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                   <Input
                     prefix={<LockOutlined style={{ color: "#9ca3af" }} />}
                     suffix={
-                      <span className="eye-btn" onClick={toggleEye} title={lang === "bn" ? "ক্লিক করুন 😏" : "Click me 😏"}>
+                      <span className="eye-btn" onClick={toggleEye} title={lang === "bn" ? "ক্লিক করুন" : "Click me"}>
                         {EYE_CYCLE[eyeIdx]}
                       </span>
                     }
@@ -365,7 +367,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
                       </Button>
                       <div style={{ textAlign: "center", fontSize: 12, color: "#6b7280" }}>
                         {otpTimer > 0
-                          ? <span>⏳ {otpTimer} {tr.authTimer}</span>
+                          ? <span><Icon name="pending" size={14} style={{marginRight:6}} />{otpTimer} {tr.authTimer}</span>
                           : <span onClick={() => { setOtpSent(false); setOtp(""); }} style={{ color: "#006A4E", cursor: "pointer", fontWeight: 600 }}>{tr.authResend}</span>
                         }
                       </div>
@@ -450,7 +452,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
               {err && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 12 }}>{err}</div>}
               <Button type="primary" block size="large" loading={loadingKey === "profile"} onClick={finishProfile}
                 style={{ borderRadius: 12, fontWeight: 700, height: 48, marginBottom: 12 }}>
-                🎉 {lang === "bn" ? "শুরু করুন" : "Get Started"}
+                <Icon name="success" size={15} style={{marginRight:6}} />{lang === "bn" ? "শুরু করুন" : "Get Started"}
               </Button>
               <Button block icon={<ArrowLeftOutlined />} style={{ borderRadius: 12 }}
                 onClick={() => { setStep("method"); setMethod(null); }}>

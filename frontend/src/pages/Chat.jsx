@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
@@ -19,8 +20,8 @@ export default function Chat({isMobile}) {
   const voiceSentRef=useRef(false); // prevents double-send
   const sendRef=useRef(null);       // always holds latest send() to avoid stale closure
 
-  const QUICK_BN=["ইলেকট্রিশিয়ান 🔌","নার্স 🏥","জরুরি সেবা 🚨","দাম জানতে 💰","বুকিং করতে 📋"];
-  const QUICK_EN=["Electrician 🔌","Nurse 🏥","Emergency 🚨","Pricing 💰","How to book 📋"];
+  const QUICK_BN=["ইলেকট্রিশিয়ান","নার্স","জরুরি সেবা","দাম জানতে","বুকিং করতে"];
+  const QUICK_EN=["Electrician","Nurse","Emergency","Pricing","How to book"];
 
   // Build OpenAI-style history from msgs
   const buildHistory=()=>msgs.slice(-8).map(m=>({role:m.from==="user"?"user":"assistant",content:m.text}));
@@ -95,19 +96,19 @@ export default function Chat({isMobile}) {
 
   const bot=isMobile?76:28;
   if(!open)return(
-    <button onClick={()=>setOpen(true)} className="jc" style={{position:"fixed",bottom:bot,right:18,width:52,height:52,background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",borderRadius:15,cursor:"pointer",fontSize:22,boxShadow:`0 6px 22px rgba(16,24,20,0.12)`,zIndex:700,animation:"glow 3s infinite"}}>🤖</button>
+    <button onClick={()=>setOpen(true)} className="jc" style={{position:"fixed",bottom:bot,right:18,width:52,height:52,background:`linear-gradient(135deg,${C.p},${C.pdk})`,border:"none",borderRadius:15,cursor:"pointer",fontSize:22,boxShadow:`0 6px 22px rgba(16,24,20,0.12)`,zIndex:700,animation:"glow 3s infinite"}}><Icon name="digital" size={16} /></button>
   );
 
   return(
     <div style={{position:"fixed",bottom:bot,right:14,width:320,height:460,background:C.card,borderRadius:20,boxShadow:"0 16px 50px rgba(0,0,0,.18)",zIndex:700,display:"flex",flexDirection:"column",border:`1px solid ${C.bdr}`,animation:"fadeUp .3s ease"}}>
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk})`,padding:"13px 15px",borderRadius:"20px 20px 0 0",display:"flex",alignItems:"center",gap:9}}>
-        <div className="jc" style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,.2)",fontSize:18,flexShrink:0}}>🤖</div>
+        <div className="jc" style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,.2)",fontSize:18,flexShrink:0}}><Icon name="digital" size={18} /></div>
         <div style={{flex:1}}>
           <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{tr.chatTitle||"IMAP AI"}</div>
           <div style={{fontSize:10,color:"rgba(255,255,255,.75)"}}>{tr.chatOnline||"সর্বদা অনলাইন"}</div>
         </div>
-        <button onClick={()=>setOpen(false)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:7,width:27,height:27,cursor:"pointer",color:"#fff",fontSize:14}}>✕</button>
+        <button onClick={()=>setOpen(false)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:7,width:27,height:27,cursor:"pointer",color:"#fff",fontSize:14}}><Icon name="close" size={16} /></button>
       </div>
 
       {/* Messages */}
@@ -160,7 +161,7 @@ export default function Chat({isMobile}) {
           style={{flex:1,padding:"8px 11px",border:`1.5px solid ${C.bdr}`,borderRadius:9,fontSize:12.5,color:C.text,background:C.card,outline:"none"}}
         />
         <button onClick={()=>send()} disabled={!inp.trim()&&!typing} className="btn btn-g jc" style={{width:36,height:36,borderRadius:9,padding:0,fontSize:15,opacity:inp.trim()?1:0.5}}>
-          ➤
+          <Icon name="chevron" size={16} />
         </button>
       </div>
     </div>

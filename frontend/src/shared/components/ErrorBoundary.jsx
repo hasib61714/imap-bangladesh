@@ -1,6 +1,7 @@
 // Shared React error boundary (extracted from main.jsx — behavior unchanged).
 // Auto-reloads up to twice, then offers a cache-clear recovery screen.
 import { Component } from 'react'
+import Icon from "../../components/Icon";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -35,7 +36,7 @@ export default class ErrorBoundary extends Component {
       if (reloadCount <= 2) {
         return (
           <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#080F0B"}}>
-            <div style={{fontSize:48,marginBottom:16}}>🌿</div>
+            <div style={{fontSize:48,marginBottom:16}}><Icon name="home" size={48} /></div>
             <div style={{fontSize:18,fontWeight:700,color:"#006A4E",marginBottom:8}}>IMAP</div>
             <div style={{fontSize:13,color:"rgba(255,255,255,.5)"}}>পুনরায় লোড হচ্ছে...</div>
           </div>
@@ -43,7 +44,7 @@ export default class ErrorBoundary extends Component {
       }
       return (
         <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#080F0B",padding:24,textAlign:"center"}}>
-          <div style={{fontSize:52,marginBottom:12}}>🌿</div>
+          <div style={{fontSize:52,marginBottom:12}}><Icon name="home" size={52} /></div>
           <div style={{fontSize:20,fontWeight:800,color:"#006A4E",marginBottom:6}}>IMAP</div>
           <div style={{fontSize:14,color:"rgba(255,255,255,.85)",marginBottom:4,fontWeight:600}}>অ্যাপ লোড করতে সমস্যা হচ্ছে</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginBottom:24}}>পুরানো cache সাফ করে আবার চেষ্টা করুন</div>

@@ -143,7 +143,7 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
   return (
     <div>
       <div className="row" style={{justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
-        <div style={{fontSize:18,fontWeight:700}}>📋 {tr.mbTitle}</div>
+        <div style={{fontSize:18,fontWeight:700}}><Icon name="document" size={14} style={{marginRight:6}} />{tr.mbTitle}</div>
         <div className="row" style={{gap:7}}>
           {FILTERS.map(([f,l])=>(
             <button key={f} className="btn" onClick={()=>setFilter(f)} style={{padding:"6px 12px",borderRadius:99,border:`1.5px solid ${filter===f?C.p:C.bdr}`,background:filter===f?C.p:"#fff",color:filter===f?"#fff":C.sub,fontSize:12,fontWeight:600}}>{l}</button>
@@ -160,7 +160,7 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
           <div key={i} className="card" style={{padding:16,marginBottom:11,animation:`fadeUp .4s ease ${i*.06}s both`}}>
             <div className="row" style={{justifyContent:"space-between",marginBottom:st==="ongoing"?10:0}}>
               <div className="row" style={{gap:11}}>
-                <div className="jc" style={{width:44,height:44,borderRadius:12,background:C.bg,fontSize:22,flexShrink:0}}><Icon name=<Icon name={b.icon} size={14} style={{marginRight:6}} />size={22} /></div>
+                <div className="jc" style={{width:44,height:44,borderRadius:12,background:C.bg,fontSize:22,flexShrink:0}}><Icon name={b.icon} size={22} /></div>
                 <div>
                   <div style={{fontSize:14,fontWeight:700}}>{svc}</div>
                   <div style={{fontSize:12,color:C.muted}}>{provider}</div>
@@ -172,23 +172,23 @@ export default function MyBookings({onRate,onBook,onPay,onRefresh}) {
                 <span className="badge" style={{background:S.bg,color:S.col,marginTop:4,display:"inline-flex"}}>{S[lang]||S.en}</span>
               </div>
             </div>
-            {st==="ongoing"&&(<div><div style={{background:"rgba(59,130,246,.08)",borderRadius:10,padding:10,border:"1px solid rgba(59,130,246,.25)"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}>🔵 {tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>💳 {lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}<button onClick={()=>{if(window.confirm(lang==="en"?"Cancel this booking? Your wallet will be refunded.":"এই বুকিং বাতিল করবেন? আপনার ওয়ালেটে রিফান্ড হবে।"))cancelBooking(b.rawId||b.id);}} disabled={cancellingId===( b.rawId||b.id)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#EF4444",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>❌ {cancellingId===(b.rawId||b.id)?(lang==="bn"?"বাতিল হচ্ছে...":"Cancelling..."):(lang==="bn"?"বুকিং বাতিল করুন":"Cancel Booking")}</button></div>)}
+            {st==="ongoing"&&(<div><div style={{background:"rgba(59,130,246,.08)",borderRadius:10,padding:10,border:"1px solid rgba(59,130,246,.25)"}}><div style={{fontSize:12,color:"#1D4ED8",fontWeight:600,marginBottom:5}}><Icon name="info" size={14} style={{marginRight:6}} />{tr.pComing}</div><PBar v={60} col="#2563EB"/></div>{b.payment_status==="pending"&&onPay&&(<button onClick={()=>onPay(b.id||b.booking_ref)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"none",background:"#6366F1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="card" size={14} style={{marginRight:6}} />{lang==="bn"?"পেমেন্ট করুন":"Pay Now"}</button>)}<button onClick={()=>{if(window.confirm(lang==="en"?"Cancel this booking? Your wallet will be refunded.":"এই বুকিং বাতিল করবেন? আপনার ওয়ালেটে রিফান্ড হবে।"))cancelBooking(b.rawId||b.id);}} disabled={cancellingId===( b.rawId||b.id)} style={{marginTop:8,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#EF4444",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="error" size={14} style={{marginRight:6}} />{cancellingId===(b.rawId||b.id)?(lang==="bn"?"বাতিল হচ্ছে...":"Cancelling..."):(lang==="bn"?"বুকিং বাতিল করুন":"Cancel Booking")}</button></div>)}
             {st==="completed"&&<div style={{marginTop:10}}>
               <div className="row" style={{gap:8,marginBottom:7}}>
                 <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`,fontSize:12}} onClick={()=>onRate(findProvider(b.pid))}>{tr.giveRating}</button>
                 <button className="btn btn-g" style={{flex:1,padding:"8px",fontSize:12}} onClick={()=>onBook(findProvider(b.pid))}>{tr.rebookBtn}</button>
               </div>
               <div className="row" style={{gap:8}}>
-                <button onClick={()=>setGuarantee(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(16,185,129,.5)",background:"rgba(16,185,129,.12)",color:"#065F46",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🛡️ {lang==="en"?"Guarantee":"গ্যারান্টি"}</button>
-                <button onClick={()=>setDispute(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(245,158,11,.5)",background:"rgba(245,158,11,.12)",color:"#92400E",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"Dispute":"অভিযোগ"}</button>
+                <button onClick={()=>setGuarantee(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(16,185,129,.5)",background:"rgba(16,185,129,.12)",color:"#065F46",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="security" size={14} style={{marginRight:6}} />{lang==="en"?"Guarantee":"গ্যারান্টি"}</button>
+                <button onClick={()=>setDispute(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(245,158,11,.5)",background:"rgba(245,158,11,.12)",color:"#92400E",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="warning" size={14} style={{marginRight:6}} />{lang==="en"?"Dispute":"অভিযোগ"}</button>
               </div>
               <div className="row" style={{gap:8,marginTop:7}}>
-                <button onClick={()=>printReceipt(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(99,102,241,.5)",background:"rgba(99,102,241,.1)",color:"#3730A3",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🧾 {lang==="en"?"Receipt":"রসিদ"}</button>
-                <button onClick={()=>printInvoice(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(59,130,246,.5)",background:"rgba(59,130,246,.1)",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>📄 {lang==="en"?"Invoice":"ইনভয়েস"}</button>
+                <button onClick={()=>printReceipt(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(99,102,241,.5)",background:"rgba(99,102,241,.1)",color:"#3730A3",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="receipt" size={14} style={{marginRight:6}} />{lang==="en"?"Receipt":"রসিদ"}</button>
+                <button onClick={()=>printInvoice(b)} style={{flex:1,padding:"7px",borderRadius:10,border:"1.5px solid rgba(59,130,246,.5)",background:"rgba(59,130,246,.1)",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="document" size={14} style={{marginRight:6}} />{lang==="en"?"Invoice":"ইনভয়েস"}</button>
               </div>
             </div>}
             {st==="cancelled"&&<div style={{marginTop:10}}>
-              <button onClick={()=>setDispute(b)} style={{width:"100%",padding:"8px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#B91C1C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⚠️ {lang==="en"?"File Dispute / Refund":"অভিযোগ / রিফান্ড"}</button>
+              <button onClick={()=>setDispute(b)} style={{width:"100%",padding:"8px",borderRadius:10,border:"1.5px solid rgba(239,68,68,.4)",background:"rgba(239,68,68,.1)",color:"#B91C1C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="warning" size={14} style={{marginRight:6}} />{lang==="en"?"File Dispute / Refund":"অভিযোগ / রিফান্ড"}</button>
             </div>}
           </div>
         );

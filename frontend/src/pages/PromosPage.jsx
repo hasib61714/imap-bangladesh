@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import { useC, useTr, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
@@ -57,14 +58,14 @@ export default function PromosPage(){
     <div>
       {/* Coupon apply box */}
       <div style={{background:C.card,borderRadius:16,padding:18,marginBottom:16,border:`1px solid ${C.bdr}`}}>
-        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:10}}>🎟️ {lang==="en"?"Apply Coupon":"\u0995\u09c1\u09aa\u09a8 \u0995\u09cb\u09a1 \u09a6\u09bf\u09a8"}</div>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:10}}><Icon name="tag" size={14} style={{marginRight:6}} />{lang==="en"?"Apply Coupon":"\u0995\u09c1\u09aa\u09a8 \u0995\u09cb\u09a1 \u09a6\u09bf\u09a8"}</div>
         {appliedCode&&(
           <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid rgba(16,185,129,.25)"}}>
             <div>
               <div style={{fontSize:13,fontWeight:800,color:"#065F46"}}>{appliedCode.code} — {appliedCode.pct}% {lang==="en"?"off":"ছাড়"}</div>
               <div style={{fontSize:11,color:"#047857"}}>{lang==="en"?`Max save ৳${appliedCode.maxTk}`:`সর্বোচ্চ ৳${appliedCode.maxTk} সাশ্রয়`}</div>
             </div>
-            <button onClick={()=>{setAppliedCode(null);setApplyResult(null);setCode("");}} style={{background:"none",border:"none",color:"#DC2626",fontSize:18,cursor:"pointer"}}>✕</button>
+            <button onClick={()=>{setAppliedCode(null);setApplyResult(null);setCode("");}} style={{background:"none",border:"none",color:"#DC2626",fontSize:18,cursor:"pointer"}}><Icon name="close" size={16} /></button>
           </div>
         )}
         <div style={{display:"flex",gap:8}}>
@@ -81,7 +82,7 @@ export default function PromosPage(){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:16,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["offers",`🏷️ ${tr.prOffers}`],["flash",`⚡ ${tr.prDeals}`]].map(([id,lbl])=>(
+        {[["offers",`${tr.prOffers}`],["flash",`${tr.prDeals}`]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",transition:"all .15s"}}>{lbl}</button>
         ))}
       </div>
@@ -111,7 +112,7 @@ export default function PromosPage(){
           <div key={c.code} className="fu" style={{animationDelay:`${i*.05}s`,background:c.tag==="flash"?"linear-gradient(135deg,#FFF7ED,#FFEDD5)":C.card,borderRadius:16,border:`1.5px dashed ${c.tag==="flash"?"#FB923C":isApplied?C.p:C.bdr}`,padding:"16px 18px",position:"relative",overflow:"hidden"}}>
             {c.tag&&<div style={{position:"absolute",top:10,right:10,background:c.tag==="flash"?"#EA580C":c.tag==="hot"?"#DC2626":"#0369A1",color:"#fff",borderRadius:8,padding:"2px 9px",fontSize:10,fontWeight:800,textTransform:"uppercase"}}>{c.tag}</div>}
             <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
-              <div style={{width:50,height:50,borderRadius:12,background:c.tag==="flash"?"#FED7AA":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🎟️</div>
+              <div style={{width:50,height:50,borderRadius:12,background:c.tag==="flash"?"#FED7AA":C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}><Icon name="tag" size={22} /></div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:20,fontWeight:800,color:C.p,letterSpacing:2,fontFamily:"monospace"}}>{c.code}</div>
                 <div style={{fontSize:13,color:C.text,marginTop:2}}>{lang==="en"?c.descEn:c.descBn}</div>

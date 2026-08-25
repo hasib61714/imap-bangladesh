@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx, useLiveData } from "../contexts";
 import { T } from "../constants/translations";
 import { PROVIDERS, CAL_SLOTS } from "../constants/data";
@@ -154,7 +155,7 @@ export default function CalendarPage({onBook}) {
       {/* Prompt when no date selected */}
       {!selDate&&(
         <div style={{textAlign:"center",padding:"32px 20px",color:C.muted}}>
-          <div style={{fontSize:48,marginBottom:10}}>📅</div>
+          <div style={{fontSize:48,marginBottom:10}}><Icon name="calendar" size={48} /></div>
           <div style={{fontSize:14}}>{lang==="en"?"Pick a day above to see available slots":"উপরে একটি দিন বেছে নিন"}</div>
         </div>
       )}

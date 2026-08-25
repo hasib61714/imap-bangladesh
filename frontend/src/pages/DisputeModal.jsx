@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import Icon from "../components/Icon";
 import { useC, LangCtx } from "../contexts";
 import { T } from "../constants/translations";
 import { users as usersApi } from "../api";
@@ -36,7 +37,7 @@ export default function DisputeModal({booking,onClose}){
       }} onClick={e=>e.stopPropagation()}>
         {submitted?(
           <div style={{textAlign:"center",padding:"24px 0"}}>
-            <div style={{fontSize:44,marginBottom:12}}>✅</div>
+            <div style={{fontSize:44,marginBottom:12}}><Icon name="success" size={44} /></div>
             <div style={{fontSize:17,fontWeight:700,color:"#065F46",marginBottom:8}}>{lang==="en"?"Dispute Submitted!":"অভিযোগ জমা হয়েছে!"}</div>
             <div style={{fontSize:13,color:"#6B7280",marginBottom:20}}>{lang==="en"?"We'll review and respond within 24–48 hours.":"আমরা ২৪–৪৮ ঘণ্টার মধ্যে পর্যালোচনা করব।"}</div>
             <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"12px 16px",marginBottom:20,textAlign:"left",border:"1px solid rgba(16,185,129,.3)"}}>
@@ -48,10 +49,10 @@ export default function DisputeModal({booking,onClose}){
         ):(
           <>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div style={{fontSize:16,fontWeight:700}}>⚠️ {lang==="en"?"File a Dispute":"অভিযোগ দাখিল"}</div>
-              <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}>✕</button>
+              <div style={{fontSize:16,fontWeight:700}}><Icon name="warning" size={14} style={{marginRight:6}} />{lang==="en"?"File a Dispute":"অভিযোগ দাখিল"}</div>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#9CA3AF"}}><Icon name="close" size={16} /></button>
             </div>
-            <div style={{background:"rgba(245,158,11,.1)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#92400E",border:"1px solid rgba(245,158,11,.25)"}}>📋 {svc} · {lang==="en"?booking.dateEn||booking.date:booking.date} · {booking.price}</div>
+            <div style={{background:"rgba(245,158,11,.1)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#92400E",border:"1px solid rgba(245,158,11,.25)"}}><Icon name="document" size={14} style={{marginRight:6}} />{svc} · {lang==="en"?booking.dateEn||booking.date:booking.date} · {booking.price}</div>
             <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:10}}>{lang==="en"?"Issue Type":"সমস্যার ধরন"}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
               {TYPES.map(t=>(

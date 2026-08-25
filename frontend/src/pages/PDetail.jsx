@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, LangCtx } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
@@ -57,16 +58,16 @@ export default function PDetail({p,onClose,onBook,onChat}) {
         <div style={{flex:1}}>
           <div className="row" style={{gap:7,flexWrap:"wrap"}}>
             <span style={{fontSize:19,fontWeight:700}}>{name}</span>
-            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46"}}>✅</span>}
-            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03"}}>⭐ {p.badge}</span>}
+            {p.ok&&<span className="badge" style={{background:"rgba(16,185,129,.15)",color:"#065F46"}}><Icon name="success" size={16} /></span>}
+            {p.top&&<span className="badge" style={{background:"rgba(245,158,11,.12)",color:"#A35C03"}}><Icon name="star" size={14} style={{marginRight:6}} />{p.badge}</span>}
           </div>
-          <div style={{fontSize:13,color:C.muted,marginTop:3}}>{svc} · 📍 {loc}</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3}}>{svc} · <Icon name="location" size={12} style={{margin:"0 3px"}} />{loc}</div>
           <div className="row" style={{gap:12,marginTop:7,flexWrap:"wrap"}}>
             <span style={{fontSize:13}}><Stars r={p.r} size={12}/> <b>{p.r}</b> ({p.rev})</span>
-            <span style={{fontSize:13,color:C.muted}}>✅ {p.jobs} {tr.jobs} · ⏱️ {eta} {tr.min}</span>
+            <span style={{fontSize:13,color:C.muted}}><Icon name="success" size={14} style={{marginRight:6}} />{p.jobs} {tr.jobs} · ⏱️ {eta} {tr.min}</span>
           </div>
         </div>
-        <button className="btn btn-gh" style={{fontSize:20,flexShrink:0}} onClick={onClose}>✕</button>
+        <button className="btn btn-gh" style={{fontSize:20,flexShrink:0}} onClick={onClose}><Icon name="close" size={16} /></button>
       </div>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>{tags.map(t=><span key={t} className="tag">{t}</span>)}</div>
       <div className="row" style={{gap:2,borderBottom:`2px solid ${C.bdr}`,marginBottom:16}}>
@@ -113,10 +114,10 @@ export default function PDetail({p,onClose,onBook,onChat}) {
       </div>}
       {tab==="reviews"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
         {(revSummary||revSumLoading)&&<div style={{background:`linear-gradient(135deg,${C.plt},#fff)`,border:`1.5px solid ${C.p}`,borderRadius:12,padding:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:C.p,marginBottom:5}}>🤖 AI {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
-          {revSumLoading?<div style={{fontSize:12,color:C.muted}}>✨ {lang==="en"?"Analyzing reviews...":"রিভিউ বিশ্লেষণ হচ্ছে..."}</div>:<div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{revSummary}</div>}
+          <div style={{fontSize:11,fontWeight:700,color:C.p,marginBottom:5}}><Icon name="digital" size={14} style={{marginRight:6}} />AI {lang==="en"?"Summary":"সারসংক্ষেপ"}</div>
+          {revSumLoading?<div style={{fontSize:12,color:C.muted}}><Icon name="star" size={14} style={{marginRight:6}} />{lang==="en"?"Analyzing reviews...":"রিভিউ বিশ্লেষণ হচ্ছে..."}</div>:<div style={{fontSize:12,color:C.sub,lineHeight:1.65}}>{revSummary}</div>}
         </div>}
-        {revLoading&&<div style={{textAlign:"center",padding:24,color:C.muted}}>⏳ {lang==="en"?"Loading reviews...":"লোড হচ্ছে..."}</div>}
+        {revLoading&&<div style={{textAlign:"center",padding:24,color:C.muted}}><Icon name="pending" size={14} style={{marginRight:6}} />{lang==="en"?"Loading reviews...":"লোড হচ্ছে..."}</div>}
         {!revLoading&&(realRevs!==null?realRevs:REVS).map((rv,i)=>(
           <div key={rv.id||i} style={{padding:12,border:`1px solid ${C.bdr}`,borderRadius:12}}>
             <div className="row" style={{gap:9,marginBottom:6}}>
@@ -133,11 +134,11 @@ export default function PDetail({p,onClose,onBook,onChat}) {
           </div>
         ))}
         {realRevs!==null&&realRevs.length===0&&(
-          <div style={{textAlign:"center",padding:24,color:C.muted}}>⭐ {lang==="en"?"No reviews yet":"এখনো কোনো রিভিউ নেই"}</div>
+          <div style={{textAlign:"center",padding:24,color:C.muted}}><Icon name="star" size={14} style={{marginRight:6}} />{lang==="en"?"No reviews yet":"এখনো কোনো রিভিউ নেই"}</div>
         )}
         {realRevs!==null&&realRevs.length>1&&(
           <div style={{textAlign:"center",fontSize:12,color:C.muted,padding:6}}>
-            ⭐ {lang==="en"?"Average":"গড়"}: <b style={{color:C.p}}>{(realRevs.reduce((s,r)=>s+(r.rating||0),0)/realRevs.length).toFixed(1)}</b> ({realRevs.length} {lang==="en"?"reviews":"টি রিভিউ"})
+            <Icon name="star" size={15} style={{marginRight:6}} />{lang==="en"?"Average":"গড়"}: <b style={{color:C.p}}>{(realRevs.reduce((s,r)=>s+(r.rating||0),0)/realRevs.length).toFixed(1)}</b> ({realRevs.length} {lang==="en"?"reviews":"টি রিভিউ"})
           </div>
         )}
       </div>}

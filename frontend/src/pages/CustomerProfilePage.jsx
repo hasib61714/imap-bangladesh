@@ -93,7 +93,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
               ?<img src={u.avatar} id="cprofile-av" style={{width:"100%",height:"100%",objectFit:"cover"}} alt="avatar"/>
               :<><span>{(u.name||"?")[0].toUpperCase()}</span><img id="cprofile-av" style={{display:"none",position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} alt="avatar"/></>
             }
-            <div style={{position:"absolute",bottom:0,right:0,width:24,height:24,borderRadius:"50%",background:C.p,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,border:"2px solid rgba(255,255,255,.8)"}}>📷</div>
+            <div style={{position:"absolute",bottom:0,right:0,width:24,height:24,borderRadius:"50%",background:C.p,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,border:"2px solid rgba(255,255,255,.8)"}}><Icon name="camera" size={11} /></div>
           </div>
         </label>
         <div style={{fontWeight:800,fontSize:20,marginBottom:4}}>{u.name||"অতিথি"}</div>
@@ -120,7 +120,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8,margin:"18px 0"}}>
           {stats.map((s,i)=>(
             <div key={i} style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:14,padding:"12px 6px",textAlign:"center"}}>
-              <div style={{fontSize:20,marginBottom:4}}><Icon name=<Icon name={s.icon} size={14} style={{marginRight:6}} />size={20} /></div>
+              <div style={{fontSize:20,marginBottom:4}}><Icon name={s.icon} size={20} /></div>
               <div style={{fontWeight:800,fontSize:15,color:C.p}}>{s.v}</div>
               <div style={{fontSize:10,color:C.muted,fontWeight:600,lineHeight:1.3}}>{s.label}</div>
             </div>
@@ -129,11 +129,11 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
 
         {/* Quick actions */}
         <div style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:16,padding:16,marginBottom:18}}>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>⚡ {lang==="bn"?"দ্রুত অ্যাকশন":"Quick Actions"}</div>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}><Icon name="electrician" size={14} style={{marginRight:6}} />{lang==="bn"?"দ্রুত অ্যাকশন":"Quick Actions"}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(82px,1fr))",gap:8}}>
             {quickActions.map((a,i)=>(
               <button key={i} onClick={()=>onNavigate&&onNavigate(a.page)} style={{background:C.bg,border:`1px solid ${C.bdr}`,borderRadius:12,padding:"12px 6px",cursor:"pointer",textAlign:"center",fontFamily:"inherit",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.background=C.plt} onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
-                <div style={{fontSize:22,marginBottom:4}}><Icon name=<Icon name={a.icon} size={14} style={{marginRight:6}} />size={22} /></div>
+                <div style={{fontSize:22,marginBottom:4}}><Icon name={a.icon} size={22} /></div>
                 <div style={{fontSize:11,fontWeight:700,color:C.sub}}>{a.label}</div>
               </button>
             ))}
@@ -143,7 +143,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
         {/* Recent bookings */}
         <div style={{background:C.card,border:`1px solid ${C.bdr}`,borderRadius:16,padding:16,marginBottom:18}}>
           <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>📋 {lang==="bn"?"সাম্প্রতিক বুকিং":"Recent Bookings"}</span>
+            <span><Icon name="document" size={14} style={{marginRight:6}} />{lang==="bn"?"সাম্প্রতিক বুকিং":"Recent Bookings"}</span>
             <span onClick={()=>onNavigate&&onNavigate("bookings")} style={{fontSize:12,color:C.p,cursor:"pointer",fontWeight:600}}>{lang==="bn"?"সব দেখুন →":"View all →"}</span>
           </div>
           {recentBookings.map(b=>(
@@ -160,7 +160,7 @@ export default function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) 
         {/* KYC nudge if pending */}
         {(u.kycStatus||"pending")==="pending"&&(
           <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.35)",borderRadius:14,padding:16,marginBottom:18,display:"flex",gap:12,alignItems:"center"}}>
-            <div style={{fontSize:28}}>🛡️</div>
+            <div style={{fontSize:28}}><Icon name="security" size={28} /></div>
             <div style={{flex:1}}>
               <div style={{fontWeight:700,fontSize:13,color:"#7C5800",marginBottom:3}}>{lang==="bn"?"KYC যাচাই বাকি আছে":"KYC Verification Pending"}</div>
               <div style={{fontSize:12,color:"#92400E"}}>{lang==="bn"?"পূর্ণ সেবা পেতে আপনার পরিচয় যাচাই করুন":"Verify your identity to unlock all services"}</div>

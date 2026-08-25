@@ -35,7 +35,7 @@ export default function LoyaltyPage(){
             <div style={{fontSize:12,color:C.sub,marginTop:2}}>{tr.lyPoints}</div>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:32}}><Icon name=<Icon name={level.icon} size={14} style={{marginRight:6}} />size={32} /></div>
+            <div style={{fontSize:32}}><Icon name={level.icon} size={32} /></div>
             <div style={{fontSize:12,fontWeight:800,color:level.color}}>{lang==="en"?level.name:level.nameBn}</div>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function LoyaltyPage(){
       {tab==="points"&&(
         <div>
           <div style={{background:C.plt,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:C.sub}}>
-            💡 {lang==="en"?"Earn 10 points per ৳100 spent":"প্রতি ৳১০০ খরচে ১০ পয়েন্ট অর্জন করুন"} • {tr.lyPerBook}: 10 pts
+            <Icon name="digital" size={15} style={{marginRight:6}} />{lang==="en"?"Earn 10 points per ৳100 spent":"প্রতি ৳১০০ খরচে ১০ পয়েন্ট অর্জন করুন"} • {tr.lyPerBook}: 10 pts
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {LOYALTY_REWARDS.map(r=>{
@@ -66,10 +66,10 @@ export default function LoyaltyPage(){
               const isRedeemed=redeemedCode===r.code;
               return(
                 <div key={r.pts} style={{background:C.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${canRedeem?C.p:C.bdr}`,display:"flex",alignItems:"center",gap:14}}>
-                  <div style={{fontSize:28}}><Icon name=<Icon name={r.icon} size={14} style={{marginRight:6}} />size={28} /></div>
+                  <div style={{fontSize:28}}><Icon name={r.icon} size={28} /></div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.text}}>{lang==="en"?r.titleEn:r.titleBn}</div>
-                    <div style={{fontSize:11,color:canRedeem?"#006A4E":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`✅ ${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
+                    <div style={{fontSize:11,color:canRedeem?"#006A4E":"#DC2626",fontWeight:700,marginTop:3}}>{r.pts} {tr.lyPoints} {canRedeem?(`${lang==="en"?"available":"পাওয়া যাচ্ছে"}`):(`— ${r.pts-points} ${lang==="en"?"more needed":"আরও দরকার"}`)}</div>
                   </div>
                   <button onClick={async()=>{
                     if(!canRedeem||isRedeemed||redeemingCode)return;

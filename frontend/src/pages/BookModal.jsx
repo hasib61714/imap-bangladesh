@@ -136,12 +136,12 @@ export default function BookModal({p,onClose,onSuccess}) {
   // OTP verification UI for digital payments
   if(otpStep) return (
     <div style={{padding:24,textAlign:"center"}}>
-      <div style={{fontSize:48,marginBottom:10}}>📲</div>
+      <div style={{fontSize:48,marginBottom:10}}><Icon name="share" size={48} /></div>
       <div style={{fontSize:17,fontWeight:700,marginBottom:6}}>{lang==="en"?"Verify Payment":"পেমেন্ট যাচাই করুন"}</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:4}}>{lang==="en"?`Enter code sent via ${pay}`:pay+" এ পাঠানো কোড দিন"}</div>
       <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.p}}>{otpPhone}</div>
       <div style={{background:"rgba(59,130,246,.1)",borderRadius:12,padding:"10px 18px",marginBottom:16,border:"1px solid rgba(59,130,246,.3)",fontSize:13,color:"#1D4ED8"}}>
-        🎯 {lang==="en"?"Demo OTP:":"ডেমো OTP:"} <b style={{fontSize:20,letterSpacing:4}}>{otpCode}</b>
+        <Icon name="target" size={15} style={{marginRight:6}} />{lang==="en"?"Demo OTP:":"ডেমো OTP:"} <b style={{fontSize:20,letterSpacing:4}}>{otpCode}</b>
       </div>
       <input
         value={otpVal}
@@ -164,7 +164,7 @@ export default function BookModal({p,onClose,onSuccess}) {
   // Show fraud warning overlay
   if(fraudWarn) return (
     <div style={{padding:24,textAlign:"center"}}>
-      <div style={{fontSize:56,marginBottom:10}}>⚠️</div>
+      <div style={{fontSize:56,marginBottom:10}}><Icon name="warning" size={56} /></div>
       <div style={{fontSize:17,fontWeight:700,color:"#DC2626",marginBottom:8}}>{lang==="en"?"Suspicious Activity Detected":"সন্দেহজনক কার্যকলাপ শনাক্ত"}</div>
       <div style={{background:"rgba(239,68,68,.08)",borderRadius:12,padding:14,marginBottom:14,border:"1px solid rgba(239,68,68,.25)"}}>
         {fraudWarn.flags.map((f,i)=>(
@@ -181,7 +181,7 @@ export default function BookModal({p,onClose,onSuccess}) {
 
   if(done) return (
     <div style={{padding:24,textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:14}}>🎉</div>
+      <div style={{fontSize:64,marginBottom:14}}><Icon name="success" size={64} /></div>
       <div style={{fontSize:21,fontWeight:700}}>{tr.bookDone}</div>
       <div style={{fontSize:14,color:C.muted,marginTop:6}}>{name} {eta} {tr.min} {tr.arrives}</div>
       <div style={{
@@ -192,16 +192,16 @@ export default function BookModal({p,onClose,onSuccess}) {
       }}>
         <div style={{fontSize:11,color:C.muted}}>{tr.bookId}</div>
         <div style={{fontSize:22,fontWeight:700,color:C.p,marginTop:4}}>#{bookingRef?bookingRef.slice(0,8).toUpperCase():"BK-"+Math.floor(Math.random()*9000+1000)}</div>
-        {dynPrice?.surgeActive&&<div style={{fontSize:10,color:"#F59E0B",marginTop:6}}>⚡ {dynPrice.surgeReason}</div>}
+        {dynPrice?.surgeActive&&<div style={{fontSize:10,color:"#F59E0B",marginTop:6}}><Icon name="electrician" size={14} style={{marginRight:6}} />{dynPrice.surgeReason}</div>}
       </div>
       {bundles.length>0&&(
         <div style={{marginBottom:14,textAlign:"left"}}>
-          <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:8}}>🤖 {lang==="en"?"You may also need:":"আরো যা লাগতে পারে:"}</div>
+          <div style={{fontSize:12,fontWeight:700,color:C.p,marginBottom:8}}><Icon name="digital" size={14} style={{marginRight:6}} />{lang==="en"?"You may also need:":"আরো যা লাগতে পারে:"}</div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {bundles.map((b,i)=>(
               <div key={i} style={{background:C.bg,borderRadius:10,padding:"9px 12px",border:`1px solid ${C.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span style={{fontSize:13}}>{b.service}</span>
-                <span style={{fontSize:10,color:C.muted,background:C.plt,borderRadius:99,padding:"2px 7px"}}>🔥 {b.popularity}x</span>
+                <span style={{fontSize:10,color:C.muted,background:C.plt,borderRadius:99,padding:"2px 7px"}}><Icon name="hot" size={14} style={{marginRight:6}} />{b.popularity}x</span>
               </div>
             ))}
           </div>
@@ -213,8 +213,8 @@ export default function BookModal({p,onClose,onSuccess}) {
   return (
     <div style={{padding:24}}>
       <div className="row" style={{justifyContent:"space-between",marginBottom:18}}>
-        <div style={{fontSize:17,fontWeight:700}}>📋 {tr.bookTitle}</div>
-        <button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}>✕</button>
+        <div style={{fontSize:17,fontWeight:700}}><Icon name="document" size={14} style={{marginRight:6}} />{tr.bookTitle}</div>
+        <button className="btn btn-gh" style={{fontSize:20}} onClick={onClose}><Icon name="close" size={16} /></button>
       </div>
       <div className="row" style={{gap:4,marginBottom:20}}>
         {STEPS.map((s,i)=>(
@@ -260,7 +260,7 @@ export default function BookModal({p,onClose,onSuccess}) {
           ))}
           {dynPrice?.surgeActive&&(
             <div className="row" style={{justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:12,color:"#F59E0B"}}>⚡ Surge ({dynPrice.surgeReason})</span>
+              <span style={{fontSize:12,color:"#F59E0B"}}><Icon name="electrician" size={14} style={{marginRight:6}} />Surge ({dynPrice.surgeReason})</span>
               <span style={{fontSize:12,color:"#F59E0B"}}>×{dynPrice.multiplier}</span>
             </div>
           )}
@@ -273,7 +273,7 @@ export default function BookModal({p,onClose,onSuccess}) {
             </div>
           </div>
         </div>
-        {bookErr&&<div style={{background:"rgba(239,68,68,.1)",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#B91C1C",fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}>❌ {bookErr}</div>}
+        {bookErr&&<div style={{background:"rgba(239,68,68,.1)",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#B91C1C",fontWeight:600,border:"1px solid rgba(239,68,68,.25)"}}><Icon name="error" size={14} style={{marginRight:6}} />{bookErr}</div>}
         <div className="row" style={{gap:8}}>
           <button className="btn btn-gh" style={{flex:1,border:`1px solid ${C.bdr}`}} onClick={()=>setStep(1)}>{tr.backBtn}</button>
           <button className="btn btn-g" style={{flex:2}} disabled={loadingConfirm} onClick={()=>{setBookErr(null);handleConfirm(false);}}>{loadingConfirm?(lang==="en"?"Checking...":"যাচাই হচ্ছে..."):tr.confirmBtn}</button>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/Icon";
 import { useC, useTr, useLiveData } from "../contexts";
 import { C_DARK } from "../constants/theme";
 import { T } from "../constants/translations";
@@ -32,7 +33,7 @@ export default function LoanScore() {
   if(applyOffer&&!loanDone) return (
     <div>
       <div style={{background:`linear-gradient(135deg,${C.dark},${C.p}99)`,borderRadius:18,padding:20,marginBottom:20,color:C.onP}}>
-        <div style={{fontSize:12,opacity:.7,marginBottom:4}}>💹 {lang==="en"?"Loan Application":"ঋণ আবেদন"}</div>
+        <div style={{fontSize:12,opacity:.7,marginBottom:4}}><Icon name="earnings" size={14} style={{marginRight:6}} />{lang==="en"?"Loan Application":"ঋণ আবেদন"}</div>
         <div style={{fontSize:22,fontWeight:800}}>{applyOffer.amt}</div>
         <div style={{fontSize:13,opacity:.8}}>{applyOffer.rate} {tr.interestL} · {applyOffer.tenure} {lang==="en"?"months":"মাস"}</div>
       </div>
@@ -44,7 +45,7 @@ export default function LoanScore() {
           </div>
         ))}
         <div style={{background:`${C.p}10`,borderRadius:12,padding:"11px 14px",marginBottom:16,fontSize:12,color:C.sub}}>
-          📊 {lang==="en"?"Your loan score:":"আপনার লোন স্কোর:"} <b style={{color:C.p}}>{score}/100</b> — {msg}
+          <Icon name="dashboard" size={15} style={{marginRight:6}} />{lang==="en"?"Your loan score:":"আপনার লোন স্কোর:"} <b style={{color:C.p}}>{score}/100</b> — {msg}
         </div>
       </div>
       <div style={{display:"flex",gap:10}}>
@@ -70,7 +71,7 @@ export default function LoanScore() {
 
   if(loanDone) return (
     <div style={{textAlign:"center",padding:"24px 0"}}>
-      <div style={{fontSize:56,marginBottom:12}}>🎉</div>
+      <div style={{fontSize:56,marginBottom:12}}><Icon name="success" size={56} /></div>
       <div style={{fontSize:18,fontWeight:700,color:"#065F46",marginBottom:8}}>{lang==="en"?"Application Submitted!":"আবেদন জমা হয়েছে!"}</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:20}}>{lang==="en"?"We will review and contact you within 2–3 business days.":"আমরা ২–৩ কার্যদিবসের মধ্যে আপনার সাথে যোগাযোগ করব।"}</div>
       <div style={{background:"rgba(16,185,129,.12)",borderRadius:12,padding:"14px 18px",marginBottom:20,display:"inline-block",border:"1px solid rgba(16,185,129,.3)"}}>
@@ -85,7 +86,7 @@ export default function LoanScore() {
   return (
     <div>
       <div style={{background:`linear-gradient(135deg,${C.dark},${C.p}99)`,borderRadius:18,padding:20,marginBottom:14}}>
-        <div style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:600,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>💹 {tr.loanTitle}</div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:600,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}><Icon name="earnings" size={14} style={{marginRight:6}} />{tr.loanTitle}</div>
         <div className="row" style={{alignItems:"flex-end",gap:8,marginBottom:10}}>
           <div style={{fontSize:52,fontWeight:800,color:"#fff",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1}}>{score}</div>
           <div style={{fontSize:17,color:"rgba(255,255,255,.5)",paddingBottom:5}}>/100</div>
@@ -99,7 +100,7 @@ export default function LoanScore() {
         boxShadow:`0 3px 12px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.35)`
       }}>
         <div style={{fontSize:13,fontWeight:700,marginBottom:12}}>{tr.scoreAnalysis}</div>
-        {[["",95],["",88],["",92],["",78],["",70]].map(([ic,s],i)=>{
+        {[["success",95],["calendar",88],["star",92],["identity",78],["earnings",70]].map(([ic,s],i)=>{
           const labels={en:["Service History","Payment Regularity","Customer Rating","Activity","Years of Experience"],bn:["সেবার ইতিহাস","পেমেন্ট নিয়মিততা","গ্রাহক রেটিং","সক্রিয়তা","অভিজ্ঞতার বছর"]};
           return (
             <div key={i} style={{marginBottom:10}}>

@@ -766,7 +766,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
                 <h3 style={{ fontWeight:800, fontSize:18, color:R, marginBottom:10 }}>{T.sos_title}</h3>
                 <p style={{ fontSize:14, color:dark?"#FFBABF":"#7A0010", lineHeight:1.75 }}>{T.sos_desc}</p>
                 <div style={{ marginTop:16, padding:"10px 16px", background:`${R}12`, borderRadius:8, fontSize:13, color:R, fontWeight:700 }}>
-                  🚨 {lang === "en" ? "Emergency: 999 · 199 · 16430" : "জরুরি: ৯৯৯ · ১৯৯ · ১৬৪৩০"}
+                  <Icon name="emergency" size={15} style={{marginRight:6}} />{lang === "en" ? "Emergency: 999 · 199 · 16430" : "জরুরি: ৯৯৯ · ১৯৯ · ১৬৪৩০"}
                 </div>
               </div>
             </div>
@@ -774,11 +774,11 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             {/* KYC */}
             <div ref={revealRef} data-rid="safe-kyc" className={`lp-reveal-r${revealed["safe-kyc"]?" vis":""}`}>
               <div style={{ background:dark?"#0A1A12":"#FFFFFF", border:`1.5px solid ${G}33`, borderLeft:`4px solid ${G}`, borderRadius:14, padding:28, boxShadow:`0 4px 20px rgba(16,24,20,0.05)` }}>
-                <div style={{ fontSize:42, marginBottom:14 }}>🪪</div>
+                <div style={{ fontSize:42, marginBottom:14 }}><Icon name="identity" size={42} /></div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:G, marginBottom:10 }}>{T.kyc_title}</h3>
                 <p style={{ fontSize:14, color:dark?sub:"#0A3D20", lineHeight:1.75 }}>{T.kyc_desc}</p>
                 <div style={{ marginTop:16, padding:"10px 16px", background:`${G}12`, borderRadius:8, fontSize:13, color:G, fontWeight:700 }}>
-                  ✅ {lang === "en" ? "100% Verified & Trusted" : "১০০% যাচাইকৃত ও বিশ্বস্ত"}
+                  <Icon name="success" size={15} style={{marginRight:6}} />{lang === "en" ? "100% Verified & Trusted" : "১০০% যাচাইকৃত ও বিশ্বস্ত"}
                 </div>
               </div>
             </div>
@@ -787,7 +787,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             <div ref={revealRef} data-rid="safe-legal" className={`lp-reveal-l${revealed["safe-legal"]?" vis":""}`}
               style={{ transitionDelay:".1s" }}>
               <div style={{ background:dark?"#0C0A1C":"#FFFFFF", border:"1.5px solid #6366F144", borderLeft:"4px solid #6366F1", borderRadius:14, padding:28, boxShadow:"0 4px 20px #6366F112" }}>
-                <div style={{ fontSize:42, marginBottom:14 }}>⚖️</div>
+                <div style={{ fontSize:42, marginBottom:14 }}><Icon name="legal" size={42} /></div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:"#4338CA", marginBottom:10 }}>{T.legal_title}</h3>
                 <p style={{ fontSize:14, color:dark?"#A5B4FC":"#312E81", lineHeight:1.75 }}>{T.legal_desc}</p>
               </div>
@@ -797,7 +797,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
             <div ref={revealRef} data-rid="safe-priv" className={`lp-reveal-r${revealed["safe-priv"]?" vis":""}`}
               style={{ transitionDelay:".1s" }}>
               <div style={{ background:dark?"#0A0C1E":"#FFFFFF", border:"1.5px solid #3B82F644", borderLeft:"4px solid #3B82F6", borderRadius:14, padding:28, boxShadow:"0 4px 20px #3B82F612" }}>
-                <div style={{ fontSize:42, marginBottom:14 }}>🔐</div>
+                <div style={{ fontSize:42, marginBottom:14 }}><Icon name="locked" size={42} /></div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:"#2563EB", marginBottom:10 }}>{T.privacy_title}</h3>
                 <p style={{ fontSize:14, color:dark?"#93C5FD":"#1E3A8A", lineHeight:1.75 }}>{T.privacy_desc}</p>
               </div>
@@ -929,11 +929,11 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }} className="lp-4col">
             <a href="https://wa.me/8801XXXXXXXXX" target="_blank" rel="noopener noreferrer" className="lp-contact-link">
-              <div style={{ width:44, height:44, borderRadius:12, background:"#25D366", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>💬</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"#25D366", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}><Icon name="chat" size={22} /></div>
               <div><div style={{ fontWeight:700, fontSize:14, color:txt }}>WhatsApp</div><div style={{ fontSize:12, color:sub }}>+880 1XXX-XXXXXX</div></div>
             </a>
             <a href="tel:+8801XXXXXXXXX" className="lp-contact-link">
-              <div style={{ width:44, height:44, borderRadius:12, background:"#3B82F6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>📞</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"#3B82F6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}><Icon name="phone" size={22} /></div>
               <div><div style={{ fontWeight:700, fontSize:14, color:txt }}>{lang === "en" ? "Call Center" : "কল সেন্টার"}</div><div style={{ fontSize:12, color:sub }}>+880 1XXX-XXXXXX</div></div>
             </a>
             <div className="lp-contact-link" onClick={() => setAiOpen(true)}>
@@ -944,7 +944,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
           {/* Emergency line */}
           <div style={{ marginTop:20, padding:"16px 22px", borderRadius:12, background:dark?"rgba(232,25,44,.1)":"#FFF0F1", border:`1.5px solid ${R}33`, display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
-            <span style={{ fontSize:26 }}>🚨</span>
+            <Icon name="emergency" size={26} />
             <div>
               <div style={{ fontWeight:700, color:R, fontSize:14 }}>{T.emergency}:</div>
               <div style={{ fontSize:13, color:dark?"#FFAAAA":"#7A0010" }}>
@@ -970,8 +970,8 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
           <h2 style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:"clamp(24px,4vw,42px)", fontWeight:800, color:"#FFFFFF", lineHeight:1.2, marginBottom:16 }}>{T.ctaTitle}</h2>
           <p style={{ fontSize:"clamp(14px,1.5vw,17px)", color:"rgba(255,255,255,.78)", marginBottom:38, lineHeight:1.75 }}>{T.ctaSub}</p>
           <div className="lp-cta-btns" style={{ display:"flex", gap:16, justifyContent:"center", flexWrap:"wrap" }}>
-            <button className="lp-btn lp-btn-white" onClick={onGetStarted}>🛍️ {T.ctaBtn1}</button>
-            <button className="lp-btn lp-btn-ghost" onClick={onRegisterProvider}>👷 {T.ctaBtn2}</button>
+            <button className="lp-btn lp-btn-white" onClick={onGetStarted}><Icon name="errands" size={14} style={{marginRight:6}} />{T.ctaBtn1}</button>
+            <button className="lp-btn lp-btn-ghost" onClick={onRegisterProvider}><Icon name="shop" size={14} style={{marginRight:6}} />{T.ctaBtn2}</button>
           </div>
         </div>
       </section>
@@ -1015,7 +1015,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
 
           {/* Emergency numbers bar */}
           <div style={{ background:"rgba(232,25,44,.1)", border:"1px solid rgba(232,25,44,.22)", borderRadius:10, padding:"14px 20px", marginBottom:22, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-            <span style={{ fontSize:20 }}>🚨</span>
+            <Icon name="emergency" size={20} />
             <span style={{ fontWeight:700, color:"#FF6B7A", fontSize:14 }}>{T.emergency}:</span>
             <span style={{ color:"#FFAAAA", fontSize:13 }}>999 ({lang==="en"?"Police":"পুলিশ"}) · 199 ({lang==="en"?"Fire Service":"ফায়ার"}) · 16430 ({lang==="en"?"Helpline":"হেল্পলাইন"}) · 10921 ({lang==="en"?"Women":"মহিলা"})</span>
           </div>
@@ -1066,7 +1066,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               </div>
             </div>
             <button onClick={() => setAiOpen(false)} aria-label="Close"
-              style={{ background:"rgba(255,255,255,.2)", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", color:"#fff", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+              style={{ background:"rgba(255,255,255,.2)", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", color:"#fff", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="close" size={16} /></button>
           </div>
 
           {/* Messages */}
@@ -1118,7 +1118,7 @@ export default function LandingPage({ dark = false, setDark, lang = "bn", setLan
               style={{ flex:1, border:`1.5px solid ${cardBdr}`, borderRadius:10, padding:"9px 13px", fontSize:13, background: dark ? "#0A1610" : "#FFFFFF", color:txt, outline:"none" }}
             />
             <button onClick={sendAi} aria-label="Send message"
-              style={{ background:G, border:"none", borderRadius:10, width:38, height:38, cursor:"pointer", fontSize:18, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>➤</button>
+              style={{ background:G, border:"none", borderRadius:10, width:38, height:38, cursor:"pointer", fontSize:18, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><Icon name="chevron" size={16} /></button>
           </div>
         </div>
       )}

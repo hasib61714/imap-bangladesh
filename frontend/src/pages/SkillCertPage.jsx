@@ -27,8 +27,8 @@ export default function SkillCertPage(){
   return(
     <div>
       <div style={{display:"flex",gap:8,marginBottom:20,background:C.card,borderRadius:14,padding:5,border:`1px solid ${C.bdr}`}}>
-        {[["available",`📚 ${tr.scAvail}`],["mycerts",`🏅 ${tr.scMyCerts} (${myCerts.length})`]].map(([id,lbl])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?"#fff":C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>{lbl}</button>
+        {[["available","course",tr.scAvail],["mycerts","loyalty",`${tr.scMyCerts} (${myCerts.length})`]].map(([id,ic,lbl])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===id?C.p:"transparent",color:tab===id?C.onP:C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon name={ic} size={13} />{lbl}</button>
         ))}
       </div>
       {tab==="available"&&(
@@ -38,7 +38,7 @@ export default function SkillCertPage(){
             return(
               <div key={c.id} className="fu" style={{animationDelay:`${i*.05}s`,background:C.card,borderRadius:16,padding:"16px",border:`1px solid ${C.bdr}`}}>
                 <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-                  <div style={{width:44,height:44,borderRadius:12,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={22} /></div>
+                  <div style={{width:44,height:44,borderRadius:12,background:C.plt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}><Icon name={c.icon} size={22} /></div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,color:C.text}}>{lang==="en"?c.titleEn:c.titleBn}</div>
                     <div style={{display:"flex",gap:8,marginTop:5,flexWrap:"wrap"}}>
@@ -61,9 +61,9 @@ export default function SkillCertPage(){
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {myCerts.map((c,i)=>(
             <div key={c.id} style={{background:`linear-gradient(135deg,${C.plt},${C.card})`,borderRadius:16,padding:"18px",border:`2px solid ${C.p}44`,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",right:-10,top:-10,fontSize:60,opacity:.08}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={60} /></div>
+              <div style={{position:"absolute",right:-10,top:-10,fontSize:60,opacity:.08}}><Icon name={c.icon} size={60} /></div>
               <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                <div style={{width:48,height:48,borderRadius:12,background:C.p+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}><Icon name=<Icon name={c.icon} size={14} style={{marginRight:6}} />size={24} /></div>
+                <div style={{width:48,height:48,borderRadius:12,background:C.p+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}><Icon name={c.icon} size={24} /></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:800,color:C.text}}>{lang==="en"?c.titleEn:c.titleBn}</div>
                   <div style={{fontSize:11,color:C.sub,marginTop:3}}>{tr.scIssued}: {c.issued}</div>
@@ -71,8 +71,8 @@ export default function SkillCertPage(){
                 </div>
               </div>
               <div style={{display:"flex",gap:8,marginTop:14}}>
-                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.p,border:"none",color:C.onP,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>⬇️ {tr.scDownload}</button>
-                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}>🔍 {tr.scVerify}</button>
+                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.p,border:"none",color:C.onP,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="download" size={14} style={{marginRight:6}} />{tr.scDownload}</button>
+                <button style={{flex:1,padding:"8px",borderRadius:10,background:C.bg,border:`1.5px solid ${C.bdr}`,color:C.sub,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Hind Siliguri',sans-serif"}}><Icon name="search" size={14} style={{marginRight:6}} />{tr.scVerify}</button>
               </div>
             </div>
           ))}
