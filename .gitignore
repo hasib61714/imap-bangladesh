@@ -61,3 +61,7 @@ coverage/
 backend/.private/
 .private/
 .gstack/
+
+# Local development secrets. scripts/dev.sh sources this if it exists.
+# Never committed — see scripts/dev.secrets.env.example for the shape.
+scripts/dev.secrets.env

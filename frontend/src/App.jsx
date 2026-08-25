@@ -572,8 +572,19 @@ function BookModal({p,onClose,onSuccess}) {
       if (resp?.payment?.next === "initiate" && resp?.id) {
         try {
           const pay = await paymentsApi.initiate(resp.id);
-          if (pay?.redirect_url || pay?.GatewayPageURL) {
-            window.location.href = pay.redirect_url || pay.GatewayPageURL;
+          // `url` is the key the route returns. An earlier draft here read
+          // `redirect_url`/`GatewayPageURL` — the gateway's own field names
+          // rather than the ones our route re-shapes them into — so the
+          // redirect never fired and the customer was quietly left on the
+          // confirmation screen with an unpaid booking.
+          if (pay?.url) {
+            window.location.href = pay.url;
+            return;
+          }
+          // Development settlement, when no gateway is configured. It is
+          // refused in production by the route itself (P0-12).
+          if (pay?.devMode) {
+            setPaymentNext("none");
             return;
           }
           setPayNotice(lang==="en"
