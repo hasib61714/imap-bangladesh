@@ -7,7 +7,16 @@ import { ThemeCtx, useC, LangCtx, useTr, FavsCtx, LiveDataCtx, useLiveData, User
 import { Av, Stars, PBar, MiniBar } from "./components/ui";
 const AuthPage      = lazy(() => import("./pages/AuthPage"));
 const KYCPage       = lazy(() => import("./pages/KYCPage"));
-import ProviderStanding from "./components/ProviderStanding";
+/**
+ * Lazy, and for a measured reason.
+ *
+ * This panel only renders for someone who has applied to be a provider, and
+ * only on two screens neither of which is the initial view. Importing it
+ * eagerly put it in the entry chunk, which has a build-enforced ceiling
+ * (UX-CONSTITUTION §7) — and the build refused, correctly, rather than
+ * letting the shell grow for code most visitors never run.
+ */
+const ProviderStanding = lazy(() => import("./components/ProviderStanding"));
 const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
 const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
@@ -1833,8 +1842,10 @@ function CustomerProfilePage({onNavigate, user, onAvatarUpdate}) {
         {/* Their provider standing, if they have applied. */}
       {providerId && (
         <div style={{padding:"18px 16px 0"}}>
-          <ProviderStanding C={C} lang={lang} providerId={providerId}
-            onOpenKyc={()=>onNavigate&&onNavigate("_kyc")} />
+          <Suspense fallback={null}>
+            <ProviderStanding C={C} lang={lang} providerId={providerId}
+              onOpenKyc={()=>onNavigate&&onNavigate("_kyc")} />
+          </Suspense>
         </div>
       )}
 
@@ -3042,8 +3053,10 @@ function ProviderRegPage({onNavigate}){
             : "গ্রাহকরা আপনাকে খুঁজে পাওয়ার আগে আর একটি ধাপ — পরিচয় যাচাই করুন।"}
         </div>
       </div>
-      <ProviderStanding C={C} lang={lang} providerId={newProviderId}
-        onOpenKyc={()=>{ if(onNavigate) onNavigate("_kyc"); }} />
+      <Suspense fallback={null}>
+        <ProviderStanding C={C} lang={lang} providerId={newProviderId}
+          onOpenKyc={()=>{ if(onNavigate) onNavigate("_kyc"); }} />
+      </Suspense>
     </div>
   );
 
@@ -4510,6 +4523,18 @@ export default function IMAP() {
   const [tracking,setTracking]= useState(false);
   const [lang,setLang]        = useState("bn");
   const [dark,setDark]        = useState(false);
+
+  /**
+   * Mirror the theme onto the document element.
+   *
+   * `styles/modern.css` is a real stylesheet, so its dark rules cannot read
+   * React state — they key off `html[data-theme="dark"]`. Setting the
+   * attribute here keeps one source of truth for the theme while letting
+   * the rules that must apply before first paint live outside the bundle.
+   */
+  useEffect(()=>{
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  },[dark]);
   const [onboard,setOnboard]  = useState(()=>!localStorage.getItem("imap_ob"));
   const [favs,setFavs]        = useState(()=>JSON.parse(localStorage.getItem("imap_favs")||"[]"));
   const [chatWith,setChatWith] = useState(null);

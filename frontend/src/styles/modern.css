@@ -1,0 +1,205 @@
+/**
+ * Modern layer — IMAP
+ *
+ * WHY THIS IS A STYLESHEET AND NOT ANOTHER TEMPLATE LITERAL
+ * ────────────────────────────────────────────────────────
+ * `constants/theme.js` ships its CSS as a JavaScript string that React
+ * injects into a <style> tag at runtime. That means the browser has to
+ * download the JS, parse it as JS, execute it and mount a component before
+ * any of these rules exist — and it counts against the entry bundle, which
+ * has a build-enforced ceiling (UX-CONSTITUTION §7: "a route that exceeds
+ * its budget does not ship"). Adding this layer there pushed the entry over
+ * that ceiling and the build refused, correctly.
+ *
+ * A real stylesheet is extracted by vite into its own file: downloaded in
+ * parallel with the JS, applied before first paint, cached separately, and
+ * not parsed as JavaScript at all. It is both the fix for the budget and the
+ * better answer.
+ *
+ * Dark mode keys off `html[data-theme="dark"]`, which App.jsx sets, rather
+ * than swapping a second stylesheet in and out.
+ *
+ * WHAT IS IN HERE
+ * ───────────────
+ * The things that separate a page that looks finished from one that behaves
+ * well for everyone using it: reduced motion, visible focus, touch targets,
+ * fluid type, skeletons that do not shift the layout, and forms that do not
+ * make iOS zoom.
+ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MODERN LAYER
+   Added after everything above so it wins on equal specificity.
+   These are the things that separate a page that looks finished
+   from one that behaves well for everyone using it.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── The browser needs to know which mode it is in ───
+   Without color-scheme, form controls, scrollbars and the flash
+   before first paint are all rendered light while the page is dark.
+   It is one line and it fixes the part of dark mode the CSS cannot
+   reach. Set per theme, not globally — the value is switched in the
+   dark block below. */
+html{color-scheme:light;}
+
+/* ─── Respect people who asked for less motion ───
+   Every animation in this file ran regardless. prefers-reduced-motion
+   is a system setting people turn on because motion makes them ill —
+   vestibular disorders, migraine, motion sickness — and honouring it is
+   not optional.
+   Animations are reduced to almost nothing rather than removed, so a
+   transition that signals state still signals it; only the movement
+   goes. scroll-behavior too: a smooth-scrolling page is the single
+   most common complaint. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+  .float,.pulse,.shimmer{animation:none!important;}
+  .card:hover{transform:none!important;}
+}
+
+/* ─── Keyboard users could not see where they were ───
+   There was no focus style, so the browser default was inherited or
+   suppressed by resets — someone navigating by keyboard had to guess.
+   :focus-visible shows the ring for keyboard and programmatic focus
+   and stays out of the way of a mouse click. Two colours so it is
+   visible against both the light and the dark surface. */
+:focus-visible{
+  outline:2px solid #00A05E;
+  outline-offset:2px;
+  border-radius:6px;
+}
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible,
+input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid #00A05E;
+  outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(0,160,94,.16);
+}
+/* A mouse click should not leave a ring behind. */
+:focus:not(:focus-visible){outline:none;}
+
+/* ─── Skip link ───
+   A page this long with this much chrome is punishing to tab through.
+   Hidden until focused, which is the whole convention. */
+.skip-link{
+  position:absolute;left:-9999px;top:0;z-index:9999;
+  background:#006A4E;color:#fff;padding:12px 18px;border-radius:0 0 10px 0;
+  font-size:14px;font-weight:700;text-decoration:none;
+}
+.skip-link:focus{left:0;}
+
+/* ─── Touch targets ───
+   WCAG asks for 24×24 CSS pixels minimum and 44×44 is the comfortable
+   figure on a phone. Several controls here were 19px circles and small
+   text links. This sets a floor without changing visual size, using the
+   pseudo-element trick so layout is untouched. */
+@media (pointer:coarse){
+  button,[role="button"],a.btn,.tap{
+    min-height:44px;
+    position:relative;
+  }
+  .tap-sm::after{
+    content:'';position:absolute;top:50%;left:50%;
+    width:44px;height:44px;transform:translate(-50%,-50%);
+  }
+}
+
+/* ─── Fluid type ───
+   Font sizes were fixed pixel values, so a heading sized for a phone
+   looked lost on a desktop and one sized for desktop wrapped badly on a
+   small phone. clamp() scales between the two without a media query
+   per size. Applied to the display headings only; body text stays at a
+   fixed comfortable size, which is correct — body copy should not grow
+   with the viewport. */
+.h-display{font-size:clamp(1.75rem,1.1rem + 3.2vw,3.25rem);line-height:1.12;letter-spacing:-.02em;}
+.h-section{font-size:clamp(1.35rem,1rem + 1.6vw,2.15rem);line-height:1.2;letter-spacing:-.015em;}
+.h-card{font-size:clamp(1.05rem,.95rem + .5vw,1.35rem);line-height:1.3;}
+
+/* ─── Text that has to stay readable ───
+   Bangla and English mixed in one paragraph, on a phone, in sunlight.
+   A measure cap and a slightly looser line height do more for
+   readability here than any font choice. */
+.prose{max-width:68ch;line-height:1.7;}
+.bn{line-height:1.75;}   /* Bangla conjuncts need the extra room */
+
+/* ─── Loading that does not jump ───
+   A spinner replaced by content shifts the page. A skeleton occupies the
+   space the content will take, so nothing moves when it arrives. */
+.sk{
+  background:linear-gradient(90deg,rgba(0,0,0,.045) 25%,rgba(0,0,0,.075) 37%,rgba(0,0,0,.045) 63%);
+  background-size:400% 100%;
+  animation:sk-wave 1.4s ease infinite;
+  border-radius:10px;
+}
+@keyframes sk-wave{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+.sk-text{height:12px;margin-bottom:8px;}
+.sk-title{height:20px;width:55%;margin-bottom:12px;}
+.sk-card{height:140px;}
+@media (prefers-reduced-motion:reduce){.sk{animation:none;}}
+
+/* ─── Images ───
+   content-visibility keeps offscreen work off the main thread, and an
+   explicit aspect ratio stops the layout shifting when an avatar loads. */
+img{max-width:100%;height:auto;}
+.avatar{aspect-ratio:1;object-fit:cover;border-radius:50%;}
+.thumb{aspect-ratio:4/3;object-fit:cover;}
+
+/* ─── Selection and tap highlight ───
+   The default blue selection against a green palette looks like a bug. */
+::selection{background:rgba(0,193,112,.28);color:inherit;}
+*{-webkit-tap-highlight-color:rgba(0,193,112,.14);}
+
+/* ─── Buttons that respond ───
+   A press with no feedback feels broken on a phone, where there is no
+   hover to confirm the target was hit. */
+button,[role="button"]{touch-action:manipulation;}
+.btn:active,button:active{transform:scale(.985);}
+@media (prefers-reduced-motion:reduce){.btn:active,button:active{transform:none;}}
+
+/* ─── Disabled means disabled ───
+   Several disabled buttons still showed a pointer cursor, so people
+   clicked them repeatedly. */
+button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.55;}
+
+/* ─── Forms ───
+   16px on iOS is the threshold below which Safari zooms the page on
+   focus. Anything smaller makes the layout lurch every time somebody
+   taps a field. */
+input,textarea,select{font-family:inherit;}
+@media (max-width:768px){
+  input,textarea,select{font-size:16px!important;}
+}
+
+/* ─── Print ───
+   An operator printing a booking or a revenue report should not get the
+   navigation and the floating buttons with it. */
+@media print{
+  .no-print,nav,.mnav,.dnav,button{display:none!important;}
+  .card{box-shadow:none!important;border:1px solid #ccc!important;}
+  body{background:#fff!important;color:#000!important;}
+}
+
+
+/* ═══ dark ═══ */
+  html[data-theme="dark"]{color-scheme:dark;}
+  html,body{background:#0A100E;color:#D4EDE4;}
+
+  /* The focus ring has to clear the dark surface too — the light-mode
+     green is legible on white and disappears on #0A100E. */
+  html[data-theme="dark"] :focus-visible,
+  html[data-theme="dark"] a:focus-visible,
+  html[data-theme="dark"] button:focus-visible,
+  html[data-theme="dark"] [role="button"]:focus-visible,
+  html[data-theme="dark"] input:focus-visible,
+  html[data-theme="dark"] textarea:focus-visible,
+  html[data-theme="dark"] select:focus-visible{
+    outline-color:#3DFFA8;
+    box-shadow:0 0 0 4px rgba(61,255,168,.18);
+  }
+  html[data-theme="dark"] ::selection{background:rgba(61,255,168,.3);}
+  html[data-theme="dark"] .sk{background:linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.09) 37%,rgba(255,255,255,.05) 63%);background-size:400% 100%;}

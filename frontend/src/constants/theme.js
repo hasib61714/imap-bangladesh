@@ -232,7 +232,9 @@ input:focus,textarea:focus,select:focus{
   .wp{padding:0 10px;}.modal{max-height:96vh;}
   .btn-g,.btn-o{padding:10px 14px!important;font-size:13px!important;}
   .hs{padding:36px 10px 52px!important;}
-}`;
+}
+
+`;
 
 export const CSS_DARK = `
   html,body{background:#0A100E;color:#D4EDE4;}
