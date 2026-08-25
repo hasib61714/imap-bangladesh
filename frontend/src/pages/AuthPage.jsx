@@ -18,7 +18,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 // they are one repeated mark, which is what a decoration should be.
 const EYE_CYCLE = ["star","star","star","star","star","star"];
 
-export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
+export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }) {
   const tr = T[lang] || T.bn;
   const [mode, setMode] = useState("login");
   const [method, setMethod] = useState(null);
@@ -259,6 +259,22 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack }) {
           <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, letterSpacing: -0.5, background:"linear-gradient(135deg,#006A4E,#00C170)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>IMAP AI Powered Service Platform</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>🇧🇩 {lang === "bn" ? "বাংলাদেশের এআই-পাওয়ার্ড সার্ভিস প্ল্যাটফর্ম" : "Bangladesh"}</div>
         </div>
+
+        {/*
+          Why this screen appeared. A guest can browse the whole catalogue
+          without an account, so arriving here is always the result of
+          reaching for something specific — booking, paying, saving. Saying
+          which turns a wall into an answer.
+        */}
+        {reason && (
+          <div style={{
+            maxWidth: 420, margin: "0 auto 18px", padding: "12px 16px",
+            background: "#E8F4EF", border: "1px solid #CADFD5", borderRadius: 12,
+            fontSize: 13, lineHeight: 1.6, color: "#2C4A3E", textAlign: "center",
+          }}>
+            {reason}
+          </div>
+        )}
 
         <Card className="auth-card" style={{ width: "100%", maxWidth: 420, background: cardBg, borderRadius: 22, boxShadow: dark?"0 24px 64px rgba(0,0,0,.35),0 0 0 1px rgba(34,212,127,.08),inset 0 1px 0 rgba(255,255,255,.06)":"0 20px 56px rgba(21,163,96,.1),0 4px 16px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.9)" }} bordered={false}>
 

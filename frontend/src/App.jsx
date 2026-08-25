@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback, useContext, lazy, Suspense } from "react";
-import L from "leaflet";
 import Icon from "./components/Icon";
+import EmptyState from "./components/EmptyState";
 import { C_LIGHT, C_DARK, CSS, CSS_DARK } from "./constants/theme";
 import { T } from "./constants/translations";
 import { SVCS, PROVIDERS, MY_BOOKINGS, NOTIFS_DATA,
@@ -17,11 +17,23 @@ const KYCPage       = lazy(() => import("./pages/KYCPage"));
 const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
 const ProviderPortal = lazy(() => import("./pages/ProviderPortal"));
 const LandingPage   = lazy(() => import("./pages/LandingPage"));
+
+/**
+ * Pages that describe a PERSON rather than the catalogue. Everything else is
+ * public, which is most of the app: the whole point of a marketplace is that
+ * you can look before you commit.
+ */
+const PRIVATE_PAGES = new Set([
+  "cprofile", "bookings", "wallet", "notifs", "saved", "loyalty", "referral",
+  "settings", "calendar", "srvreq", "skillcert", "portfolio", "analytics",
+  "dashboard", "panalytics", "providerreg",
+]);
 import VoiceCommand from "./components/VoiceCommand";
 const DisasterPage = lazy(() => import("./pages/DisasterPage"));
 const NotifPage = lazy(() => import("./pages/NotifPage"));
 import PageLoader from "./pages/PageLoader";
-import LiveMap from "./pages/LiveMap";
+// Lazy: leaflet is ~43 KB gzipped and only two screens use it.
+const LiveMap = lazy(() => import("./pages/LiveMap"));
 import PCard from "./pages/PCard";
 import PDetail from "./pages/PDetail";
 import BookModal from "./pages/BookModal";
@@ -50,7 +62,7 @@ const ProviderAnalyticsPage = lazy(() => import("./pages/ProviderAnalyticsPage")
 const SkillCertPage = lazy(() => import("./pages/SkillCertPage"));
 const PromosPage = lazy(() => import("./pages/PromosPage"));
 const WalletPage = lazy(() => import("./pages/WalletPage"));
-import BloodDonorMap from "./pages/BloodDonorMap";
+const BloodDonorMap = lazy(() => import("./pages/BloodDonorMap"));
 const BloodDonationPage = lazy(() => import("./pages/BloodDonationPage"));
 const NearbyPage = lazy(() => import("./pages/NearbyPage"));
 import LiveChatPage from "./pages/LiveChatPage";
@@ -211,6 +223,12 @@ export default function IMAP() {
   });
 
   const [showLanding, setShowLanding] = useState(()=>!localStorage.getItem("imap_user"));
+  /**
+   * Set to `{reason}` when a guest reaches for something that needs an
+   * account. The reason is shown on the sign-in screen, so it reads as an
+   * answer to what they just tried rather than a wall that appeared.
+   */
+  const [authPrompt, setAuthPrompt] = useState(null);
   const [showSos,     setShowSos]     = useState(false);
   const [sosType,     setSosType]     = useState("");
   const [sosDesc,     setSosDesc]     = useState("");
@@ -415,9 +433,32 @@ export default function IMAP() {
   if(!authUser && showLanding) return <Suspense fallback={<PageLoader/>}><LandingPage dark={dark} setDark={setDark} lang={lang} setLang={setLang}
     onGetStarted={()=>setShowLanding(false)}
     onRegisterProvider={()=>setShowLanding(false)}/></Suspense>;
-  if(!authUser) return <Suspense fallback={<PageLoader/>}><AuthPage onAuth={doLogin} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
-    onBack={()=>setShowLanding(true)}/></Suspense>;
-  if(authUser.role==="admin") return <Suspense fallback={<PageLoader/>}><AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
+  /**
+   * GUESTS GET THE APP, NOT A LOGIN WALL
+   *
+   * This was `if (!authUser) return <AuthPage/>` — leaving the landing page
+   * put you on a sign-in form, and there was no way past it. Which made the
+   * landing page's own promise false: it says, in both languages, "browse 110
+   * services across 19 categories WITHOUT LOGGING IN".
+   *
+   * It is also backwards as a marketplace. Somebody who has never heard of
+   * this platform is asked for a phone number and a password before they are
+   * allowed to see whether anyone nearby does what they need. The reason to
+   * make an account is on the other side of the wall.
+   *
+   * A guest now gets the whole browsing surface — services, the directory,
+   * search, provider profiles, blood donation, disaster alerts. Sign-in is
+   * asked for at the point where it is actually needed: booking, paying,
+   * saving, messaging, anything that belongs to a person.
+   *
+   * `authUser` is read as `authUser?.…` everywhere below, so nothing here
+   * needed changing for null — the wall was the only thing holding it up.
+   */
+  const showAuth = authPrompt !== null;
+  if (showAuth) return <Suspense fallback={<PageLoader/>}><AuthPage onAuth={u=>{doLogin(u);setAuthPrompt(null);}} dark={dark} setDark={setDark} lang={lang} setLang={setLang}
+    reason={authPrompt?.reason}
+    onBack={()=>{ setAuthPrompt(null); if(authPrompt?.fromLanding) setShowLanding(true); }}/></Suspense>;
+  if(authUser?.role==="admin") return <Suspense fallback={<PageLoader/>}><AdminPanel user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang}/></Suspense>;
   // KYC is checked BEFORE the role screens, not after.
   //
   // The provider branch returned first, so `showKyc` was unreachable for a
@@ -426,12 +467,23 @@ export default function IMAP() {
   // listing depends on being verified could not open the page that verifies
   // them.
   if(showKyc) return <Suspense fallback={<PageLoader/>}><KYCPage user={authUser} onClose={()=>setShowKyc(false)} dark={dark} lang={lang} onUpdate={u=>{setAuthUser(u);localStorage.setItem("imap_user",JSON.stringify(u));}}/></Suspense>;
-  if(authUser.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang} onOpenKyc={()=>setShowKyc(true)}/></Suspense>;
+  if(authUser?.role==="provider") return <Suspense fallback={<PageLoader/>}><ProviderPortal user={authUser} onLogout={doLogout} dark={dark} setDark={setDark} lang={lang} setLang={setLang} onOpenKyc={()=>setShowKyc(true)}/></Suspense>;
 
   const tr = T[lang];
   const C  = dark ? C_DARK : C_LIGHT;
 
-  const goBook = p=>{ setDetail(null); setModal(null); setBooking(p); };
+  /**
+   * Sign-in is requested HERE rather than at the door. A guest has browsed,
+   * chosen a provider and pressed Book: at that point an account is a step in
+   * something they want, not a toll on the way in.
+   */
+  const requireAuth = (reason) => { setAuthPrompt({ reason }); return false; };
+  const goBook = p=>{
+    if(!authUser) return requireAuth(lang==="bn"
+      ? "বুকিং করতে একটি অ্যাকাউন্ট লাগবে — যাতে আপনি বুকিংটি দেখতে, বার্তা পাঠাতে ও পেমেন্ট করতে পারেন।"
+      : "Booking needs an account, so you can track it, message the provider and pay.");
+    setDetail(null); setModal(null); setBooking(p);
+  };
   const closeAll = ()=>{ setNotifDrop(false); setProfDrop(false); setNavDotMenu(false); };
   const toggleFav = id=>{ const next=favs.includes(id)?favs.filter(x=>x!==id):[...favs,id]; setFavs(next); localStorage.setItem("imap_favs",JSON.stringify(next)); };
 
@@ -537,8 +589,23 @@ export default function IMAP() {
               <Icon name={ic} size={16} color={C.sub} />
             </button>
           ))}
+          {/* A guest gets a way IN, not a bell with nothing in it. */}
+          {!authUser && (
+            <>
+              <button onClick={()=>setAuthPrompt({ reason:null })} style={{
+                height:36,padding:"0 14px",border:`1.5px solid ${C.p}`,borderRadius:9,
+                background:"transparent",color:C.p,cursor:"pointer",
+                fontSize:13,fontWeight:700,fontFamily:"inherit",transition:"all .2s",
+              }}>{lang==="bn"?"লগইন":"Log in"}</button>
+              <button onClick={()=>setAuthPrompt({ reason:null })} style={{
+                height:36,padding:"0 14px",border:"none",borderRadius:9,
+                background:C.p,color:C.onP,cursor:"pointer",
+                fontSize:13,fontWeight:700,fontFamily:"inherit",transition:"all .2s",
+              }}>{lang==="bn"?"নিবন্ধন":"Register"}</button>
+            </>
+          )}
           {/* Notification bell */}
-          <div style={{position:"relative"}}>
+          {authUser && <div style={{position:"relative"}}>
             <button onClick={()=>{setNotifDrop(o=>!o);setProfDrop(false);setNavDotMenu(false);}} style={{
               width:36,height:36,
               border:`1px solid ${C.bdr}`,borderRadius:9,
@@ -580,8 +647,9 @@ export default function IMAP() {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
           {/* Profile */}
+          {authUser &&
           <div style={{position:"relative"}}>
             <div className="jc" style={{
               width:36,height:36,borderRadius:9,
@@ -678,7 +746,7 @@ export default function IMAP() {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
           {/* Desktop book button */}
           {!isMobile&&<button className="btn btn-g dbtn" style={{padding:"9px 16px",fontSize:13,whiteSpace:"nowrap"}} onClick={()=>setPage("services")}>{tr.book}</button>}
           {/* Mobile three-dot menu */}
@@ -894,7 +962,7 @@ export default function IMAP() {
               <div key={s.id} className="card" onClick={()=>setModal("search")} style={{padding:"18px 8px",textAlign:"center",cursor:"pointer",animation:`fadeUp .4s ease ${.04+i*.03}s both`}}>
                 <div className="jc" style={{width:52,height:52,borderRadius:15,background:`${s.col}15`,fontSize:24,margin:"0 auto 10px"}}><Icon name={s.icon} size={24} /></div>
                 <div style={{fontSize:12,fontWeight:600,color:C.text,lineHeight:1.3}}>{lang==="en"?s.nameEn:s.name}</div>
-                <div style={{fontSize:10,color:C.muted,marginTop:3}}>{s.count} {tr.available}</div>
+                <div style={{fontSize:10,color:C.muted,marginTop:3}}>{(s.subsEn?.length||0)} {lang==="en"?"services":"সেবা"}</div>
                 <div style={{fontSize:11,color:C.p,marginTop:3,fontWeight:600}}>{s.avg} {tr.startFrom}</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:3,justifyContent:"center",marginTop:7}}>
                   {(lang==="en"?s.subsEn:s.subs)?.slice(0,3).map(sub=>(
@@ -1070,7 +1138,21 @@ export default function IMAP() {
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${C.p},${C.pdk||"#004D38"})`,borderRadius:18,padding:"22px 20px 20px",marginBottom:20,color:C.onP,position:"relative",overflow:"hidden"}}>
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>{lang==="en"?"All Services":"সব সেবা সমূহ"}</div>
-        <div style={{fontSize:13,opacity:.85,marginBottom:16}}>{SVCS.reduce((a,s)=>a+s.count,0).toLocaleString()}+ {lang==="en"?"service providers available":"সার্ভিস প্রোভাইডার উপলব্ধ"}</div>
+        {/*
+          Was `SVCS.reduce((a,s)=>a+s.count,0)` — the sum of nineteen invented
+          per-category provider counts, about 2,100 against the eight that
+          existed. Those counts are null now, so the sum was 0 and the page
+          read "0+ service providers available", which is the same defect
+          inverted: a headline made of a number nobody counted.
+
+          The catalogue size is a fact about the catalogue, and this is the
+          catalogue page.
+        */}
+        <div style={{fontSize:13,opacity:.85,marginBottom:16}}>
+          {lang==="en"
+            ? `${SVCS.length} categories · ${SVCS.reduce((a,s)=>a+(s.subsEn?.length||0),0)} services`
+            : `${SVCS.length}টি বিভাগ · ${SVCS.reduce((a,s)=>a+(s.subsEn?.length||0),0)}টি সেবা`}
+        </div>
         {/* Search bar */}
         <div style={{position:"relative"}}>
           <input
@@ -1129,7 +1211,7 @@ export default function IMAP() {
                   <div style={{fontSize:11,color:C.muted,marginTop:2}}>
                     {liveCount>0
                       ? <span style={{color:"#006A4E",fontWeight:600}}><Icon name="check" size={14} style={{marginRight:6}} />{liveCount} {lang==="en"?"available":"জন উপলব্ধ"}</span>
-                      : <span>{s.count} {tr.available}</span>
+                      : <span>{(s.subsEn?.length||0)} {lang==="en"?"services":"সেবা"}</span>
                     }
                   </div>
                 </div>
@@ -1266,6 +1348,29 @@ export default function IMAP() {
         )}
         <div style={{minHeight:"calc(100vh - 62px)"}}>
          <Suspense fallback={<PageLoader/>}>
+          {/*
+            A guest who lands on a page that belongs to a person — their
+            bookings, their wallet, their profile — gets an explanation and a
+            way in, rather than an empty screen or a crash. Everything NOT in
+            this set is public and stays public: services, the directory,
+            search, provider profiles, blood donation, disaster alerts.
+          */}
+          {!authUser && PRIVATE_PAGES.has(page) ? (
+            <div className="wp" style={{padding:"64px 0 90px"}}>
+              <EmptyState C={C} icon="user"
+                title={lang==="bn" ? "এই অংশটি আপনার অ্যাকাউন্টের" : "This part is yours"}
+                description={lang==="bn"
+                  ? "বুকিং, ওয়ালেট আর প্রোফাইল দেখতে সাইন ইন করুন। সেবা ও প্রদানকারী দেখতে অ্যাকাউন্ট লাগে না।"
+                  : "Sign in to see your bookings, wallet and profile. Browsing services and providers needs no account."}
+                actionLabel={lang==="bn" ? "সাইন ইন / নিবন্ধন" : "Sign in or register"}
+                onAction={()=>setAuthPrompt({ reason:null })} />
+              <div style={{textAlign:"center"}}>
+                <button onClick={()=>setPage("services")} style={{background:"none",border:"none",color:C.p,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  {lang==="bn" ? "← সেবা দেখতে ফিরে যান" : "← Back to browsing services"}
+                </button>
+              </div>
+            </div>
+          ) : (<>
           {page==="home"      && <Home/>}
           {page==="cprofile" && <div className="wp" style={{padding:"0 0 80px"}}><CustomerProfilePage user={authUser} onAvatarUpdate={u=>{setAuthUser(u);}} onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="services"  && <div className="wp sp"><Services/></div>}
@@ -1290,6 +1395,7 @@ export default function IMAP() {
           {page==="providerreg"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderRegPage onNavigate={pg=>{if(pg==="_kyc")setShowKyc(true);else setPage(pg);}}/></div>}
           {page==="panalytics"&& <div className="wp" style={{padding:"28px 0 80px"}}><ProviderAnalyticsPage/></div>}
           {page==="skillcert" && <div className="wp" style={{padding:"28px 0 80px"}}><SkillCertPage/></div>}
+          </>)}
          </Suspense>
         </div>
         <MobNav/>
