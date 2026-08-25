@@ -81,16 +81,35 @@ export function basePathPlugin() {
       };
       walk(dir);
 
-      // A quoted literal that begins at the domain root. The quote matters:
-      // it is what separates a whole URL from the tail of a based one —
-      // `"/img/x.webp"` is the bug, `"/imap-bangladesh/img/x.webp"` is not.
-      const pattern = new RegExp(`["'\`]/(${ASSET_ROOTS.join("|")})/[^"'\`]*`, "g");
+      /**
+       * A quoted literal that begins at the domain root.
+       *
+       * The quote on BOTH sides is what makes this precise. The opening quote
+       * separates a whole URL from the tail of a based one — `"/img/x.webp"`
+       * is the bug, `"/imap-bangladesh/img/x.webp"` is not, and only the
+       * preceding character tells them apart.
+       *
+       * The trailing part must be OPTIONAL, and that is not a detail. The
+       * original defect was `const BASE = "/img"` with the rest concatenated
+       * on, so after minification the output holds `q="/img"` and every real
+       * path is assembled from `q` at runtime. A pattern demanding a slash
+       * after `img` matches none of it — the first version of this guard
+       * required one, passed the reintroduced bug, and reported "every asset
+       * URL carries the base" while the build it had just inspected was
+       * broken. It was caught by putting the bug back and watching the guard
+       * stay silent, which is the only way that class of mistake surfaces.
+       */
+      const pattern = new RegExp(
+        `(["'\`])/(${ASSET_ROOTS.join("|")})(/[^"'\`]*)?\\1`,
+        "g"
+      );
 
       const found = [];
       for (const f of files) {
         const src = fs.readFileSync(f, "utf8");
         for (const m of src.matchAll(pattern)) {
-          found.push([path.relative(dir, f), m[0].slice(1)]);
+          // Report the URL without the quotes that delimited it.
+          found.push([path.relative(dir, f), m[0].slice(1, -1)]);
         }
       }
 
