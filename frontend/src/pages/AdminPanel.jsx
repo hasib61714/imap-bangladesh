@@ -143,16 +143,66 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   const [bSearch, setBSearch] = useState("");
 
   /* ── ACTIONS ──────────────────────────────────────── */
-  const approveProvider = async id => {
-    setProviders(p => p.map(x => x.id===id ? {...x,status:"active"} : x));
-    toast(lang==="bn" ? "✅ অনুমোদন হয়েছে!" : "✅ Approved!");
-    try { await adminApi.updateUser(id, {is_active:1}); } catch(e) { console.warn(e.message); }
+  /**
+   * The provider listing decisions.
+   *
+   * WHAT THESE USED TO DO
+   * ─────────────────────
+   *   setProviders(... status: "active" ...);
+   *   toast("✅ Approved!");
+   *   try { await adminApi.updateUser(id, { is_active: 1 }); } catch { console.warn }
+   *
+   * `is_active` is the USER ACCOUNT. Setting it did not make a provider
+   * listable and never had — F-12 recorded that no endpoint could. So the
+   * button said "Approved!", activated an account, and left the provider
+   * exactly as invisible as before. The failure was swallowed too.
+   *
+   * They now call the real listing endpoints, which require a verified
+   * identity case before approving (TRUST §6) and a stated reason before
+   * refusing or suspending (R-1103).
+   */
+  const [listingBusy, setListingBusy] = useState(null);
+  const [listingModal, setListingModal] = useState({ open: false, id: null, mode: null });
+  const [listingReason, setListingReason] = useState("");
+
+  const runListing = async (providerId, fn, successMsg, tone = "success") => {
+    if (listingBusy) return false;
+    setListingBusy(providerId);
+    try {
+      await fn();
+      await loadProviders(pSearch);
+      toast(successMsg, tone);
+      return true;
+    } catch (e) {
+      toast(failure(e), "error");
+      return false;
+    } finally {
+      setListingBusy(null);
+    }
   };
-  const rejectProvider = async id => {
-    setProviders(p => p.map(x => x.id===id ? {...x,status:"rejected"} : x));
-    toast(lang==="bn" ? "প্রত্যাখ্যান হয়েছে" : "Rejected", "warning");
-    try { await adminApi.updateUser(id, {is_active:0}); } catch(e) { console.warn(e.message); }
+
+  const approveProvider = (row) =>
+    runListing(row._pid, () => listingApi.approve(row._pid),
+      lang === "bn" ? "✅ তালিকাভুক্ত করা হয়েছে" : "✅ Now listed");
+
+  const submitListingDecision = async () => {
+    const reason = listingReason.trim();
+    if (reason.length < 10) {
+      toast(lang === "bn"
+        ? "কারণ লিখুন — অন্তত ১০ অক্ষর। প্রদানকারী এটি দেখবেন।"
+        : "Write a reason — at least 10 characters. The provider sees it.", "warning");
+      return;
+    }
+    const { id, mode } = listingModal;
+    const ok = await runListing(id,
+      () => (mode === "suspend" ? listingApi.suspend(id, reason) : listingApi.reject(id, reason)),
+      mode === "suspend"
+        ? (lang === "bn" ? "তালিকা থেকে সরানো হয়েছে" : "Removed from the marketplace")
+        : (lang === "bn" ? "আবেদন প্রত্যাখ্যাত" : "Application rejected"),
+      "warning");
+    if (ok) { setListingModal({ open: false, id: null, mode: null }); setListingReason(""); }
   };
+
   const toggleSuspend = async (type, id) => {
     // P1-11: this used to send is_active:-1 for both directions. The API
     // stored -1, and the auth middleware treats -1 as active — so the row
@@ -474,7 +524,15 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
           name: p.name,
           service: p.service_slug || "—",
           area: p.area || "—",
-          status: p.is_active === 1 ? "active" : p.is_active === 0 ? "suspended" : "pending",
+          // The ACCOUNT's state and the LISTING's state are two different
+          // questions. They were conflated: `status` was derived from
+          // `is_active`, so the panel could not show whether a provider was
+          // actually listable and "Approve" activated an account.
+          accountActive: p.is_active === 1,
+          listingState: p.listing_state || "applied",
+          identityVerified: p.identity_verified === 1 || p.identity_verified === true,
+          hourlyRate: p.hourly_rate === null || p.hourly_rate === undefined ? null : Number(p.hourly_rate),
+          status: p.listing_state || "applied",
           rating: parseFloat(p.rating || 0).toFixed(1),
           jobs: p.total_jobs || 0,
           earned: parseFloat(p.earned || 0),
@@ -674,20 +732,72 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
   useEffect(() => { if(tab==="ai") loadAiData(); }, [tab]);
 
   /* ── TABLE COLUMNS ─────────────────────────────────── */
+  /**
+   * The provider queue.
+   *
+   * `TRUST-ARCHITECTURE.md` §5 makes listing a conjunction, so the table
+   * shows the two clauses an operator can act on — the human approval and
+   * the identity verification — rather than one status that answered
+   * neither. A provider who is approved but unverified is still not listed,
+   * and before this the panel had no way to say so.
+   */
   const providerCols = [
     { title:lang==="bn"?"নাম":"Name",    dataIndex:"name",    key:"name",    render:n=><Text strong>{n}</Text> },
     { title:lang==="bn"?"সেবা":"Service", dataIndex:"service", key:"service" },
     { title:lang==="bn"?"এলাকা":"Area",   dataIndex:"area",    key:"area"    },
     { title:lang==="bn"?"রেটিং":"Rating", dataIndex:"rating",  key:"rating",  render:v=><Text style={{color:"#F59E0B"}}>⭐ {v}</Text> },
     { title:lang==="bn"?"কাজ":"Jobs",     dataIndex:"jobs",    key:"jobs"    },
-    { title:"NID", dataIndex:"nid", key:"nid", render:v => v ? <Tag color="success">✅ {v}</Tag> : <Tag color="error">❌ নেই</Tag> },
-    { title:lang==="bn"?"অবস্থা":"Status", dataIndex:"status", key:"status", render:s=><StatusTag status={s} lang={lang}/> },
+    {
+      title: lang==="bn"?"পরিচয়":"Identity", key:"identity",
+      render: (_,p) => p.identityVerified
+        ? <Tag color="success">{lang==="bn"?"✅ যাচাইকৃত":"✅ Verified"}</Tag>
+        : <Tag color="warning">{lang==="bn"?"অযাচাইকৃত":"Not verified"}</Tag>,
+    },
+    {
+      title: lang==="bn"?"তালিকা":"Listing", dataIndex:"listingState", key:"listingState",
+      render: s => <StatusTag status={s} lang={lang}/>,
+    },
+    {
+      // Whether they are ACTUALLY visible to customers, which is the
+      // conjunction rather than any single column.
+      title: lang==="bn"?"দৃশ্যমান":"Live", key:"live",
+      render: (_,p) => {
+        const live = p.listingState === "approved" && p.identityVerified && p.accountActive && p.hourlyRate > 0;
+        return live
+          ? <Tag color="success">{lang==="bn"?"হ্যাঁ":"Yes"}</Tag>
+          : <Tag color="default">{lang==="bn"?"না":"No"}</Tag>;
+      },
+    },
     { title:lang==="bn"?"অ্যাকশন":"Action", key:"action", render:(_,p)=>(
-      <Space>
-        {p.status==="pending" && <Button size="small" type="primary" onClick={()=>approveProvider(p.id)}><CheckOutlined /></Button>}
-        {p.status==="pending" && <Button size="small" danger onClick={()=>rejectProvider(p.id)}><CloseOutlined /></Button>}
+      <Space wrap>
+        {p.listingState !== "approved" && (
+          <Button size="small" type="primary" loading={listingBusy===p._pid}
+            // TRUST §6: identity verification is what grants listing
+            // eligibility, so approving without it is refused by the server.
+            // Saying so here beats letting the operator find out as a 409.
+            disabled={!p.identityVerified}
+            title={!p.identityVerified
+              ? (lang==="bn"?"আগে পরিচয় যাচাই প্রয়োজন":"Identity must be verified first")
+              : undefined}
+            onClick={()=>approveProvider(p)}>
+            {lang==="bn"?"তালিকাভুক্ত":"List"}
+          </Button>
+        )}
+        {p.listingState === "applied" && (
+          <Button size="small" danger disabled={listingBusy===p._pid}
+            onClick={()=>{setListingModal({open:true,id:p._pid,mode:"reject"});setListingReason("");}}>
+            {lang==="bn"?"প্রত্যাখ্যান":"Reject"}
+          </Button>
+        )}
+        {p.listingState === "approved" && (
+          <Button size="small" danger ghost disabled={listingBusy===p._pid}
+            onClick={()=>{setListingModal({open:true,id:p._pid,mode:"suspend"});setListingReason("");}}>
+            {lang==="bn"?"স্থগিত":"Suspend"}
+          </Button>
+        )}
         <Button size="small" onClick={()=>toggleSuspend("provider",p.id)}>
-          {p.status==="suspended"?(lang==="bn"?"সক্রিয়":"Activate"):(lang==="bn"?"বন্ধ":"Suspend")}
+          {/* The ACCOUNT, which is a different thing from the listing. */}
+          {p.accountActive?(lang==="bn"?"অ্যাকাউন্ট বন্ধ":"Disable account"):(lang==="bn"?"অ্যাকাউন্ট চালু":"Enable account")}
         </Button>
       </Space>
     )},
@@ -886,18 +996,39 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                   </Col>
                   <Col xs={24} lg={10}>
                     <Card title={lang==="bn"?"⏳ অনুমোদন অপেক্ষামাণ":"⏳ Pending Approvals"} bordered>
-                      {providers.filter(p=>p.status==="pending").map(p=>(
+                      {/* `status` used to be derived from `is_active`, and
+                          "pending" meant is_active was neither 0 nor 1 —
+                          which essentially never happened, so this list was
+                          almost always empty regardless of how many people
+                          were actually waiting. It reads the listing state
+                          now, which is the thing being approved. */}
+                      {providers.filter(p=>p.listingState==="applied").map(p=>(
                         <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid rgba(0,0,0,0.06)"}}>
                           <div>
                             <Text strong>{p.name}</Text><br/>
                             <Text type="secondary" style={{fontSize:12}}>{p.service} · {p.area}</Text>
+                            {!p.identityVerified && (
+                              <><br/><Text type="warning" style={{fontSize:11}}>
+                                {lang==="bn"?"পরিচয় যাচাই বাকি":"identity not verified yet"}
+                              </Text></>
+                            )}
                           </div>
                           <Space>
-                            <Button size="small" type="primary" icon={<CheckOutlined/>} onClick={()=>approveProvider(p.id)} />
-                            <Button size="small" danger icon={<CloseOutlined/>} onClick={()=>rejectProvider(p.id)} />
+                            <Button size="small" type="primary" icon={<CheckOutlined/>}
+                              loading={listingBusy===p._pid}
+                              disabled={!p.identityVerified}
+                              onClick={()=>approveProvider(p)} />
+                            <Button size="small" danger icon={<CloseOutlined/>}
+                              disabled={listingBusy===p._pid}
+                              onClick={()=>{setListingModal({open:true,id:p._pid,mode:"reject"});setListingReason("");}} />
                           </Space>
                         </div>
                       ))}
+                      {providers.filter(p=>p.listingState==="applied").length===0 && (
+                        <Text type="secondary" style={{fontSize:13}}>
+                          {lang==="bn"?"কোনো আবেদন অপেক্ষমাণ নেই।":"No applications waiting."}
+                        </Text>
+                      )}
                       {providers.filter(p=>p.status==="pending").length===0 &&
                         <Text type="secondary">{lang==="bn"?"কোনো অপেক্ষমাণ নেই":"None pending"}</Text>}
                     </Card>
@@ -916,7 +1047,31 @@ export default function AdminPanel({ user, onLogout, dark, setDark, lang, setLan
                     placeholder={tr.adSearch||"Search..."} style={{width:240}} allowClear />
                 </div>
                 <Table dataSource={filtP} columns={providerCols} rowKey="id" bordered size="middle"
-                  loading={dataLoading} scroll={{x:900}} pagination={{pageSize:10}} />
+                  loading={dataLoading} scroll={{x:1100}} pagination={{pageSize:10}} />
+                <Modal
+                  title={listingModal.mode==="suspend"
+                    ? (lang==="bn"?"তালিকা থেকে সরানোর কারণ":"Why remove this provider?")
+                    : (lang==="bn"?"প্রত্যাখ্যানের কারণ":"Why reject this application?")}
+                  open={listingModal.open}
+                  confirmLoading={!!listingBusy}
+                  onOk={submitListingDecision}
+                  onCancel={()=>setListingModal({open:false,id:null,mode:null})}
+                  okText={lang==="bn"?"নিশ্চিত":"Confirm"} okButtonProps={{danger:true}}>
+                  <Paragraph type="secondary" style={{fontSize:13}}>
+                    {listingModal.mode==="suspend"
+                      ? (lang==="bn"
+                          ? "প্রদানকারী তৎক্ষণাৎ মার্কেটপ্লেস থেকে সরে যাবেন। কারণটি রেকর্ড হবে।"
+                          : "The provider disappears from the marketplace immediately. The reason is recorded.")
+                      : (lang==="bn"
+                          ? "আবেদনকারী এই কারণটি দেখবেন এবং সংশোধন করে আবার আবেদন করতে পারবেন।"
+                          : "The applicant sees this reason and can correct it and apply again.")}
+                  </Paragraph>
+                  <Input.TextArea rows={3} value={listingReason} maxLength={500} showCount
+                    onChange={e=>setListingReason(e.target.value)}
+                    placeholder={lang==="bn"
+                      ? "যেমন: সেবার বিবরণ অসম্পূর্ণ এবং এলাকা উল্লেখ নেই।"
+                      : "e.g. The service description is incomplete and no area is given."} />
+                </Modal>
               </>
             )}
 

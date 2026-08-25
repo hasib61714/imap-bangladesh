@@ -88,7 +88,17 @@ router.get("/providers", authMiddleware, requireAuthorization(ACTION.PROVIDER_LI
                 u.is_active, p.service_type_en AS service_slug, p.service_type_bn,
                 p.area_en AS area, p.area_bn, p.rating, p.total_jobs,
                 p.bio_en AS bio, p.bio_bn, p.nid_verified,
-                u.joined_at,
+                u.joined_at, p.hourly_rate,
+                -- I-07: the operator's queue needs the state that actually
+                -- decides listing, and whether the identity clause is met.
+                -- Without these the panel could only show is_active, which
+                -- is the ACCOUNT, so "approve provider" was activating an
+                -- account and calling it an approval.
+                p.listing_state,
+                EXISTS (SELECT 1 FROM verification_case v
+                         WHERE v.principal_id = p.user_id AND v.kind = 'identity'
+                           AND v.state = 'verified'
+                           AND (v.expires_at IS NULL OR v.expires_at > NOW())) AS identity_verified,
                 (SELECT COALESCE(SUM(b.amount+COALESCE(b.platform_fee,0)),0)
                  FROM bookings b WHERE b.provider_id = p.id AND b.status = 'completed') AS earned
          FROM providers p LEFT JOIN users u ON u.id = p.user_id
