@@ -524,6 +524,54 @@ for (const [name, method, path, auth] of surfaces) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════
+group("payments — the return journey");
+
+await step("the gateway can post the customer back, and gets a redirect", async () => {
+  // SSLCommerz returns the customer by POSTing a form to success_url from
+  // ITS OWN origin. That was rejected by the CORS allowlist, so a customer
+  // who had just paid landed on {"error":"Not allowed by CORS"} instead of
+  // the app — in production, every single time.
+  const r = await fetch(BASE + "/payments/success", {
+    method: "POST",
+    headers: {
+      "Origin": "https://sandbox.sslcommerz.com",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "tran_id=smoke-test&status=VALID",
+    redirect: "manual",
+  });
+  expect([301, 302, 303].includes(r.status),
+    "the gateway redirect answered " + r.status + " instead of redirecting the customer back");
+  return "302 → frontend";
+});
+
+for (const path of ["/payments/fail", "/payments/cancel"]) {
+  await step("the gateway can post to" + path, async () => {
+    const r = await fetch(BASE + path, {
+      method: "POST",
+      headers: { "Origin": "https://securepay.sslcommerz.com", "Content-Type": "application/x-www-form-urlencoded" },
+      body: "tran_id=smoke-test", redirect: "manual",
+    });
+    expect([301, 302, 303].includes(r.status), path + " answered " + r.status);
+  });
+}
+
+await step("a foreign origin is still refused on a data endpoint", async () => {
+  // The exemption is three redirect paths, not a hole in the allowlist.
+  const r = await fetch(BASE + "/providers", { headers: { "Origin": "https://evil.example.com" } });
+  const body = await r.text();
+  expect(/Not allowed by CORS/.test(body),
+    "a foreign origin read the provider directory — the CORS exemption is too wide");
+});
+
+await step("settlement is refused without a verified gateway transaction", async () => {
+  // The reconcile endpoint asks the gateway; it must never settle on the
+  // caller's say-so. An unknown payment id is refused outright.
+  const r = await call("POST", "/payments/00000000-0000-0000-0000-000000000000/reconcile", { token: ctx.customer.token });
+  expectStatus(r, [403, 404], "reconcile an unknown payment");
+});
+
 await step("the blood directory refuses an anonymous caller", async () => {
   // Not a bug: donor phone numbers are masked and releasing one is logged,
   // so the list itself is behind authentication by design.

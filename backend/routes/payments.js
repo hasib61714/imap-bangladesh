@@ -316,6 +316,71 @@ router.get("/admin/all", authMiddleware, requireAuthorization(ACTION.PAYMENT_REA
 });
 
 /* ── GET /api/payments/:id ── */
+/* ── POST /api/payments/:id/reconcile ──
+   Ask the GATEWAY what happened, and settle if it says the money moved.
+
+   WHY THIS IS NOT A HOLE
+   ──────────────────────
+   P1-3 removed settlement from the redirect handlers because anyone can POST
+   to them with any tran_id. This is a different thing: the caller supplies
+   only WHICH payment to look up, is authorized against that row by the
+   kernel, and the answer comes from SSLCommerz — the same authority the IPN
+   handler consults, through the same `settlePayment` path, with the same
+   amount reconciliation (P1-4) and the same idempotency.
+
+   WHY IT IS NEEDED
+   ────────────────
+   The IPN was the ONLY settlement path, and an IPN is a server-to-server
+   callback that can be missed: a cold start, a deploy, a blip, or a backend
+   the public internet cannot reach. When it is missed the customer has paid
+   and the platform does not know — which is the worst failure this system
+   has, because it is silent and it is the customer's money.
+
+   In local development the IPN can never arrive at all (SSLCommerz cannot
+   reach localhost), so without this a developer could never see a payment
+   complete end to end. */
+router.post("/:id/reconcile", authMiddleware,
+  requireAuthorization(ACTION.PAYMENT_OBSERVE, { resource: (req) => req.params.id }),
+  async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT id, status, user_id FROM payments WHERE id = ?", [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: "Payment not found" });
+    if (rows[0].status === "success") return res.json({ status: "already_processed", settled: true });
+
+    if (!payment.isConfigured()) {
+      // Same rule as the IPN: no credentials means no way to verify, so
+      // nothing is credited (P0-12).
+      return res.status(503).json({ error: "Payments are temporarily unavailable.", code: "PAYMENT_GATEWAY_UNAVAILABLE" });
+    }
+
+    const tx = await payment.queryTransaction(req.params.id);
+    if (!tx || (tx.status !== "VALID" && tx.status !== "VALIDATED")) {
+      return res.json({ status: tx ? String(tx.status).toLowerCase() : "unknown", settled: false });
+    }
+
+    const outcome = await settlePayment({
+      tranId: req.params.id,
+      valId: tx.val_id || null,
+      // The gateway's figure, never anything the caller sent.
+      gatewayAmount: tx.amount ?? tx.store_amount,
+    });
+
+    if (outcome === "credited") {
+      bustPaymentCaches(rows[0].user_id);
+      pool.query(
+        "INSERT INTO notifications (user_id,icon,type,title_bn,title_en,body_bn,body_en) VALUES (?,?,?,?,?,?,?)",
+        [rows[0].user_id, "✅", "payment", "পেমেন্ট সফল", "Payment Successful",
+         "আপনার পেমেন্ট গ্রহণ করা হয়েছে।", "Your payment has been received."]
+      ).catch(() => {});
+    }
+    res.json({ status: outcome, settled: outcome === "credited" || outcome === "already_processed" });
+  } catch (err) {
+    if (err.status === 409) return res.status(409).json({ error: "Payment amount mismatch", code: "AMOUNT_MISMATCH" });
+    logger.error("payment-reconcile:", err);
+    res.status(502).json({ error: "Could not reach the payment gateway. Try again shortly." });
+  }
+});
+
 router.get("/:id", authMiddleware,
   requireAuthorization(ACTION.PAYMENT_OBSERVE, { resource: (req) => req.params.id }),
   async (req, res) => {

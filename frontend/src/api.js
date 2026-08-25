@@ -443,6 +443,16 @@ export const payments = {
   list: (page = 1) => get(`/payments?page=${page}`),
   /** Get single payment detail */
   get: (id) => get(`/payments/${id}`),
+  /**
+   * Ask the gateway what happened and settle if it says the money moved.
+   *
+   * The IPN is the only other settlement path, and it can be missed — a
+   * cold start, a deploy, a backend the public internet cannot reach. Then
+   * the customer has paid and the platform does not know. This asks the
+   * same authority the IPN handler asks; the browser supplies only which
+   * payment to look up.
+   */
+  reconcile: (id) => post(`/payments/${id}/reconcile`, {}),
   /** Admin: list all payments */
   adminList: (status, page = 1) =>
     get(`/payments/admin/all?page=${page}${status ? `&status=${status}` : ""}`),

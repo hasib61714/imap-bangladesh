@@ -4662,6 +4662,20 @@ export default function IMAP() {
       setPayResultTranId(tranId);
       setShowPayment(true);
       window.history.replaceState({},"",window.location.pathname+window.location.hash);
+      /**
+       * The redirect is not proof of payment — anyone can construct this URL,
+       * which is why P1-3 made the redirect handlers do nothing but redirect.
+       * So we do not trust it; we ask the gateway.
+       *
+       * Without this, a payment settles only when the IPN arrives, and an
+       * IPN can be missed. Locally it can never arrive at all, because
+       * SSLCommerz cannot reach localhost.
+       */
+      if(payStatus==="success"&&tranId&&getToken()){
+        paymentsApi.reconcile(tranId)
+          .then(r=>{ if(r&&r.settled) setPayResult("success"); })
+          .catch(()=>{ /* the result screen already reads the real status */ });
+      }
     }
     return()=>window.removeEventListener("resize",check);
   },[])

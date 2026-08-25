@@ -113,6 +113,37 @@ const allowedOrigins = [
   "https://hasib61714.github.io",  // gh-pages (always allowed)
 ].filter(Boolean);
 
+/**
+ * Payment gateway redirect targets are exempt from the origin allowlist.
+ *
+ * WHY, AND WHAT BREAKS WITHOUT IT
+ * ───────────────────────────────
+ * SSLCommerz returns the customer by POSTING a form to `success_url` from
+ * ITS OWN origin. That request carries `Origin: https://sandbox.sslcommerz.com`
+ * (or securepay in live), which is not on the allowlist, so cors() rejected
+ * it — and the customer, having just paid, landed on
+ *
+ *     {"error":"Not allowed by CORS"}
+ *
+ * instead of the app. Found by completing a real sandbox payment; it would
+ * have done exactly the same thing in production to every single customer.
+ *
+ * Exempting these three is safe because of what they are and are not. They
+ * are browser NAVIGATIONS whose entire response is a redirect back to the
+ * frontend — no data is returned for a foreign origin to read, so there is
+ * nothing for CORS to protect. And they move no money: P1-3 made the IPN the
+ * only settlement path precisely because anyone can POST here with any
+ * tran_id.
+ *
+ * The IPN itself needs no exemption — it is server-to-server and carries no
+ * Origin header at all, which the `!origin` branch already allows.
+ */
+const GATEWAY_REDIRECT_PATHS = new Set([
+  "/api/payments/success",
+  "/api/payments/fail",
+  "/api/payments/cancel",
+]);
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // same-origin / server-to-server / curl
@@ -123,6 +154,18 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+/**
+ * Runs AFTER cors() so a rejected gateway redirect is rescued rather than
+ * the allowlist being widened. Only the three redirect paths, only when the
+ * failure was the CORS check, and the handler beneath still only redirects.
+ */
+app.use((err, req, res, next) => {
+  if (err && err.message === "Not allowed by CORS" && GATEWAY_REDIRECT_PATHS.has(req.path)) {
+    return next();
+  }
+  return next(err);
+});
 
 app.use(compression());
 app.use(requestLogger);

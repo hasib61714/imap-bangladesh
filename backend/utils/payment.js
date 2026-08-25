@@ -148,6 +148,52 @@ async function validatePayment(valId) {
   }
 }
 
+/**
+ * Ask the gateway what happened to one transaction, by OUR id.
+ *
+ * WHY THIS EXISTS
+ * ───────────────
+ * The IPN is the only path that settles a payment (P1-3 — the redirect
+ * handlers deliberately do nothing but redirect). That is the right shape
+ * for security and the wrong shape for reliability on its own: an IPN is a
+ * server-to-server callback, and it can be missed. A cold start, a deploy, a
+ * network blip, a backend not reachable from the public internet — and the
+ * customer has paid while the platform has no idea.
+ *
+ * This closes that without weakening anything, because it asks the SAME
+ * authority the IPN handler asks. The browser tells us only which
+ * transaction to look up; the gateway says whether it was paid and for how
+ * much, and `settlePayment` reconciles that against the amount we recorded
+ * when the session was created (P1-4).
+ *
+ * Returns the transaction element, or null when the gateway has never heard
+ * of it.
+ */
+async function queryTransaction(tranId) {
+  if (!storeId || !storePass) throw new Error("SSLCommerz credentials not set");
+
+  const url = new URL(`${BASE()}/validator/api/merchantTransIDvalidationAPI.php`);
+  url.searchParams.set("tran_id", tranId);
+  url.searchParams.set("store_id", storeId);
+  url.searchParams.set("store_passwd", storePass);
+  url.searchParams.set("format", "json");
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const text = await res.text();
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`SSLCommerz transaction query returned a non-JSON response (HTTP ${res.status})`);
+  }
+
+  const elements = Array.isArray(body.element) ? body.element : [];
+  // The gateway returns one element per attempt. A transaction can be tried,
+  // fail, and be tried again, so the SETTLED one is what matters — not
+  // whichever happens to be first.
+  return elements.find((e) => e.status === "VALID" || e.status === "VALIDATED") || elements[0] || null;
+}
+
 function isConfigured() { return !!(storeId && storePass); }
 
 /** What an operator health check can safely be told. Never the secret. */
@@ -160,4 +206,4 @@ function describe() {
   };
 }
 
-module.exports = { initiatePayment, validatePayment, isConfigured, describe };
+module.exports = { initiatePayment, validatePayment, queryTransaction, isConfigured, describe };
