@@ -6,7 +6,8 @@ import {
 } from "antd";
 import {
   GoogleOutlined, UserOutlined, MobileOutlined,
-  MailOutlined, LockOutlined, ArrowLeftOutlined
+  MailOutlined, LockOutlined, ArrowLeftOutlined,
+  EyeOutlined, EyeInvisibleOutlined
 } from "@ant-design/icons";
 import { T } from "../constants/translations";
 import { auth as authApi, setToken } from "../api";
@@ -16,7 +17,19 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 // A row of decorative marks beside the sign-in art. They were emoji; now
 // they are one repeated mark, which is what a decoration should be.
-const EYE_CYCLE = ["star","star","star","star","star","star"];
+
+/**
+ * The server's policy, mirrored. `backend/utils/password.js` is the
+ * authority — this exists so the requirements are visible while typing
+ * rather than discovered on submit.
+ */
+const PASSWORD_RULES = [
+  { key: "len",   test: (p) => p.length >= 12, en: "12 characters or more", bn: "১২ অক্ষর বা বেশি" },
+  { key: "lower", test: (p) => /[a-z]/.test(p), en: "a lowercase letter",    bn: "একটি ছোট হাতের অক্ষর" },
+  { key: "upper", test: (p) => /[A-Z]/.test(p), en: "an uppercase letter",   bn: "একটি বড় হাতের অক্ষর" },
+  { key: "digit", test: (p) => /[0-9]/.test(p), en: "a digit",               bn: "একটি সংখ্যা" },
+  { key: "sym",   test: (p) => /[^A-Za-z0-9]/.test(p), en: "a symbol",       bn: "একটি চিহ্ন" },
+];
 
 export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }) {
   const tr = T[lang] || T.bn;
@@ -29,7 +42,6 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [eyeIdx, setEyeIdx] = useState(0);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [mockOtp, setMockOtp] = useState("");
@@ -60,10 +72,7 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
     onAuth(user);
   };
 
-  const toggleEye = () => {
-    setEyeIdx(i => (i + 1) % EYE_CYCLE.length);
-    setShowPass(p => !p);
-  };
+  const toggleEye = () => setShowPass(p => !p);
 
   // ── Real Google OAuth via GSI ────────────────────────────
   const doGoogleLogin = () => {
@@ -122,7 +131,18 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
 
   const doEmailAuth = async () => {
     if (!email.includes("@")) { setErr(lang === "bn" ? "সঠিক Email দিন" : "Enter valid email"); return; }
-    if (password.length < 6)  { setErr(lang === "bn" ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর" : "Password min 6 chars"); return; }
+    // Only on the way IN to a new account. An existing password predates
+    // this rule and must still be able to sign in.
+    if (mode !== "login") {
+      const unmet = PASSWORD_RULES.filter(r => !r.test(password));
+      if (unmet.length) {
+        setErr((lang === "bn" ? "পাসওয়ার্ডে থাকতে হবে: " : "Password needs ") +
+               unmet.map(r => lang === "bn" ? r.bn : r.en).join(", "));
+        return;
+      }
+    } else if (!password) {
+      setErr(lang === "bn" ? "পাসওয়ার্ড দিন" : "Enter your password"); return;
+    }
     setErr(""); setLoadingKey("email");
     try {
       if (mode === "login") {
@@ -301,14 +321,13 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
                   the server accepted it as proof. Google is disabled unless a
                   real client id is configured, because without one there is
                   nothing to verify against. */}
-              <Button className="s-btn" onClick={doGoogleLogin}
+              {GOOGLE_CLIENT_ID && <Button className="s-btn" onClick={doGoogleLogin}
                 loading={loadingKey === "google"}
-                disabled={!GOOGLE_CLIENT_ID || (!!loadingKey && loadingKey !== "google")}
-                title={GOOGLE_CLIENT_ID ? undefined : (lang === "bn" ? "Google সাইন-ইন কনফিগার করা নেই" : "Google sign-in is not configured")}
+                disabled={!!loadingKey && loadingKey !== "google"}
                 style={{ border: "1.5px solid #e5e7eb", background: dark ? "#1e293b" : "#fff", color: dark ? "#fff" : "#374151" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                 {tr.authGoogle}
-              </Button>
+              </Button>}
 
               <Divider style={{ margin: "12px 0", fontSize: 12, color: "#9ca3af" }}>{tr.authOr}</Divider>
 
@@ -320,8 +339,16 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
                   <Input
                     prefix={<LockOutlined style={{ color: "#9ca3af" }} />}
                     suffix={
-                      <span className="eye-btn" onClick={toggleEye} title={lang === "bn" ? "ক্লিক করুন" : "Click me"}>
-                        {EYE_CYCLE[eyeIdx]}
+                      <span className="eye-btn" role="button" tabIndex={0}
+                        onClick={toggleEye}
+                        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEye(); } }}
+                        aria-label={showPass
+                          ? (lang === "bn" ? "পাসওয়ার্ড লুকান" : "Hide password")
+                          : (lang === "bn" ? "পাসওয়ার্ড দেখান" : "Show password")}
+                        title={showPass
+                          ? (lang === "bn" ? "পাসওয়ার্ড লুকান" : "Hide password")
+                          : (lang === "bn" ? "পাসওয়ার্ড দেখান" : "Show password")}>
+                        {showPass ? <EyeInvisibleOutlined /> : <EyeOutlined />}
                       </span>
                     }
                     type={showPass ? "text" : "password"}
@@ -332,9 +359,28 @@ export default function AuthPage({ onAuth, dark, lang, setLang, onBack, reason }
                     size="large"
                     style={{ borderRadius: 12, marginBottom: 12 }}
                   />
-                  {mode === "login" && (
+                  {mode === "login" ? (
                     <div style={{ textAlign: "right", fontSize: 12, color: "#006A4E", cursor: "pointer", marginBottom: 10, fontWeight: 600 }}>
                       {tr.authForgot}
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", gap: "5px 12px" }}>
+                      {PASSWORD_RULES.map(r => {
+                        const ok = r.test(password);
+                        return (
+                          <span key={r.key} style={{
+                            fontSize: 11.5, fontWeight: 600,
+                            color: ok ? "#006A4E" : (password ? "#9AA3A0" : "#7E8683"),
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                          }}>
+                            <span aria-hidden="true" style={{
+                              width: 6, height: 6, borderRadius: "50%",
+                              background: ok ? "#006A4E" : "#C9D0CD", display: "inline-block",
+                            }} />
+                            {lang === "bn" ? r.bn : r.en}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                   {err && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 10 }}>{err}</div>}
